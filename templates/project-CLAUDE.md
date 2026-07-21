@@ -28,4 +28,4 @@ After completing a change, ask the user whether they want to run the quality gat
 
 ## Quality evaluation
 
-Apply `.claude/framework/standards/PROJECT_AUDIT_FRAMEWORK.md` (global standard) extended by `PROJECT_AUDIT_FRAMEWORK.md` in this directory (project-specific specializations).
+Apply `.claude/framework/standards/PROJECT_AUDIT_FRAMEWORK.md` (global standard) extended by `.claude/PROJECT_AUDIT_FRAMEWORK.md` (project-specific specializations).

@@ -26,7 +26,7 @@ If `.claudeignore` is absent from the project root, note it in the final report 
 Collect all of the following into `$AUDIT_DIR/evidence.md` (append each section with a clear separator):
 
 - `cat "$FRAMEWORK_DIR/standards/PROJECT_AUDIT_FRAMEWORK.md"` — global framework
-- `cat PROJECT_AUDIT_FRAMEWORK.md` — project-local framework (if present; note if missing)
+- `cat .claude/PROJECT_AUDIT_FRAMEWORK.md` — project-local framework (if present; note if missing)
 - `cat CLAUDE.md` and `cat README.md` — project context
 - Dependency manifest: `composer.json`, `package.json`, or `pyproject.toml`
 - CI/CD config: all files under `.github/workflows/`, `Makefile`

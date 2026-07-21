@@ -56,7 +56,7 @@ Read it before conducting any quality evaluation or scoring. Do not score from m
 ### How to conduct an evaluation
 
 1. Read `.claude/framework/standards/PROJECT_AUDIT_FRAMEWORK.md` in full before scoring
-2. Check for `PROJECT_AUDIT_FRAMEWORK.md` in the project root — if present, it extends the global framework; apply both
+2. Check for `.claude/PROJECT_AUDIT_FRAMEWORK.md` — if present, it extends the global framework; apply both
 3. Score each subcategory with specific file/line evidence — no vague scores
 4. Identify top 3 improvement opportunities by impact/effort ratio
 5. Produce a category summary table with score, top gap, and recommended action
@@ -69,12 +69,12 @@ Read it before conducting any quality evaluation or scoring. Do not score from m
 Apply `.claude/framework/standards/CODING_STANDARDS.md` before every implementation decision. Every code proposal must reflect these standards — this is not optional and does not require an explicit request.
 
 **Before writing code in any project, check:**
-- Does a `CODING_STANDARDS.md` exist in the project root? If not, flag it **once per session**:
-  > ⚠ No project-level `CODING_STANDARDS.md` found. Stack-specific coding conventions are not defined. See `.claude/framework/templates/CODING_STANDARDS.md` for the format.
-- Does a `PROJECT_AUDIT_FRAMEWORK.md` exist in the project root? If not, flag it **once per session**:
-  > ⚠ No project-level `PROJECT_AUDIT_FRAMEWORK.md` found. Quality evaluation will use only the global framework.
+- Does `.claude/CODING_STANDARDS.md` exist? If not, flag it **once per session**:
+  > ⚠ No project-level `.claude/CODING_STANDARDS.md` found. Stack-specific coding conventions are not defined. See `.claude/framework/templates/CODING_STANDARDS.md` for the format.
+- Does `.claude/PROJECT_AUDIT_FRAMEWORK.md` exist? If not, flag it **once per session**:
+  > ⚠ No project-level `.claude/PROJECT_AUDIT_FRAMEWORK.md` found. Quality evaluation will use only the global framework.
 
-If a project-level `CODING_STANDARDS.md` or `PROJECT_AUDIT_FRAMEWORK.md` exists, it takes precedence over the global framework where they conflict.
+If `.claude/CODING_STANDARDS.md` or `.claude/PROJECT_AUDIT_FRAMEWORK.md` exist, they take precedence over the global framework where they conflict.
 
 ---
 

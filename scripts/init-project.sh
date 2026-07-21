@@ -57,18 +57,18 @@ else
     echo "  ✓  Created CLAUDE.md from template"
 fi
 
-if [ -f "$PROJECT_ROOT/PROJECT_AUDIT_FRAMEWORK.md" ]; then
-    echo "  ↩  PROJECT_AUDIT_FRAMEWORK.md already exists (skipped)"
+if [ -f "$PROJECT_ROOT/.claude/PROJECT_AUDIT_FRAMEWORK.md" ]; then
+    echo "  ↩  .claude/PROJECT_AUDIT_FRAMEWORK.md already exists (skipped)"
 else
-    cp "$FRAMEWORK_DIR/templates/PROJECT_AUDIT_FRAMEWORK.md" "$PROJECT_ROOT/PROJECT_AUDIT_FRAMEWORK.md"
-    echo "  ✓  Created PROJECT_AUDIT_FRAMEWORK.md from template"
+    cp "$FRAMEWORK_DIR/templates/PROJECT_AUDIT_FRAMEWORK.md" "$PROJECT_ROOT/.claude/PROJECT_AUDIT_FRAMEWORK.md"
+    echo "  ✓  Created .claude/PROJECT_AUDIT_FRAMEWORK.md from template"
 fi
 
-if [ -f "$PROJECT_ROOT/CODING_STANDARDS.md" ]; then
-    echo "  ↩  CODING_STANDARDS.md already exists (skipped)"
+if [ -f "$PROJECT_ROOT/.claude/CODING_STANDARDS.md" ]; then
+    echo "  ↩  .claude/CODING_STANDARDS.md already exists (skipped)"
 else
-    cp "$FRAMEWORK_DIR/templates/CODING_STANDARDS.md" "$PROJECT_ROOT/CODING_STANDARDS.md"
-    echo "  ✓  Created CODING_STANDARDS.md from template"
+    cp "$FRAMEWORK_DIR/templates/CODING_STANDARDS.md" "$PROJECT_ROOT/.claude/CODING_STANDARDS.md"
+    echo "  ✓  Created .claude/CODING_STANDARDS.md from template"
 fi
 
 echo ""
@@ -123,17 +123,17 @@ else
 fi
 
 # Project specialization files
-if [ -f "$PROJECT_ROOT/PROJECT_AUDIT_FRAMEWORK.md" ]; then
-    echo "  ✓  PROJECT_AUDIT_FRAMEWORK.md present"
+if [ -f "$PROJECT_ROOT/.claude/PROJECT_AUDIT_FRAMEWORK.md" ]; then
+    echo "  ✓  .claude/PROJECT_AUDIT_FRAMEWORK.md present"
 else
-    echo "  ⚠  PROJECT_AUDIT_FRAMEWORK.md missing — /project-audit will use global framework only"
+    echo "  ⚠  .claude/PROJECT_AUDIT_FRAMEWORK.md missing — /project-audit will use global framework only"
     WARNINGS=$((WARNINGS + 1))
 fi
 
-if [ -f "$PROJECT_ROOT/CODING_STANDARDS.md" ]; then
-    echo "  ✓  CODING_STANDARDS.md present"
+if [ -f "$PROJECT_ROOT/.claude/CODING_STANDARDS.md" ]; then
+    echo "  ✓  .claude/CODING_STANDARDS.md present"
 else
-    echo "  ⚠  CODING_STANDARDS.md missing — global coding standards apply without stack grounding"
+    echo "  ⚠  .claude/CODING_STANDARDS.md missing — global coding standards apply without stack grounding"
     WARNINGS=$((WARNINGS + 1))
 fi
 
