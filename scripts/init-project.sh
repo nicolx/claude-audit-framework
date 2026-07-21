@@ -20,22 +20,16 @@ fi
 echo "🔧 Initializing claude-audit-framework..."
 echo ""
 
-# ── Step 1 — Link skills ──────────────────────────────────────────────────────
+# ── Step 1 — Install skills ───────────────────────────────────────────────────
+# Commands are copied (not symlinked) — Claude Code does not follow symlinks.
+# Always overwrite: command files belong to the framework, not the project.
 
 mkdir -p "$COMMANDS_DIR"
 for skill in "$FRAMEWORK_DIR"/commands/*.md; do
     filename=$(basename "$skill")
     target="$COMMANDS_DIR/$filename"
-    relative_source="../framework/commands/$filename"
-
-    if [ -L "$target" ]; then
-        echo "  ↩  Skill already linked (skipped): $filename"
-    elif [ -e "$target" ]; then
-        echo "  ⚠  Skill exists as a regular file (skipped): $filename"
-    else
-        ln -s "$relative_source" "$target"
-        echo "  ✓  Linked skill: /$( basename "$filename" .md )"
-    fi
+    cp "$skill" "$target"
+    echo "  ✓  Installed skill: /$( basename "$filename" .md )"
 done
 
 echo ""
@@ -103,10 +97,10 @@ for skill in "$FRAMEWORK_DIR"/commands/*.md; do
     filename=$(basename "$skill")
     target="$COMMANDS_DIR/$filename"
     skillname="/$( basename "$filename" .md )"
-    if [ -L "$target" ] && [ -e "$target" ]; then
+    if [ -f "$target" ]; then
         echo "  ✓  Skill available: $skillname"
     else
-        echo "  ✗  Skill missing or broken: $skillname"
+        echo "  ✗  Skill missing: $skillname"
         ERRORS=$((ERRORS + 1))
     fi
 done
@@ -211,5 +205,6 @@ fi
 echo ""
 echo "To update the framework later:"
 echo "  cd .claude/framework && git pull origin main && cd ../.."
-echo "  git add .claude/framework && git commit -m 'chore: update claude-audit-framework'"
+echo "  bash .claude/framework/scripts/init-project.sh    # refreshes command copies"
+echo "  git add .claude/ && git commit -m 'chore: update claude-audit-framework'"
 echo ""
