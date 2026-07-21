@@ -7,20 +7,17 @@ This file is included via `@.claude/framework/CLAUDE.md` in the project's `CLAUD
 
 ## Developer profile
 
-Before proposing any technical solution, architectural choice, or implementation strategy, read `~/.claude/context/user_profile.md`.
-
-**If the file does NOT exist:** Before answering any technical question, tell the developer:
-> 👋 No developer profile found on this machine. Run `/init-profile` to set up your profile — it takes ~5 minutes and ensures all recommendations are calibrated to your skill level.
-
-**If it exists:** Read it in full and calibrate every response to the competency levels defined inside:
+If `~/.claude/context/user_profile.md` exists, read it in full before proposing any technical solution, architectural choice, or implementation strategy. Calibrate every response to the competency levels defined inside:
 - **Fluente** — propose advanced patterns freely; skip basic explanations; use domain terms without glossing
 - **Operativo** — use in proposals but explain non-obvious choices; avoid advanced patterns without rationale
 - **Base** — avoid as the primary technology; prefer alternatives where available; when unavoidable, use simple patterns and explain clearly
 
 Entries marked with `*` are gaps the developer intends to fill. When a task genuinely requires one, flag it explicitly before proceeding — the goal is to grow the competency in context, not to avoid it.
 
-At the start of each session, check the `next_review_date` field in the profile. If today's date is on or past that date, flag it once:
+At the start of each session, check the `next_review_date` field. If today's date is on or past that date, flag it once:
 > 📋 Competency review due — run `/competency-review` when ready.
+
+**If the file does NOT exist:** mention it once at the start of the session — `> 💡 No developer profile found. Run /init-profile to enable skill-level calibration.` — then proceed normally without repeating it.
 
 ---
 

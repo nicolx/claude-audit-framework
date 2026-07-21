@@ -2,6 +2,8 @@ Run a complete, scored quality evaluation using **10 parallel scoring agents** �
 
 > **Execution model:** Phase 1 (gather evidence, sequential) → Phase 2 (10 parallel `claude -p` subagents, one per category) → Phase 3 (aggregate report, sequential). The scoring phase — pure reasoning, fully independent across categories — runs concurrently.
 
+> ⚠ **Token cost:** this command packs the full project source into an evidence bundle and passes it to 10 parallel `claude -p` processes. On large projects (>5k lines of source) expect significant token usage — each agent receives the entire bundle. Use on a defined scope when the project is large: `/project-audit src/Billing` rather than the full tree. Do not run as a routine check.
+
 ---
 
 ## Phase 1 — Gather evidence (orchestrator, sequential)

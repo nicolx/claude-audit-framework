@@ -1,7 +1,7 @@
 #!/bin/bash
 # init-project.sh — Initialize claude-audit-framework in a project
 # Run from the project root after adding the submodule:
-#   git submodule add git@github.com:nicola/claude-audit-framework.git .claude/framework
+#   git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
 #   bash .claude/framework/scripts/init-project.sh
 
 set -e
@@ -13,7 +13,7 @@ COMMANDS_DIR="$PROJECT_ROOT/.claude/commands"
 if [ ! -d "$FRAMEWORK_DIR" ]; then
     echo "❌ Framework not found at .claude/framework/"
     echo "   Add it first:"
-    echo "   git submodule add git@github.com:nicola/claude-audit-framework.git .claude/framework"
+    echo "   git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework"
     exit 1
 fi
 
@@ -43,7 +43,15 @@ echo ""
 # ── Step 2 — Scaffold project files ──────────────────────────────────────────
 
 if [ -f "$PROJECT_ROOT/CLAUDE.md" ]; then
-    echo "  ↩  CLAUDE.md already exists (skipped)"
+    if grep -q "@.claude/framework/CLAUDE.md" "$PROJECT_ROOT/CLAUDE.md"; then
+        echo "  ↩  CLAUDE.md already includes @.claude/framework/CLAUDE.md (skipped)"
+    else
+        TEMP=$(mktemp)
+        printf '@.claude/framework/CLAUDE.md\n\n' > "$TEMP"
+        cat "$PROJECT_ROOT/CLAUDE.md" >> "$TEMP"
+        mv "$TEMP" "$PROJECT_ROOT/CLAUDE.md"
+        echo "  ✓  Prepended @.claude/framework/CLAUDE.md to existing CLAUDE.md"
+    fi
 else
     cp "$FRAMEWORK_DIR/templates/project-CLAUDE.md" "$PROJECT_ROOT/CLAUDE.md"
     echo "  ✓  Created CLAUDE.md from template"
@@ -129,9 +137,9 @@ if [ -f "$HOME/.claude/context/user_profile.md" ]; then
     echo "  ✓  Developer profile found (~/.claude/context/user_profile.md)"
     PROFILE_MISSING=0
 else
-    echo "  ✗  Developer profile NOT found (~/.claude/context/user_profile.md)"
-    echo "     This is required before Claude Code can calibrate its recommendations."
-    ERRORS=$((ERRORS + 1))
+    echo "  ⚠  Developer profile NOT found (~/.claude/context/user_profile.md)"
+    echo "     Run /init-profile in Claude Code to calibrate recommendations to your skill level."
+    WARNINGS=$((WARNINGS + 1))
     PROFILE_MISSING=1
 fi
 
@@ -156,10 +164,8 @@ echo ""
 
 STEP=1
 if [ "$PROFILE_MISSING" -eq 1 ]; then
-    echo "  $STEP.  ⚠  REQUIRED — Open Claude Code in this project and run:"
-    echo "           /init-profile"
-    echo "           This creates your developer profile at ~/.claude/context/user_profile.md."
-    echo "           Claude Code will NOT calibrate recommendations until this is done."
+    echo "  $STEP. (optional) Open Claude Code and run /init-profile to create your developer profile"
+    echo "         Enables calibration of recommendations to your skill level."
     STEP=$((STEP + 1))
     echo ""
 fi

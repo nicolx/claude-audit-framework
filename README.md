@@ -13,7 +13,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 
 ```bash
 # Add the submodule
-git submodule add git@github.com:nicola/claude-audit-framework.git .claude/framework
+git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
 
 # Bootstrap: creates symlinks in .claude/commands/ and scaffolds project files
 bash .claude/framework/scripts/init-project.sh
@@ -51,7 +51,7 @@ git commit -m "chore: update claude-audit-framework"
 
 The project's `CLAUDE.md` includes `@.claude/framework/CLAUDE.md`, which loads quality framework instructions into every Claude Code session. Skills are available via symlinks in `.claude/commands/` created by `init-project.sh`.
 
-Each developer has their own profile at `~/.claude/context/user_profile.md`. When the profile is missing, Claude prompts you to run `/init-profile` before answering technical questions.
+Each developer has their own profile at `~/.claude/context/user_profile.md`. When the profile is missing, Claude suggests running `/init-profile` at the start of the session and then proceeds normally.
 
 ## Project-level specializations
 
