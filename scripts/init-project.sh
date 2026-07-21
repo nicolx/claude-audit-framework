@@ -26,7 +26,7 @@ mkdir -p "$COMMANDS_DIR"
 for skill in "$FRAMEWORK_DIR"/commands/*.md; do
     filename=$(basename "$skill")
     target="$COMMANDS_DIR/$filename"
-    relative_source="../../framework/commands/$filename"
+    relative_source="../framework/commands/$filename"
 
     if [ -L "$target" ]; then
         echo "  ↩  Skill already linked (skipped): $filename"
@@ -73,7 +73,22 @@ fi
 
 echo ""
 
-# ── Step 3 — Verification ─────────────────────────────────────────────────────
+# ── Step 3 — Exclude .claude/ from git archive (deploy) ──────────────────────
+
+GITATTRIBUTES="$PROJECT_ROOT/.gitattributes"
+EXPORT_IGNORE_ENTRY=".claude/ export-ignore"
+
+if [ -f "$GITATTRIBUTES" ] && grep -qF "$EXPORT_IGNORE_ENTRY" "$GITATTRIBUTES"; then
+    echo "  ↩  .gitattributes already excludes .claude/ from git archive (skipped)"
+else
+    echo "$EXPORT_IGNORE_ENTRY" >> "$GITATTRIBUTES"
+    echo "  ✓  Added '.claude/ export-ignore' to .gitattributes"
+    echo "     .claude/ will be excluded by Deployer, Capistrano and any tool using git archive"
+fi
+
+echo ""
+
+# ── Step 4 — Verification ─────────────────────────────────────────────────────
 
 echo "────────────────────────────────────────────────"
 echo "🔍 Verification"
@@ -128,6 +143,14 @@ if [ -f "$PROJECT_ROOT/.claudeignore" ]; then
 else
     echo "  ⚠  .claudeignore missing — create it before running /project-audit"
     WARNINGS=$((WARNINGS + 1))
+fi
+
+# .gitattributes export-ignore
+if grep -qF ".claude/ export-ignore" "$PROJECT_ROOT/.gitattributes" 2>/dev/null; then
+    echo "  ✓  .claude/ excluded from git archive (.gitattributes)"
+else
+    echo "  ✗  .claude/ NOT excluded from git archive — deploy tools may include it"
+    ERRORS=$((ERRORS + 1))
 fi
 
 echo ""
