@@ -1131,6 +1131,8 @@ Evaluate the codebase against the current OWASP Top 10. Key items beyond the abo
 
 The core question: *if this system misbehaves at 3am, can the on-call engineer understand what happened and fix it without reading the source code?*
 
+And its companion, which is about operability rather than diagnosis: *will the system still be running at 3am, or will it have quietly filled its own disk?* Observability that costs unbounded storage eventually becomes the outage it was meant to diagnose.
+
 ### Subcriteria
 
 #### 9.1 Structured logging
@@ -1218,6 +1220,52 @@ When a dependency fails, the system should continue serving users as best it can
 - One failed external API call causes a full page crash
 - No fallback for a missing non-critical dependency
 - Cascading failures: one slow service causes threads to pile up, crashing unrelated services
+
+#### 9.6 Log retention and disk hygiene *(Backend/Server-side and long-running processes)*
+
+**Scope:** Applies wherever the system writes logs to durable storage it owns — servers, containers with persistent volumes, background workers. For managed platforms that enforce retention for you (hosted log drains, ephemeral container stdout), the criterion is met by that platform, but the *bound* must still be known.
+
+Every log sink has a bound. The question is whether you chose it or inherited it.
+
+- **Every sink has a known, enforced bound** — by size, by age, or both. "Known" means verified, not assumed: platform defaults *are* bounds, but often far larger than intended. `systemd-journald`, for example, defaults to 10% of the filesystem with **no time limit at all**, so retention silently becomes "as long as the disk allows".
+- **The volume of each sink is measured at least once**, along with its composition — which channel, level, or event produces most of the lines. A sink whose daily volume you cannot state is a sink you cannot capacity-plan.
+- **Writing a log record is never fatal to the operation it describes.** A sink that becomes unwritable — permission change, rotation race, full disk — must degrade: fall back to another sink, or drop the record. It must never abort the business operation.
+- **Rotation ownership matches the writing process.** If rotation recreates the file as a different user than the one writing it, the sink breaks precisely at rotation time, on a schedule, in the middle of the night.
+- **Debug-level output does not reach durable storage in production** (see 9.1).
+
+**Good:**
+- Retention bounds declared in configuration that is version-controlled or documented in a runbook — not left to distribution defaults
+- Free space exposed as a health signal (see 9.3), so exhaustion is noticed while it is still cheap to fix
+- A fallback chain on the primary sink (e.g. file → stderr) so an unwritable log cannot kill a request or a job
+
+**Bad:**
+- "It rotates by default" — without knowing which default, or whether that default bounds time as well as size
+- One channel producing the overwhelming majority of log volume, unnoticed for months, because volume was never measured
+- The logger raising an exception that propagates into application code
+- Log growth discovered by the disk filling up
+
+#### 9.7 Data lifecycle and retention
+
+Logs are not the only thing that grows without limit. Append-only *data* — audit trails, event stores, notification history, metrics rows, diagnostic trackers — accumulates on the same trajectory, with none of the tooling that exists for log files.
+
+- **Every append-only dataset has a retention policy that is scheduled**, not merely available. A purge command that exists in the codebase but is wired into no scheduler is not a retention policy; it is an intention.
+- **Each dataset carries the temporal column its retention needs.** A policy that can only be expressed as "delete rows below id N" is a manual operation performed under pressure, not a policy.
+- **Growth is measured** — rows and bytes per day — and compared against available storage, so time-to-exhaustion is a known number instead of a surprise.
+- **Diagnostic and instrumentation data has an expiry decided when it is added.** Data added to investigate one incident should not still be accumulating a year later.
+- **Retention is verified, not assumed.** A scheduled purge that has been failing silently for months is indistinguishable from no purge at all unless something reports its last successful run.
+
+**How to check:** list the persisted datasets ordered by size, then for each of the largest ask *which scheduled job bounds this, and when did it last succeed?* Reconcile the list of append-only datasets against the list of scheduled retention jobs — the gap is the finding.
+
+**Good:**
+- Every append-only dataset maps to exactly one retention job, and the mapping is explicit enough to be reviewed (a documented list, a configuration table, or a test that fails when a new table has no policy)
+- Retention windows chosen from a stated requirement — legal, forensic, or operational — rather than left implicit
+- Datasets whose growth rate is measured and recorded, so a change of regime is visible
+
+**Bad:**
+- A purge command in the codebase that was never added to the scheduler, and therefore has never run
+- A high-volume log table with no timestamp column, purgeable only by id
+- A temporary diagnostic tracker, added during an incident, still growing indefinitely
+- Retention "handled" by a job nobody has verified since it was written
 
 ---
 
