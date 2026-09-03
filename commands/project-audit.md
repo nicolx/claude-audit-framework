@@ -1,6 +1,6 @@
 ---
 description: Full 10-category scored quality audit with 10 parallel scoring agents; writes a dated report and score history to docs/audits/
-allowed-tools: [Read, Grep, Glob, Bash, Write, Task, Agent]
+allowed-tools: [Read, Grep, Glob, Bash, Write, Edit, Task, Agent]
 ---
 
 Run a complete, scored quality evaluation using **10 parallel scoring agents** — one per category.

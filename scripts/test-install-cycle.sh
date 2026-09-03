@@ -291,6 +291,52 @@ else
 fi
 rm -rf "$PROJ"
 
+# ── Case 15 — the breaking-change report survives the documented order ───────
+# init-project.sh overwrites the marker before the verification runs, so without
+# --compare-from the report has nothing left to compare and never fires.
+
+new_case "Breaking-change report fires during an upgrade, not after"
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
+printf 'version=0.9.0\n' > "$PROJ/.claude/.framework-version"
+OUT=$(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh 2>&1)
+case "$OUT" in
+    *"breaking changes since 0.9.0"*) pass "init-project reports the breaking range" ;;
+    *) fail "init-project did not report breaking changes" ;;
+esac
+run_check "$PROJ"
+case "$check_out" in
+    *"breaking changes since"*) fail "standalone check repeats the report after the upgrade" ;;
+    *) pass "standalone check does not repeat it" ;;
+esac
+rm -rf "$PROJ"
+
+# ── Case 16 — an uninitialised submodule must not read as conformant ─────────
+# `git clone` without --recurse-submodules is the most common way to arrive here,
+# and every check compares vacuously against an empty framework.
+
+new_case "check-install.sh: an empty framework directory is an error, not a pass"
+PROJ=$(mktemp -d)
+git -C "$PROJ" init --quiet
+mkdir -p "$PROJ/.claude/framework/scripts" "$PROJ/.claude/commands"
+cp "$FRAMEWORK_SRC/scripts/check-install.sh" "$PROJ/.claude/framework/scripts/"
+printf '@.claude/framework/INSTRUCTIONS.md\n\n# P\n' > "$PROJ/CLAUDE.md"
+run_check "$PROJ"
+if [ "$check_code" -eq 1 ]; then
+    pass "exits 1 instead of reporting a vacuous pass"
+else
+    fail "expected exit 1, got $check_code:"; indent "$check_out"
+fi
+case "$check_out" in
+    *"not checked out"*) pass "names the cause and the fix" ;;
+    *) fail "expected the submodule diagnosis:"; indent "$check_out" ;;
+esac
+case "$check_out" in
+    *"All 0 commands"*) fail "still claims 0 commands are in order" ;;
+    *) pass "does not compare zero commands against zero" ;;
+esac
+rm -rf "$PROJ"
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

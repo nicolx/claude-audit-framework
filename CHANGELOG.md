@@ -8,6 +8,55 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.7.2] — 2026-09-03
+
+A pre-release pass over the batch shipped today, looking for defects rather than scoring quality.
+Four found, all of them things a user would have hit.
+
+### Fixed
+
+- **`/competency-review` could not write the profile it exists to update.** Its frontmatter declared
+  `allowed-tools: [Read, Bash]` while step 4 of the command applies the confirmed changes to
+  `~/.claude/context/user_profile.md`. The command has been unable to complete since it was written,
+  in every release. Now `[Read, Write, Edit, Bash]`. `/project-audit` gained `Edit` for the same
+  reason: it appends a row to `docs/audits/history.md`.
+- **The breaking-change report was unreachable in the documented upgrade order.** The four-step
+  sequence runs `init-project.sh` before `check-install.sh`, and the installer overwrites the version
+  marker — so by the time the check ran there was nothing left to compare against, and the feature
+  introduced in 1.7.0 could never fire. `check-install.sh` now accepts `--compare-from <version>`,
+  and `init-project.sh` captures the marker before overwriting it and passes it through. The report
+  now arrives at the moment of transition, and a later standalone check does not repeat it.
+- **A missing `.claude/ export-ignore` was an error, which was wrong.** It made `check-install.sh`
+  exit 1 with "the framework is not working as installed" over deploy hygiene that is irrelevant to
+  a project which never packages with `git archive`. False alarms are how a checker gets ignored.
+  Downgraded to a warning that says why it might not apply.
+- **An uninitialised submodule read as conformant.** `git clone` without
+  `--recurse-submodules` leaves `.claude/framework` an empty directory, and every check then passed
+  vacuously — zero commands compared equal to zero commands, so `check-install.sh` reported
+  "All 0 commands installed and identical" and exited 0 on an install that contained nothing. It now
+  refuses early, names the likely cause, and gives `git submodule update --init --recursive`. This is
+  probably the most common way to reach a broken install, and it was the one the checker was
+  most confident about.
+- **Seven independent "flag once at session start" instructions had accumulated.** No single release
+  added more than one, so none of them looked like a problem: stale command copies, an upstream
+  release, a missing profile, a review due, two absent specialization files, no `.claudeignore`, a
+  stale audit. A freshly installed project would have opened every session with five warning blocks
+  before answering anything. `INSTRUCTIONS.md` now governs them as inputs to a single notice: one
+  block, three lines maximum, most consequential first, once per session — and the developer's
+  question comes first, because a setup notice is never worth delaying an answer.
+
+### Added
+
+- A test case for the upgrade-order interaction, since it is the kind of defect that only appears
+  when two correct components run in a particular sequence.
+
+### On the end-to-end path
+
+The upgrade was exercised for real before release: a consumer project with an actual git submodule,
+installed at `v1.0.0`, upgraded through the documented four steps to the current version, verified
+conformant. That run is what surfaced the marker-ordering defect — the earlier sandbox tests all
+copy the framework rather than pin it, so none of them reproduced the sequence a user follows.
+
 ## [1.7.1] — 2026-09-03
 
 ### Fixed

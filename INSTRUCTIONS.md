@@ -5,6 +5,25 @@ This file is included via `@.claude/framework/INSTRUCTIONS.md` in the project's 
 
 ---
 
+## Session start — one notice, not seven
+
+Several sections below describe a condition worth raising when a session opens: a stale command
+copy, an upstream release, a missing developer profile, a competency review due, absent
+specialization files, no `.claudeignore`, an audit older than three months. Each is individually
+reasonable. Together they would greet a freshly installed project with five warning blocks before
+answering its first question.
+
+So treat them as inputs, not as outputs. Collect whatever applies, then:
+
+- **Emit at most one block**, never a sequence of separate warnings.
+- **Three lines maximum**, most consequential first — something that stops the framework working at
+  all outranks something merely not set up yet. If more than three apply, give the top two and add
+  `(+N more — run bash .claude/framework/scripts/check-install.sh)`.
+- **Once per session.** Never repeat it, and never re-run these checks later in the same session.
+- **Nothing applies → say nothing.** No "everything looks fine" line.
+- **The developer's question comes first.** If they opened with a task, do the task and put the
+  notice after it. A setup notice is never worth delaying an answer.
+
 ## Framework version check
 
 The commands in `.claude/commands/` are **copies** taken from the submodule at install time, so

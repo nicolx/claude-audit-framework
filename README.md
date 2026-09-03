@@ -14,7 +14,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 ```bash
 # Add the submodule — pin a released version rather than tracking main
 git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-git -C .claude/framework checkout v1.7.1
+git -C .claude/framework checkout v1.7.2
 
 # Bootstrap: installs the commands, scaffolds the project files, records the version
 bash .claude/framework/scripts/init-project.sh
@@ -55,7 +55,7 @@ a framework that is present and doing nothing.
 bash .claude/framework/scripts/check-updates.sh
 
 # 2. Move to it
-cd .claude/framework && git fetch --tags && git checkout v1.7.1 && cd ../..
+cd .claude/framework && git fetch --tags && git checkout v1.7.2 && cd ../..
 
 # 3. Make the install conformant with the new version — migrations included
 bash .claude/framework/scripts/init-project.sh
@@ -63,7 +63,7 @@ bash .claude/framework/scripts/init-project.sh
 # 4. Verify, and read what it says
 bash .claude/framework/scripts/check-install.sh
 
-git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.7.1"
+git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.7.2"
 ```
 
 Three scripts, three questions, no overlap:
@@ -86,7 +86,7 @@ entries you need are named rather than hunted for. `init-project.sh` migrates ev
 automatically and is idempotent, so there is no version-by-version upgrade path to follow: you can
 go from any older version straight to the newest one.
 
-The conformance rules ship *inside* each version, so checking out `v1.7.1` gets you `v1.7.1`'s
+The conformance rules ship *inside* each version, so checking out `v1.7.2` gets you `v1.7.2`'s
 checks with no lookup table to keep in sync.
 
 ## Two halves: writing and measuring

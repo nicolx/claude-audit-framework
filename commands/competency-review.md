@@ -1,6 +1,6 @@
 ---
 description: Quarterly competency review — assess skill progress, update user_profile.md, and set the next review date.
-allowed-tools: [Read, Bash]
+allowed-tools: [Read, Write, Edit, Bash]
 ---
 
 > **Execution constraints:** Run entirely in this conversation. Do NOT spawn subagents.

@@ -143,6 +143,13 @@ fi
 # Commands are copies, so they go stale when the submodule moves ahead. This
 # marker is what lets Claude detect the drift and tell the developer to re-run.
 
+# The version this install was last run against, captured before the marker is
+# overwritten — it is what makes the breaking-change report reachable in step 5.
+PREVIOUS_VERSION=""
+if [ -f "$VERSION_MARKER" ]; then
+    PREVIOUS_VERSION=$(grep '^version=' "$VERSION_MARKER" | cut -d= -f2)
+fi
+
 FRAMEWORK_VERSION="unknown"
 if [ -f "$FRAMEWORK_DIR/VERSION" ]; then
     FRAMEWORK_VERSION=$(tr -d '[:space:]' < "$FRAMEWORK_DIR/VERSION")
@@ -165,7 +172,11 @@ echo ""
 # after an upgrade. One set of conformance rules, one place they live.
 
 set +e
-bash "$FRAMEWORK_DIR/scripts/check-install.sh"
+if [ -n "$PREVIOUS_VERSION" ]; then
+    bash "$FRAMEWORK_DIR/scripts/check-install.sh" --compare-from "$PREVIOUS_VERSION"
+else
+    bash "$FRAMEWORK_DIR/scripts/check-install.sh"
+fi
 CONFORMANCE=$?
 set -e
 

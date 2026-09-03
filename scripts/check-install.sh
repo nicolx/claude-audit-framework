@@ -22,6 +22,20 @@
 
 set -uo pipefail
 
+# --compare-from <version>: report breaking changes since this version instead of
+# since the recorded marker. init-project.sh passes the marker it is about to
+# overwrite, so the report survives the documented upgrade order — running the
+# installer first would otherwise leave nothing to compare against.
+COMPARE_FROM=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --compare-from)
+            [ $# -ge 2 ] || { echo "❌ --compare-from needs a version"; exit 2; }
+            COMPARE_FROM="$2"; shift 2 ;;
+        *) echo "❌ Unknown option: $1"; echo "   Usage: check-install.sh [--compare-from <version>]"; exit 2 ;;
+    esac
+done
+
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 FRAMEWORK_DIR=$(dirname "$SCRIPT_DIR")
 
@@ -49,6 +63,28 @@ fi
 
 ERRORS=0
 WARNINGS=0
+
+# ── Is the submodule actually checked out? ───────────────────────────────────
+# `git clone` without --recurse-submodules leaves .claude/framework an empty
+# directory. Every check below would then pass vacuously — zero commands compare
+# equal to zero commands — and report a broken install as conformant.
+
+FRAMEWORK_HAS_COMMANDS=0
+for f in "$FRAMEWORK_DIR"/commands/*.md; do
+    [ -e "$f" ] && FRAMEWORK_HAS_COMMANDS=1 && break
+done
+
+if [ "$FRAMEWORK_HAS_COMMANDS" -eq 0 ]; then
+    echo "  ✗  The framework submodule is not checked out — $FRAMEWORK_DIR has no commands"
+    echo "     Nothing below can be verified against an empty framework."
+    echo "     Usually a clone without --recurse-submodules."
+    echo "     → git submodule update --init --recursive"
+    echo "       bash .claude/framework/scripts/init-project.sh"
+    echo ""
+    echo "────────────────────────────────────────────────"
+    echo "❌ Cannot verify: the framework itself is missing."
+    exit 1
+fi
 
 err()  { echo "  ✗  $1"; shift; for l in "$@"; do echo "     $l"; done; ERRORS=$((ERRORS + 1)); }
 warn() { echo "  ⚠  $1"; shift; for l in "$@"; do echo "     $l"; done; WARNINGS=$((WARNINGS + 1)); }
@@ -172,8 +208,10 @@ fi
 if grep -qF ".claude/ export-ignore" "$PROJECT_ROOT/.gitattributes" 2>/dev/null; then
     ok ".claude/ excluded from git archive"
 else
-    err ".claude/ not excluded from git archive — deploy tools may ship it" \
-        "→ echo '.claude/ export-ignore' >> .gitattributes"
+    warn ".claude/ not excluded from git archive — deploy tools may ship it" \
+         "The framework still works; this is deploy hygiene, and irrelevant if you" \
+         "never package with git archive." \
+         "→ echo '.claude/ export-ignore' >> .gitattributes"
 fi
 
 # ── Breaking changes between the recorded install and this version ───────────
@@ -181,8 +219,10 @@ fi
 # decision only the developer can make — lives in the changelog, and this is
 # where the relevant range gets surfaced instead of being hoped for.
 
-if [ -n "$INSTALLED_VERSION" ] &&
-   [ "$INSTALLED_VERSION" != "$FRAMEWORK_VERSION" ] &&
+FROM_VERSION="${COMPARE_FROM:-$INSTALLED_VERSION}"
+
+if [ -n "$FROM_VERSION" ] &&
+   [ "$FROM_VERSION" != "$FRAMEWORK_VERSION" ] &&
    [ -f "$FRAMEWORK_DIR/CHANGELOG.md" ]; then
     # Versions whose changelog entry has a "### Breaking" section...
     BREAKING_ALL=$(awk '
@@ -197,8 +237,8 @@ if [ -n "$INSTALLED_VERSION" ] &&
     # ...narrowed to those released after the recorded install, up to this version.
     BREAKING=""
     for v in $BREAKING_ALL; do
-        [ "$v" = "$INSTALLED_VERSION" ] && continue
-        [ "$(printf '%s\n%s\n' "$INSTALLED_VERSION" "$v" | sort -V | head -1)" = "$INSTALLED_VERSION" ] || continue
+        [ "$v" = "$FROM_VERSION" ] && continue
+        [ "$(printf '%s\n%s\n' "$FROM_VERSION" "$v" | sort -V | head -1)" = "$FROM_VERSION" ] || continue
         [ "$(printf '%s\n%s\n' "$v" "$FRAMEWORK_VERSION" | sort -V | head -1)" = "$v" ] || continue
         BREAKING="$BREAKING $v"
     done
@@ -206,12 +246,12 @@ if [ -n "$INSTALLED_VERSION" ] &&
 
     echo ""
     if [ -n "$BREAKING" ]; then
-        warn "Releases with breaking changes since $INSTALLED_VERSION: $BREAKING" \
+        warn "Releases with breaking changes since $FROM_VERSION: $BREAKING" \
              "init-project.sh migrates what it can automatically; read those entries for" \
              "anything it cannot." \
-             "→ sed -n '/## \\[$FRAMEWORK_VERSION\\]/,/## \\[$INSTALLED_VERSION\\]/p' .claude/framework/CHANGELOG.md"
+             "→ sed -n '/## \\[$FRAMEWORK_VERSION\\]/,/## \\[$FROM_VERSION\\]/p' .claude/framework/CHANGELOG.md"
     else
-        ok "No breaking changes recorded between $INSTALLED_VERSION and $FRAMEWORK_VERSION"
+        ok "No breaking changes recorded between $FROM_VERSION and $FRAMEWORK_VERSION"
     fi
 fi
 
