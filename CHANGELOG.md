@@ -8,6 +8,40 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.2.0] — 2026-09-03
+
+Adds the language dimension the framework had no opinion on: code in English, domain terms in their
+own language, and the exceptions declared rather than improvised.
+
+### Added
+
+- **Subcriteria 2.8 — Language of identifiers.** Code is written in English; domain terms whose
+  meaning translation would destroy are kept in their original language and declared. Covers
+  identifiers, comments, test names, developer-facing messages and technical documentation.
+  Explicitly does *not* cover user-facing text, which belongs to the product's language and is an
+  internationalisation concern. A uniformly English codebase with nothing to declare scores full
+  marks with no glossary — the criterion measures consistency and intent, not paperwork.
+- **Principle 20 — Code speaks English, the domain speaks its own language.** The write-time
+  counterpart, mapped to 2.8 in the traceability table.
+- **A `Domain language` section in the project `CODING_STANDARDS.md` template** — the declaration
+  mechanism: one row per term kept in the local language, with the reason it is not translated. The
+  template says to delete the section outright if the codebase is uniformly English.
+- **Session behaviour for the cases the glossary does not settle** (`INSTRUCTIONS.md`): a needed term
+  that is not declared gets proposed, never used silently and never translated when translation
+  loses precision; existing code that disagrees with the glossary is matched for new code and
+  flagged rather than propagated.
+- An optional non-ASCII-identifier check in the hook stub — the one mechanically detectable part of
+  2.8, since accented characters in identifiers are never intentional and break greps and tooling.
+
+### Why both halves of the rule are needed
+
+English-only would be simpler and wrong. A *Codice Fiscale* is not a tax code and a *Cedolino* is not
+a payslip: these are legally defined artefacts, and translating them discards the precision the
+domain depends on — the ubiquitous language of Category 3 outranks uniformity. Equally, a codebase
+where `getUtenti()` sits beside `findOrders()` makes every reader guess which convention applies.
+The declared list is what lets both rules hold at once, and 2.8 scores the glossary too: one that has
+grown to cover every local word is an amnesty for not renaming, not a glossary.
+
 ## [1.1.1] — 2026-09-03
 
 ### Fixed

@@ -126,7 +126,7 @@ If `.claude/CODING_STANDARDS.md` or `.claude/PROJECT_AUDIT_FRAMEWORK.md` exist, 
 
 ### Every criterion has a write-time counterpart
 
-The 19 principles in `CODING_STANDARDS.md` are the write-time half of the framework; the 10
+The 20 principles in `CODING_STANDARDS.md` are the write-time half of the framework; the 10
 categories in `PROJECT_AUDIT_FRAMEWORK.md` are the measurement half. The traceability table at the
 end of `CODING_STANDARDS.md` maps one to the other.
 
@@ -134,6 +134,21 @@ This matters when writing code that reaches a category the developer is not thin
 Security and observability are the usual cases: nobody asks for input validation or a structured log
 line, and both are written, not discovered. Apply principles 15 and 16 to new code by default, the
 same way you apply naming and SRP — waiting for an audit to reveal a missing log is waiting too long.
+
+### Naming across languages
+
+Before naming anything in a codebase that is not uniformly English, read the **Domain language**
+section of `.claude/CODING_STANDARDS.md`. It declares which terms stay in the local language and
+why; everything else is English.
+
+Two rules for the cases the section does not settle:
+
+- **A term you need is not declared.** If translating it loses nothing, use English. If translating
+  it would lose legal or business precision, say so and propose adding it to the section — do not
+  use an undeclared term silently, and do not translate a term that should not be translated.
+- **Existing code disagrees with the section.** Match the section for new code, and mention the
+  inconsistency rather than propagating it. Renaming existing identifiers is a separate change,
+  and the developer's call.
 
 ### Active audit focus
 

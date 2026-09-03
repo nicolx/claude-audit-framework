@@ -107,4 +107,15 @@ case "$FILE" in
 
 esac
 
+# ── Language of identifiers (any file type) ──────────────────────────────────
+# Subcriteria 2.8 is mostly a judgement call, but one part of it is mechanical:
+# accented characters in identifiers are never intentional and break greps and
+# tooling. Uncomment to catch them at the moment they are written.
+#
+# if OUT=$(grep -nP '^(?![[:space:]]*(//|#|\*)).*\b\w*[À-ÿ]\w*\b' "$FILE" 2>/dev/null); then
+#     report "Non-ASCII characters in identifiers in $FILE (subcriteria 2.8):"$'\n'"$OUT"
+# fi
+#
+# `grep -P` is GNU-only. On macOS: brew install grep, then use ggrep.
+
 exit 0

@@ -279,6 +279,34 @@ Technical debt is the accumulated cost of deliberate shortcuts taken to ship fas
 
 **Relationship to refactoring:** Technical debt management without refactoring discipline is a wishlist. Refactoring discipline without technical debt tracking is unsustainable urgency. Together they form the practice of intentional code evolution.
 
+#### 2.8 Language of identifiers
+
+Code is written in English. Domain terms that carry meaning the language of the codebase cannot express are kept in their original language — and every one of them is declared, not improvised.
+
+This is not a stylistic preference. English is the language of the platform, the standard library, the framework, and every developer who might join later; a codebase that mixes `getUtenti()` with `findOrders()` forces every reader to guess which convention applies where. But translating a domain term for the sake of uniformity is worse: a `TaxCode` is not a *Codice Fiscale*, an `Invoice` is not a *Fattura Elettronica*, and a developer who translates the term loses the legal and business precision the domain depends on. Category 3 calls this the ubiquitous language; this criterion is where it is measured.
+
+The mechanism that makes both possible is a declared list. The project's `.claude/CODING_STANDARDS.md` carries a **Domain language** section naming each term kept in its original language, with the reason it is not translated. An identifier in that list is correct. An identifier not in that list, in any language other than English, is drift.
+
+**Scope.** This criterion covers identifiers (classes, methods, variables, files, database columns), comments, developer-facing messages, test names, and technical documentation. It does **not** cover user-facing text: labels, emails and error messages shown to end users belong to the product's language and are an internationalisation concern, not a naming one.
+
+**Good:**
+
+- `class Fattura` with `Fattura` declared in the domain language section, alongside `final class OrderRepository` and `private function calculateTotal()`
+- A domain term kept whole rather than half-translated: `FatturaElettronica`, not `ElectronicFattura`
+- The declared list carries a reason per term — "*Cedolino*: Italian payslip, legally distinct from a generic payslip; no faithful English equivalent"
+- Comments and test names in English even where the subject is a domain term: `it_rejects_a_fattura_without_a_partita_iva()`
+
+**Bad:**
+
+- `getUtenti()`, `$elencoProdotti`, `salvaOrdine()` — general vocabulary in the local language, where an English name exists and would be understood by anyone
+- Half-translated identifiers: `UserFattura`, `getFatturaList()`, `IsPagato`
+- Comments in the local language inside otherwise English code, especially the ones explaining *why* — the reader who most needs them is the one least likely to read that language
+- Non-ASCII characters in identifiers (`città`, `prezzoUnitàrio`): they break tooling, greps, and keyboards
+- A domain language section that has grown to include every local word in the codebase. That is not a glossary, it is an amnesty — exceptions granted retroactively to avoid renaming. A term earns a place only when translating it would lose meaning
+- No declared list at all, in a codebase that plainly contains domain terms in another language: the convention exists only in the heads of whoever is still on the team
+
+**How to score:** sample identifiers across the layers, and read the domain language section first. Full marks require both halves: English as the default *and* the exceptions declared with reasons. A codebase that is uniformly English with no domain terms to declare scores full marks with no section — the criterion is about consistency and intent, not about having a glossary.
+
 ---
 
 ## Category 3 — Domain-Driven Design (DDD)

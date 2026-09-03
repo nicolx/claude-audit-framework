@@ -30,6 +30,28 @@ Example:
 - Array shapes annotated: `@param array{key: Type}`, `@return list<Type>`, `@return array<string, Type>`
 ]
 
+## Domain language
+
+> Required by principle 20 and scored as subcriteria 2.8. Code is written in English; the terms
+> below are the declared exceptions — domain vocabulary whose meaning translation would destroy.
+>
+> A term earns a place here only if translating it loses legal, regulatory or business precision.
+> General vocabulary does not qualify: if `utenti` would be understood as `users`, use `users`.
+> Adding a term is a decision to make deliberately, not a way to avoid a rename.
+>
+> **Delete this section entirely if the codebase is uniformly English.** An empty glossary is
+> better than a table of habits, and 2.8 scores full marks with no section when there is nothing
+> to declare.
+
+| Term | Meaning | Why it is not translated |
+|---|---|---|
+| [Fattura] | [Italian invoice under fiscal law] | [Legally distinct from a generic invoice; "Invoice" would not name the same artefact] |
+| [Cedolino] | [Italian payslip] | [Statutory document with a defined format; no faithful English equivalent] |
+
+Applies to identifiers, comments, test names, and developer-facing messages. It does **not** apply
+to user-facing text — labels, emails and end-user messages belong to the product's language and are
+an internationalisation concern.
+
 ## Naming conventions
 
 | Concept | Convention | Example |
