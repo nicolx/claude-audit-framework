@@ -30,6 +30,12 @@ start() {
     echo "[$CHECKS] $1"
 }
 
+# indent <text> — prefix every line, so matched lines nest under the finding above.
+indent() {
+    local pad="       "
+    printf '%s%s\n' "$pad" "${1//$'\n'/$'\n'$pad}"
+}
+
 # The corpus under scrutiny: documents that describe the framework as it is *now*.
 #
 # Two files are deliberately excluded, because both must be able to name things this
@@ -51,7 +57,7 @@ RETIRED='CODE_QUALITY_STANDARDS|~/\.claude/standards'
 # shellcheck disable=SC2086
 if MATCHES=$(grep -nE "$RETIRED" $DOCS $SCRIPTS 2>/dev/null); then
     fail "retired name found — the current names are PROJECT_AUDIT_FRAMEWORK.md and CODING_STANDARDS.md under standards/"
-    echo "$MATCHES" | sed 's/^/       /'
+    indent "$MATCHES"
 else
     pass "no retired names"
 fi
@@ -66,7 +72,7 @@ SYMLINK_CLAIM='(creates?|create|via|using|through) symlinks?'
 # shellcheck disable=SC2086
 if MATCHES=$(grep -nEi "$SYMLINK_CLAIM" $DOCS $SCRIPTS 2>/dev/null); then
     fail "documentation claims symlinks are used — commands are copied, because Claude Code does not follow symlinks"
-    echo "$MATCHES" | sed 's/^/       /'
+    indent "$MATCHES"
 else
     pass "no symlink claims"
 fi
@@ -81,7 +87,7 @@ start "Script portability"
 # shellcheck disable=SC2086
 if MATCHES=$(grep -nE '\bsed -i\b' $SCRIPTS 2>/dev/null | grep -vE ':[0-9]+:[[:space:]]*#'); then
     fail "'sed -i' is not portable between BSD and GNU sed — use a temp file + mv"
-    echo "$MATCHES" | sed 's/^/       /'
+    indent "$MATCHES"
 else
     pass "no in-place sed"
 fi

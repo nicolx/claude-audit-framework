@@ -68,6 +68,12 @@ new_project() {
     echo "$dir"
 }
 
+# indent <text> — prefix every line, so captured output nests under the assertion above.
+indent() {
+    local pad="         "
+    printf '%s%s\n' "$pad" "${1//$'\n'/$'\n'$pad}"
+}
+
 new_case() {
     CASES=$((CASES + 1))
     echo ""
@@ -90,7 +96,7 @@ elif echo "$OUT" | grep -qE "^✅"; then
     pass "reported success"
 else
     fail "init reported errors:"
-    echo "$OUT" | sed 's/^/         /'
+    indent "$OUT"
 fi
 expect_file "$PROJ/CLAUDE.md"
 expect_file "$PROJ/.claude/PROJECT_AUDIT_FRAMEWORK.md"
