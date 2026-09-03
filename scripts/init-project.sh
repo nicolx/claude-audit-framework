@@ -278,6 +278,7 @@ fi
 echo "  $STEP. Edit CLAUDE.md               — fill in project name, stack, architecture, quality gate command"
 STEP=$((STEP + 1))
 echo "  $STEP. Edit PROJECT_AUDIT_FRAMEWORK.md — add stack-specific quality criteria"
+echo "         Includes declaring a read-only database for query analysis (7.9, 9.8), or that none exists"
 STEP=$((STEP + 1))
 echo "  $STEP. Edit CODING_STANDARDS.md        — add language-specific conventions"
 STEP=$((STEP + 1))

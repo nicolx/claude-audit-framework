@@ -33,6 +33,29 @@ Example:
 
 ]
 
+## Database access for query analysis
+
+[Required by precondition 4. Subcriteria 7.9 and 9.8 cannot be answered from configuration, so
+declare how to reach a database with representative volume — or state that none is available and
+accept that both are capped at 8.
+
+The grant should allow **schema and statistics, not rows**: `information_schema`, index inventory,
+`EXPLAIN`, row counts, and the engine's own statement statistics. Query analysis needs none of the
+application's data, so the grant should not permit reading it.
+
+Example:
+
+| Field | Value |
+|---|---|
+| Command | `make db-analyse` (wraps `psql "$AUDIT_DB_URL"`) |
+| Environment | staging, restored nightly from an anonymised production dump |
+| Volume | representative — ~2M rows in `orders`, ~400k in `invoices` |
+| Grant | `audit_ro`: `USAGE` on schema, `SELECT` on `information_schema` and `pg_catalog`, `pg_read_all_stats`; **no** `SELECT` on application tables |
+| Credentials | `AUDIT_DB_URL` in the developer's environment; never in the repo |
+| Out of bounds | production, `EXPLAIN ANALYZE`, any statement that is not a read of schema or statistics |
+
+If no such database exists: "Not available — 7.9 and 9.8 are scored from configuration only."]
+
 ## Category 7 — Tooling & Quality Standards
 
 [Specify the quality gate command and what it runs.

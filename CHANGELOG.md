@@ -8,6 +8,45 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.4.0] — 2026-09-03
+
+7.9 and 9.8 shipped in 1.3.0 with nothing to read. Configuration records what a project *intends*: a
+migration declares an index, and whether that index exists in the database — and whether the planner
+chooses it — are two further questions. Both criteria needed a way to be answered from reality, and a
+rule for what happens when there is none.
+
+### Added
+
+- **Precondition 4 — database access must be declared, or its absence acknowledged.** With a
+  representative database, 7.9 and 9.8 are answerable. Without one they are scored from intent, the
+  evidence says so, and **neither may exceed 8**: an unverified claim is not comprehensive evidence.
+  Recording the limit is the point — a score that hides it is worse than a lower score that explains
+  itself.
+- **A `Database access for query analysis` section in the project framework template** — the command
+  to reach it, which environment, what volume, what the grant allows, and what is out of bounds. Or
+  the explicit statement that none is available.
+- **Phase 1.4 of `/project-audit`** captures index inventory, row counts, the engine's aggregated
+  statement statistics, the slow-query settings actually in effect, and `EXPLAIN` plans for the query
+  paths in question — only when declared, and never by hunting for credentials in `.env` files.
+- **Usage rules in `INSTRUCTIONS.md`**, all hard: never read application data; `EXPLAIN` not
+  `EXPLAIN ANALYZE` unless the statement is a plain `SELECT` against a non-production target; nothing
+  that writes, not even to test whether the grant would refuse; never put row data in the evidence
+  bundle, which ten agents read; never print the connection string; ask before anything outside the
+  list.
+
+### Note on scope of access
+
+The access this needs is **narrower than read-only**, which is worth stating because "at least read
+access" invites a wider grant than the job requires. Query analysis reads schema and statistics —
+`information_schema`, index inventory, `EXPLAIN`, row counts, `pg_stat_statements` — and almost
+nothing in 7.9 or 9.8 requires a single row of application data. So the grant should not permit
+reading it, and the template's example grant does not.
+
+The environment matters as much as the grant: a development database with two hundred rows produces
+query plans that are worse than no evidence, because they look like evidence. Representative volume
+is what makes a plan mean anything, and an anonymised replica gets there without handing an agent
+production.
+
 ## [1.3.0] — 2026-09-03
 
 Covers data-access cost, which the framework measured nowhere. A project could score 8/10 across all

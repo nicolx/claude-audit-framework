@@ -54,12 +54,31 @@ small and every agent reads all of it:
   `phpunit.xml`, `pytest.ini`, `ruff.toml` — whichever exist
 - CI/CD config: everything under `.github/workflows/`, plus `Makefile`, `Jenkinsfile`, `.gitlab-ci.yml`
 - Database and ORM config: `doctrine.yaml`, `database.php`, `settings.py` DATABASES, `schema.prisma`,
-  plus any slow-query or statement-logging setting — small files, and the only evidence for 7.9 and 9.8
+  plus any slow-query or statement-logging setting — what the project *intends*, which 1.4 then checks against reality
 - Quality gate output: `composer qa 2>&1` / `make qa` / `npm run qa` — whichever the project defines.
   Capture the output verbatim, including failures. If no gate exists, record that as the finding it is.
 - `git log --oneline -20`, `git branch -a`, and `git log -1 --format=%cd` (last commit date)
 
-### 1.4 — Write the source manifest
+### 1.4 — Capture database evidence (only if declared)
+
+Read the **Database access for query analysis** section of `.claude/PROJECT_AUDIT_FRAMEWORK.md`. If
+it is absent, note it in the report and skip this step — do not go looking for credentials.
+
+If it is declared, append to `common.md`:
+
+- Index inventory per table (`pg_indexes`, `SHOW INDEX FROM`, `information_schema.statistics`)
+- Approximate row counts and table sizes, so "a table that grows" is a fact rather than a guess
+- The engine's aggregated statement statistics, ordered by total time: `pg_stat_statements`,
+  `performance_schema.events_statements_summary_by_digest`, or a `pt-query-digest` summary
+- The slow-query settings actually in effect (`SHOW slow_query_log`, `log_min_duration_statement`)
+- `EXPLAIN` output for the query paths that Cat 7 or Cat 9 puts in question — plans only, no
+  `EXPLAIN ANALYZE` except on a plain `SELECT` against a non-production target
+
+> **Never put application rows in the bundle.** This file is read by ten agents; row data in it is a
+> disclosure, not evidence. Schema, counts, statistics and plans only. The rules in
+> `INSTRUCTIONS.md` § *Database access* apply in full.
+
+### 1.5 — Write the source manifest
 
 `$AUDIT_DIR/manifest.md` — an **index**, not the contents. One line per file: path, line count,
 and inferred role. Confine to `$ARGUMENTS` when a scope was given.
@@ -76,7 +95,7 @@ Group the result by directory and annotate each group with what it appears to be
 application, infrastructure, controllers/http, tests, config, views). The annotation is what lets
 an agent pick its files without reading everything.
 
-### 1.5 — State preconditions
+### 1.6 — State preconditions
 
 Before launching Phase 2, state explicitly:
 
@@ -87,6 +106,7 @@ Before launching Phase 2, state explicitly:
 - Maturity: Prototype / Early production / Established / Enterprise — one sentence of reasoning
 - Which conditional categories apply: Cat 3 (DDD) if a domain layer exists; Cat 5 (JS/Frontend) if
   JS or TS files are present
+- Whether database evidence was captured — and if not, that 7.9 and 9.8 are capped at 8
 
 ---
 
@@ -186,6 +206,7 @@ lines if not green), and any of these warnings that apply:
 - ⚠ No project-level `.claude/PROJECT_AUDIT_FRAMEWORK.md` — audit uses the global framework only
 - ⚠ No project-level `.claude/CODING_STANDARDS.md`
 - ⚠ No `.claudeignore` — dependency trees excluded manually
+- ⚠ No database declared for query analysis — 7.9 and 9.8 scored from configuration only, capped at 8
 
 **Score movement** — the comparison from 3.2, or the baseline note.
 

@@ -14,7 +14,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 ```bash
 # Add the submodule — pin a released version rather than tracking main
 git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-git -C .claude/framework checkout v1.3.0
+git -C .claude/framework checkout v1.4.0
 
 # Bootstrap: installs the commands, scaffolds the project files, records the version
 bash .claude/framework/scripts/init-project.sh
@@ -47,9 +47,9 @@ This creates a personal profile at `~/.claude/context/user_profile.md`. It stays
 ## Keeping the framework up to date
 
 ```bash
-cd .claude/framework && git fetch --tags && git checkout v1.3.0 && cd ../..
+cd .claude/framework && git fetch --tags && git checkout v1.4.0 && cd ../..
 bash .claude/framework/scripts/init-project.sh     # required — refreshes the command copies
-git add .claude/ && git commit -m "chore: update claude-audit-framework to v1.3.0"
+git add .claude/ && git commit -m "chore: update claude-audit-framework to v1.4.0"
 ```
 
 **Re-running `init-project.sh` is not optional.** The commands are *copied* into

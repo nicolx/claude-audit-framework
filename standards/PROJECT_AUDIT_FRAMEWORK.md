@@ -38,6 +38,30 @@ Do not begin a broad evaluation ("analyse everything") without first agreeing an
 
 A scoped evaluation produces better results than a full sweep, costs fewer tokens, and is easier to act on.
 
+### 4. Database access must be declared, or its absence acknowledged
+
+Subcriteria 7.9 and 9.8 are about data-access cost, and configuration cannot answer them. A migration
+declares an index; whether that index exists in the database, and whether the planner chooses it,
+are two further questions. Without a database to ask, both criteria are scored from *intent*.
+
+**What the audit needs is narrower than read access.** Query analysis reads **schema and statistics**,
+not rows: `information_schema` / `pg_indexes`, `EXPLAIN` (never `EXPLAIN ANALYZE` on anything but a
+plain `SELECT`, and never against production), row counts, and the statement statistics the engine
+already aggregates (`pg_stat_statements`, `performance_schema`, the slow query log). Almost nothing
+in 7.9 or 9.8 requires reading a single row of application data — which is exactly why the grant
+should not permit it.
+
+**What to declare** in `.claude/PROJECT_AUDIT_FRAMEWORK.md`: how to reach such a database, which
+environment it is, and what the grant allows. The environment matters as much as the grant: a
+development database with two hundred rows produces query plans that are worse than no evidence,
+because they look like evidence. Representative volume — a restored dump, an anonymised replica, a
+staging database — is what makes a plan mean anything.
+
+**If it is not available:** say so, score 7.9 and 9.8 from configuration and migrations, state in the
+evidence cell that the finding is unverified against a database, and **do not award 9–10**. An
+unverified claim is not comprehensive evidence. Recording the limit is the point: a score that hides
+it is worse than a lower score that explains itself.
+
 ---
 
 ## How to use this document
@@ -1189,6 +1213,12 @@ it is fast. Speed is an outcome; this is about the instrument.
 - Indexes added in a separate "performance" ticket weeks after the query shipped
 - An N+1 fixed reactively, with no test added — so the next refactor reintroduces it silently
 
+**Scoring without a database:** the test suite and the migrations are readable evidence, so a project
+with no query-count assertions and no lazy-load guard scores low on config alone — that finding is
+solid. The reverse is not: a migration that adds an index proves the intent to have one, not that it
+exists or that the planner uses it. Without the declared database access of precondition 4, mark such
+evidence unverified and cap the subcriteria at 8.
+
 **Language equivalents:**
 
 | Stack | Query counting | Lazy-load guard |
@@ -1493,6 +1523,12 @@ attribution is missing, and nobody reads it.
   by guessing which endpoint issued them
 - Query duration logged per execution into the application log, drowning the entries that need reading
 - A degradation discovered because a user reported that a page "feels slow"
+
+**Scoring without a database:** configuration tells you whether the threshold log is *enabled* and at
+what value — half of this criterion, and the readable half. It cannot tell you whether anything is in
+it, whether the entries are attributable, or whether the slow paths are known. Without the declared
+access of precondition 4, score the configuration, say the rest is unverified, and cap the
+subcriteria at 8.
 
 ---
 
