@@ -36,6 +36,7 @@ Tell the developer:
 > "I'm going to ask you a few questions about your technical background. Answer honestly — this isn't a test, there are no wrong answers. The goal is to ensure that when I recommend solutions, I pitch them at the right level for you.
 >
 > For each area, I'll use three levels:
+>
 > - **Fluente** — you're comfortable, can reason about edge cases, rarely need to look things up
 > - **Operativo** — you work independently but look things up occasionally; you know the concepts
 > - **Base** — you understand the basics but would need guidance or examples for real tasks
@@ -49,6 +50,7 @@ Tell the developer:
 ### Section A — Role
 
 Ask:
+
 1. "What is your primary role? (e.g., backend developer, fullstack, frontend, DevOps, architect, tech lead)"
 2. "What language or stack do you spend most of your time in?"
 

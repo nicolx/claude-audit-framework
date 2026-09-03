@@ -13,6 +13,7 @@
 
 [List language-specific idioms that implement a global principle.
 Example for PHP:
+
 - Constructor promotion — prefer `public function __construct(private readonly Type $prop)`
 - Readonly properties — all Value Object and Entity properties are `readonly`
 - Named arguments — use for constructors with 3+ parameters
@@ -24,6 +25,7 @@ Example for PHP:
 
 [Describe type strictness requirements for this stack.
 Example:
+
 - No `mixed` anywhere in `src/` — every parameter, property, and return type explicitly annotated
 - Array shapes annotated: `@param array{key: Type}`, `@return list<Type>`, `@return array<string, Type>`
 ]

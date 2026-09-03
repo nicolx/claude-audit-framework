@@ -1,4 +1,4 @@
-@.claude/framework/CLAUDE.md
+@.claude/framework/INSTRUCTIONS.md
 
 # [Project Name] — [Short description]
 

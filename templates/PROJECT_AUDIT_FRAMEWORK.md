@@ -22,11 +22,15 @@ Example: Domain ← Application ← Infrastructure ← Http, enforced by deptrac
 
 [Optional: list the test kinds in use and how they map to Cat 4 subcriteria.
 Example:
+
+```text
 | Kind        | I/O  | Logging    | Network | Tag               | Runs in CI |
 |-------------|------|------------|---------|-------------------|------------|
 | Unit        | None | None       | None    | (default)         | Always     |
 | Functional  | None | NullLogger | None    | (default)         | Always     |
 | Integration | Real | Real       | Real    | @group integration| Excluded   |
+```
+
 ]
 
 ## Category 7 — Tooling & Quality Standards
@@ -34,6 +38,7 @@ Example:
 [Specify the quality gate command and what it runs.
 Example:
 Quality gate command: `composer qa` — runs in sequence:
+
 1. `vendor/bin/phpstan analyse` — level 6
 2. `vendor/bin/php-cs-fixer check` — PSR-12
 3. `vendor/bin/deptrac analyse` — layer boundaries

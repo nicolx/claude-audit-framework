@@ -9,6 +9,10 @@ set -e
 PROJECT_ROOT="$(git rev-parse --show-toplevel)"
 FRAMEWORK_DIR="$PROJECT_ROOT/.claude/framework"
 COMMANDS_DIR="$PROJECT_ROOT/.claude/commands"
+VERSION_MARKER="$PROJECT_ROOT/.claude/.framework-version"
+
+INCLUDE_LINE="@.claude/framework/INSTRUCTIONS.md"
+LEGACY_INCLUDE_LINE="@.claude/framework/CLAUDE.md"   # pre-1.0 installs
 
 if [ ! -d "$FRAMEWORK_DIR" ]; then
     echo "❌ Framework not found at .claude/framework/"
@@ -37,14 +41,21 @@ echo ""
 # ── Step 2 — Scaffold project files ──────────────────────────────────────────
 
 if [ -f "$PROJECT_ROOT/CLAUDE.md" ]; then
-    if grep -q "@.claude/framework/CLAUDE.md" "$PROJECT_ROOT/CLAUDE.md"; then
-        echo "  ↩  CLAUDE.md already includes @.claude/framework/CLAUDE.md (skipped)"
+    if grep -qF "$INCLUDE_LINE" "$PROJECT_ROOT/CLAUDE.md"; then
+        echo "  ↩  CLAUDE.md already includes $INCLUDE_LINE (skipped)"
+    elif grep -qF "$LEGACY_INCLUDE_LINE" "$PROJECT_ROOT/CLAUDE.md"; then
+        # Pre-1.0 installs point at CLAUDE.md, which is now the framework's own
+        # development file. Rewrite the line in place — never add a second one.
+        TEMP=$(mktemp)
+        sed "s|^@\.claude/framework/CLAUDE\.md$|$INCLUDE_LINE|" "$PROJECT_ROOT/CLAUDE.md" > "$TEMP"
+        mv "$TEMP" "$PROJECT_ROOT/CLAUDE.md"
+        echo "  ✓  Migrated @-include: $LEGACY_INCLUDE_LINE → $INCLUDE_LINE"
     else
         TEMP=$(mktemp)
-        printf '@.claude/framework/CLAUDE.md\n\n' > "$TEMP"
+        printf '%s\n\n' "$INCLUDE_LINE" > "$TEMP"
         cat "$PROJECT_ROOT/CLAUDE.md" >> "$TEMP"
         mv "$TEMP" "$PROJECT_ROOT/CLAUDE.md"
-        echo "  ✓  Prepended @.claude/framework/CLAUDE.md to existing CLAUDE.md"
+        echo "  ✓  Prepended $INCLUDE_LINE to existing CLAUDE.md"
     fi
 else
     cp "$FRAMEWORK_DIR/templates/project-CLAUDE.md" "$PROJECT_ROOT/CLAUDE.md"
@@ -82,7 +93,28 @@ fi
 
 echo ""
 
-# ── Step 4 — Verification ─────────────────────────────────────────────────────
+# ── Step 4 — Record the installed version ────────────────────────────────────
+# Commands are copies, so they go stale when the submodule moves ahead. This
+# marker is what lets Claude detect the drift and tell the developer to re-run.
+
+FRAMEWORK_VERSION="unknown"
+if [ -f "$FRAMEWORK_DIR/VERSION" ]; then
+    FRAMEWORK_VERSION=$(tr -d '[:space:]' < "$FRAMEWORK_DIR/VERSION")
+fi
+FRAMEWORK_SHA=$(git -C "$FRAMEWORK_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+
+cat > "$VERSION_MARKER" <<EOF
+# Written by init-project.sh — do not edit.
+# Claude compares this against .claude/framework/VERSION to detect stale command copies.
+version=$FRAMEWORK_VERSION
+commit=$FRAMEWORK_SHA
+installed=$(date +%Y-%m-%d)
+EOF
+echo "  ✓  Recorded installed version: $FRAMEWORK_VERSION ($FRAMEWORK_SHA)"
+
+echo ""
+
+# ── Step 5 — Verification ─────────────────────────────────────────────────────
 
 echo "────────────────────────────────────────────────"
 echo "🔍 Verification"
@@ -108,10 +140,10 @@ done
 echo ""
 
 # CLAUDE.md @-include
-if grep -q "@.claude/framework/CLAUDE.md" "$PROJECT_ROOT/CLAUDE.md" 2>/dev/null; then
-    echo "  ✓  CLAUDE.md includes @.claude/framework/CLAUDE.md"
+if grep -qF "$INCLUDE_LINE" "$PROJECT_ROOT/CLAUDE.md" 2>/dev/null; then
+    echo "  ✓  CLAUDE.md includes $INCLUDE_LINE"
 else
-    echo "  ✗  CLAUDE.md does NOT include '@.claude/framework/CLAUDE.md'"
+    echo "  ✗  CLAUDE.md does NOT include '$INCLUDE_LINE'"
     echo "     Add it as the first line of CLAUDE.md"
     ERRORS=$((ERRORS + 1))
 fi
@@ -164,7 +196,7 @@ echo ""
 echo "────────────────────────────────────────────────"
 echo ""
 
-# ── Step 4 — Summary and next steps ──────────────────────────────────────────
+# ── Step 6 — Summary and next steps ──────────────────────────────────────────
 
 if [ "$ERRORS" -eq 0 ] && [ "$WARNINGS" -eq 0 ]; then
     echo "✅ claude-audit-framework ready — no issues found."

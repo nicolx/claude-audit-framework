@@ -10,12 +10,14 @@
 ## Project-level specializations (optional)
 
 For projects where these global principles need grounding in a specific technology
-stack, create a `CODING_STANDARDS.md` at the project root. Claude Code reads it
-alongside this global document — it extends it, it does not replace it.
+stack, create a `CODING_STANDARDS.md` in the project's `.claude/` directory. Claude Code
+reads it alongside this global document — it extends it, it does not replace it.
+`scripts/init-project.sh` scaffolds it from `templates/CODING_STANDARDS.md` automatically.
 
 ### When to create one
 
 Create it when at least one of the following is true:
+
 - The project uses a language or framework with idiomatic conventions that refine
   how a global principle is applied (e.g., how dependency injection is wired, which
   error type hierarchy to use, how interfaces are named)
@@ -43,6 +45,7 @@ Create it when at least one of the following is true:
 No changes to any ignore file are needed. The project `CODING_STANDARDS.md`
 should be committed to version control and must remain readable by Claude Code —
 do not add it to `.claudeignore`.
+
 ---
 
 ## 1. Express intent through structure, not comments
@@ -52,11 +55,13 @@ explain what the code does. A comment that describes WHAT the code does is a
 signal that the code itself is not clear enough.
 
 **What good looks like:**
+
 - A name that communicates purpose completely: `findTopCoinsByMarketCap()`, not `getData()`
 - A type that makes the concept unambiguous: `UserId`, not `int $id`
 - A method body that reads like a sentence
 
 **Signals of drift:**
+
 - Inline comments explaining what a single line does
 - Variable names like `data`, `result`, `temp`, `item`
 - Function names containing "and", "or", "also"
@@ -70,11 +75,13 @@ created for one use case is usually the wrong shape and locks future code into a
 premature contract.
 
 **What good looks like:**
+
 - A shared utility extracted after the same logic appears independently in multiple places
 - An interface introduced when a second implementation is needed or testability requires it
 - A concept named when the domain genuinely uses that name
 
 **Signals of drift:**
+
 - An interface with one implementation and no second on the horizon
 - A helper class created "in case it's needed later"
 - A class hierarchy deeper than two levels without a clear domain reason
@@ -91,11 +98,13 @@ Every function, class, and module has one reason to change. This applies at ever
 level of granularity.
 
 **What good looks like:**
+
 - A function that does one thing completely
 - A class whose name describes exactly what it is responsible for
 - Module boundaries that coincide with domain or responsibility boundaries
 
 **Signals of drift:**
+
 - Method names containing conjunctions: "fetchAndFormat", "validateAndSave"
 - A class with public methods that belong to two unrelated concerns
 - A change to one feature requires touching a file that conceptually belongs to another
@@ -108,11 +117,13 @@ When a unit needs a collaborator, it should depend on what the collaborator does
 not on how it does it. This is what makes units replaceable and independently testable.
 
 **What good looks like:**
+
 - Constructor parameters typed as interfaces or abstract contracts
 - No direct instantiation of concrete dependencies inside domain or application logic
 - Test doubles that implement the same interface as the real dependency
 
 **Signals of drift:**
+
 - Business logic importing infrastructure classes directly
 - `new ConcreteClass()` inside a method that is not a factory
 - Units that cannot be tested without a real network, database, or filesystem
@@ -126,11 +137,13 @@ construction time. Validation scattered across multiple call sites means the
 invariant is not owned by the concept itself.
 
 **What good looks like:**
+
 - Domain primitives wrapped in types that validate on construction and throw on violation
 - Return types that cannot represent error states — use exceptions, not nulls as sentinels
 - A constructor that makes it impossible to create an object in an invalid state
 
 **Signals of drift:**
+
 - The same validation logic repeated in multiple callers
 - Null used to represent "not found", "invalid", or "not yet set"
 - Primitive types carrying domain constraints that are enforced elsewhere
@@ -143,11 +156,13 @@ Hidden behavior, magic defaults, and side effects not obvious from the name make
 the system harder to reason about. Explicit is better than clever.
 
 **What good looks like:**
+
 - Dependencies declared and injected, not discovered at runtime
 - A function whose output depends only on its inputs where possible
 - Side effects named in the function signature or clearly communicated
 
 **Signals of drift:**
+
 - Global state or singletons accessed directly from business logic
 - Functions that change external state without it being evident from their name
 - Behavior that varies based on context read implicitly inside domain logic
@@ -169,11 +184,13 @@ bounded contexts need to be distinguished, or when different parts of the system
 have meaningfully different models of the same concept.
 
 **What good looks like:**
+
 - The chosen structure can be explained in one sentence and matches the domain's complexity
 - Layers and boundaries exist because they enforce a meaningful constraint
 - Patterns are applied because they solve a specific problem in this context
 
 **Signals of drift:**
+
 - Abstractions and layers that add no constraint — everything passes through unchanged
 - Patterns applied by default or reflex rather than because they address a real tension
 - A simple problem solved with machinery designed for a complex one
@@ -201,11 +218,13 @@ access. These are bugs. Do not catch them: let them propagate to a top-level
 handler that logs and reports. Catching programming errors hides bugs.
 
 **What good looks like:**
+
 - Typed exceptions that communicate which category a failure belongs to
 - Infrastructure catch blocks at the boundary, not scattered through domain logic
 - No empty catch blocks; no catch-all that swallows all three categories silently
 
 **Signals of drift:**
+
 - `catch (Exception e) {}` or equivalent — the silent swallow
 - Domain logic checking for null where a typed exception would be clearer
 - The same generic exception type used for both domain and infrastructure failures
@@ -219,11 +238,13 @@ A patch that prevents the specific symptom while leaving the root cause intact w
 produce the next symptom.
 
 **What good looks like:**
+
 - A fix that makes the wrong thing structurally impossible, not just this instance harder
 - A change that generalises correctly across all current call sites
 - An improvement that makes the next similar requirement cheaper, not more complicated
 
 **Signals of drift:**
+
 - Special cases accumulating around a central function
 - The same guard condition repeated in multiple callers
 - A fix that works for the reported scenario but does not address the underlying cause
@@ -238,6 +259,7 @@ this agreement — it specifies inputs, outputs, and edge cases in a way that pr
 cannot. The user defines what the code must do; Claude implements it.
 
 Before starting, Claude Code will ask — or explicitly state its assumptions about:
+
 - What the unit receives and what it must return
 - The edge cases and failure paths that matter
 - Whether existing tests already cover the behaviour or new ones are needed
@@ -251,11 +273,13 @@ an implementation built on silent assumptions. One focused question unblocks the
 conversation; a questionnaire stalls it.
 
 **What good looks like:**
+
 - Expected inputs, outputs, and failure cases agreed before any code is written
 - Tests that document contracts (what the unit promises) not implementation (how it works)
 - A failing test or a stated behavioural spec as the starting point for any new feature
 
 **Signals of drift:**
+
 - Writing an implementation and then writing tests to match it (testing the code, not the contract)
 - Tests that assert internal state rather than observable behaviour
 - Proceeding with implementation when the expected output for an edge case is unclear
@@ -285,14 +309,17 @@ an algorithm, migrating a data format, introducing a new layer. The cost of
 running old and new in parallel is always less than the cost of a silent regression.
 
 **What good looks like:**
+
 - Legacy tests written before any refactoring begins
 - Old and new implementations coexisting through at least one verification cycle
 - Legacy code removed only after explicit confirmation that outputs match
 
 **Signals of drift:**
+
 - Deleting the old implementation in the same commit that introduces the new one
 - Relying on "it looks correct" without a mechanical comparison of outputs
 - Refactoring and adding new behaviour in the same pass
+
 ---
 
 ## 12. Start simple, earn complexity
@@ -310,14 +337,17 @@ The first commit must be the simplest thing that solves the problem. A working P
 This is not an excuse to write bad code at step 1 — Clean Code and SOLID apply from the first line. It is an excuse to defer architectural decisions until you have enough information to make them correctly.
 
 **What good looks like:**
+
 - The architecture at any stage can be explained in one sentence
 - Moving from step N to step N+1 is a refactoring, not a rewrite
 - The team can answer "why are we at this stage?" for every module
 
 **Signals of drift:**
+
 - A project at day 1 with service boundaries, message brokers, and separate deployments
 - Abstractions designed for scale that the system may never reach
 - "We'll need this later" as justification for architectural complexity today
+
 ---
 
 ## 13. Document architectural decisions with ADRs
@@ -329,7 +359,7 @@ Write an ADR when a decision is hard to reverse, would not be obvious to a futur
 
 **Format:**
 
-```
+```text
 # ADR-NNN: Title
 
 **Date:** YYYY-MM-DD
@@ -351,11 +381,13 @@ What else was evaluated and why was it not chosen?
 **Where it lives:** `/docs/adr/` at the project root, one file per decision, numbered sequentially (`0001-use-ddd-layered-architecture.md`).
 
 **What good looks like:**
+
 - An ADR exists for every structural decision a new contributor would ask "why?" about
 - Each ADR is one page maximum — if longer, the decision is not clear enough yet
 - Superseded ADRs are marked as such, never deleted — the history is as valuable as the current state
 
 **Signals of drift:**
+
 - Architecture that cannot be explained without a long conversation
 - Decisions reversed without recording why the original choice was wrong
 - "We've always done it this way" as the only available explanation for a structural choice

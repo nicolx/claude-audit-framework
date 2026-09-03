@@ -12,6 +12,7 @@ Assess whether competencies in `~/.claude/context/user_profile.md` have changed 
 ## Step 1 — Read the current profile
 
 Read `~/.claude/context/user_profile.md` in full. Note:
+
 - All `Base *` competencies (priority targets)
 - All `Operativo` competencies (candidates for promotion)
 - The current `next_review_date`
@@ -25,22 +26,27 @@ Ask the following questions **one section at a time**, waiting for the user's an
 For each `Base *` entry, ask two concrete questions that test actual knowledge — not self-perception. Examples:
 
 **Docker:**
+
 - Can you write a Dockerfile for a PHP application from memory?
 - Can you use Docker Compose to wire a PHP app with a database service?
 
 **TypeScript:**
+
 - Can you type a function with generics and union types without looking them up?
 - Have you written TypeScript in a real project, even small?
 
 **Functional programming:**
+
 - Can you use map, filter, and reduce without looking them up in PHP or JS?
 - Have you applied immutability or pure function principles in a recent project?
 
 **Redis:**
+
 - Can you configure Redis as a Symfony cache backend independently?
 - Do you understand TTL and cache invalidation strategies?
 
 **OpenAPI / Swagger:**
+
 - Can you write a basic OpenAPI YAML spec for a REST endpoint from scratch?
 - Have you used Swagger UI or a similar tool to document an API?
 
@@ -53,6 +59,7 @@ If both no → keep `Base *`, note no change.
 For each `Operativo` entry, ask one or two concrete questions that test actual knowledge — not self-perception. The goal is twofold: confirm the skill is still at Operativo level (no regression to Base), and assess whether it has matured to Fluente.
 
 Examples by area:
+
 - **DDD**: Can you design a bounded context and identify its aggregate roots for a domain you haven't seen before, without guidance?
 - **Behat**: Can you write a full feature file with background, scenario outline, and custom step definitions independently?
 - **Cloud**: Can you provision, configure, and connect cloud services (compute, storage, networking) for a new project without following a tutorial?
@@ -67,6 +74,7 @@ If answers reveal significant gaps → propose demotion to `Base`.
 Skills can become outdated even when actively used. For each `Fluente` and `Operativo` entry, ask one question that probes current best practices — not just whether the skill exists, but whether the knowledge is up to date.
 
 Examples:
+
 - **PHP / Symfony**: Are you using PHP 8 features (enums, fibers, readonly properties, named arguments) naturally in new code?
 - **Design Patterns**: Beyond GoF classics, are you familiar with patterns that have emerged in DDD and distributed systems contexts?
 - **CI/CD**: Are your pipelines using current practices (matrix builds, reusable workflows, OIDC-based secrets, environment protection rules)?
@@ -94,6 +102,7 @@ This section is Claude's responsibility, not the user's. Based on the current st
 3. **Trains worth considering** — where the user's current `*` gaps have changed in urgency or relevance given industry movement.
 
 For each candidate, state explicitly:
+
 - Why it's relevant to the user's specific profile (not generically)
 - Whether it builds depth on existing strengths or opens a new direction
 - A clear recommendation: worth adding as `Base *`, watch-and-wait, or not relevant given the focus preference
@@ -105,6 +114,7 @@ Do not add anything without explicit confirmation. This section is advisory, not
 ## Step 3 — Propose updates
 
 Present a summary of proposed changes:
+
 - Promotions: Base * → Operativo, Operativo → Fluente
 - Regressions: Fluente → Operativo (if any)
 - New entries

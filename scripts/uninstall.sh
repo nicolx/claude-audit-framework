@@ -6,42 +6,95 @@
 set -e
 
 PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+FRAMEWORK_DIR="$PROJECT_ROOT/.claude/framework"
+COMMANDS_DIR="$PROJECT_ROOT/.claude/commands"
+
+# strip_line <file> <extended-regex> — delete matching lines in place.
+# Temp file + mv: portable across BSD (macOS) and GNU sed, unlike `sed -i`.
+# -E because BSD sed does not support `\|` alternation in basic regexes.
+# Slashes in the pattern must be escaped — `/` is the address delimiter.
+strip_line() {
+    local file="$1" pattern="$2" tmp
+    tmp=$(mktemp)
+    sed -E "/$pattern/d" "$file" > "$tmp"
+    mv "$tmp" "$file"
+}
+
+# strip_leading_blanks <file> — drop blank lines at the top of the file.
+strip_leading_blanks() {
+    local file="$1" tmp
+    tmp=$(mktemp)
+    sed '/./,$!d' "$file" > "$tmp"
+    mv "$tmp" "$file"
+}
 
 echo "🗑  Removing claude-audit-framework..."
 echo ""
 
-# ── Skill symlinks ────────────────────────────────────────────────────────────
+# ── Installed skills ──────────────────────────────────────────────────────────
+# Remove only the command files this framework installed. Commands the project
+# owns are left in place, and the directory is removed only if it ends up empty.
 
-if [ -d "$PROJECT_ROOT/.claude/commands" ]; then
-    rm -rf "$PROJECT_ROOT/.claude/commands"
-    echo "  ✓  Removed .claude/commands/"
+if [ -d "$COMMANDS_DIR" ]; then
+    REMOVED=0
+    if [ -d "$FRAMEWORK_DIR/commands" ]; then
+        for skill in "$FRAMEWORK_DIR"/commands/*.md; do
+            [ -e "$skill" ] || continue
+            target="$COMMANDS_DIR/$(basename "$skill")"
+            if [ -f "$target" ]; then
+                rm "$target"
+                echo "  ✓  Removed skill: /$(basename "$skill" .md)"
+                REMOVED=$((REMOVED + 1))
+            fi
+        done
+    else
+        # Submodule already gone — fall back to the known command names
+        for name in project-audit competency-review init-profile; do
+            if [ -f "$COMMANDS_DIR/$name.md" ]; then
+                rm "$COMMANDS_DIR/$name.md"
+                echo "  ✓  Removed skill: /$name"
+                REMOVED=$((REMOVED + 1))
+            fi
+        done
+    fi
+
+    [ "$REMOVED" -eq 0 ] && echo "  ↩  No framework skills found in .claude/commands/ (skipped)"
+
+    if rmdir "$COMMANDS_DIR" 2>/dev/null; then
+        echo "  ✓  Removed empty .claude/commands/"
+    else
+        echo "  ℹ  .claude/commands/ kept — it still contains project-owned commands"
+    fi
 else
     echo "  ↩  .claude/commands/ not found (skipped)"
 fi
 
 # ── Specialization files ──────────────────────────────────────────────────────
 
-if [ -f "$PROJECT_ROOT/.claude/PROJECT_AUDIT_FRAMEWORK.md" ]; then
-    rm "$PROJECT_ROOT/.claude/PROJECT_AUDIT_FRAMEWORK.md"
-    echo "  ✓  Removed .claude/PROJECT_AUDIT_FRAMEWORK.md"
-else
-    echo "  ↩  .claude/PROJECT_AUDIT_FRAMEWORK.md not found (skipped)"
-fi
+for spec in PROJECT_AUDIT_FRAMEWORK.md CODING_STANDARDS.md; do
+    if [ -f "$PROJECT_ROOT/.claude/$spec" ]; then
+        rm "$PROJECT_ROOT/.claude/$spec"
+        echo "  ✓  Removed .claude/$spec"
+    else
+        echo "  ↩  .claude/$spec not found (skipped)"
+    fi
+done
 
-if [ -f "$PROJECT_ROOT/.claude/CODING_STANDARDS.md" ]; then
-    rm "$PROJECT_ROOT/.claude/CODING_STANDARDS.md"
-    echo "  ✓  Removed .claude/CODING_STANDARDS.md"
-else
-    echo "  ↩  .claude/CODING_STANDARDS.md not found (skipped)"
+# ── Version marker ────────────────────────────────────────────────────────────
+
+if [ -f "$PROJECT_ROOT/.claude/.framework-version" ]; then
+    rm "$PROJECT_ROOT/.claude/.framework-version"
+    echo "  ✓  Removed .claude/.framework-version"
 fi
 
 # ── @-include in CLAUDE.md ────────────────────────────────────────────────────
+# Both forms are handled: INSTRUCTIONS.md (current) and CLAUDE.md (pre-1.0 installs).
 
-if [ -f "$PROJECT_ROOT/CLAUDE.md" ] && grep -q "@.claude/framework/CLAUDE.md" "$PROJECT_ROOT/CLAUDE.md"; then
-    # Remove the @-include line, then strip any blank lines left at the top of the file
-    sed -i '' '/^@\.claude\/framework\/CLAUDE\.md$/d' "$PROJECT_ROOT/CLAUDE.md"
-    sed -i '' '/./,$!d' "$PROJECT_ROOT/CLAUDE.md"
-    echo "  ✓  Removed @.claude/framework/CLAUDE.md from CLAUDE.md"
+if [ -f "$PROJECT_ROOT/CLAUDE.md" ] &&
+   grep -qE '^@\.claude/framework/(INSTRUCTIONS|CLAUDE)\.md$' "$PROJECT_ROOT/CLAUDE.md"; then
+    strip_line "$PROJECT_ROOT/CLAUDE.md" '^@\.claude\/framework\/(INSTRUCTIONS|CLAUDE)\.md$'
+    strip_leading_blanks "$PROJECT_ROOT/CLAUDE.md"
+    echo "  ✓  Removed framework @-include from CLAUDE.md"
 else
     echo "  ↩  @-include not found in CLAUDE.md (skipped)"
 fi
@@ -49,7 +102,7 @@ fi
 # ── .gitattributes export-ignore ──────────────────────────────────────────────
 
 if [ -f "$PROJECT_ROOT/.gitattributes" ] && grep -qF ".claude/ export-ignore" "$PROJECT_ROOT/.gitattributes"; then
-    sed -i '' '/^\.claude\/ export-ignore$/d' "$PROJECT_ROOT/.gitattributes"
+    strip_line "$PROJECT_ROOT/.gitattributes" '^\.claude\/ export-ignore$'
     echo "  ✓  Removed .claude/ export-ignore from .gitattributes"
     if [ ! -s "$PROJECT_ROOT/.gitattributes" ]; then
         rm "$PROJECT_ROOT/.gitattributes"
@@ -74,6 +127,9 @@ echo ""
 echo "────────────────────────────────────────────────"
 echo ""
 echo "✅ Framework files removed. Run the three commands above to finish."
+echo ""
+echo "Your developer profile at ~/.claude/context/user_profile.md was NOT removed —"
+echo "it is personal, shared across projects, and outlives any single install."
 echo ""
 echo "To reinstall:"
 echo "  git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework"

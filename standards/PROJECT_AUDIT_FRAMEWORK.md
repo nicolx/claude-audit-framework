@@ -9,17 +9,18 @@ Designed for use in code reviews, onboarding, refactoring decisions, and project
 
 This document describes *what* to evaluate. How to operate safely and efficiently during an evaluation is defined in a separate file. **If the preconditions below are not met, stop and resolve them first — proceeding without them produces incomplete or wasteful results.**
 
-### 1. Global operating instructions must exist
+### 1. Framework operating instructions must be loaded
 
-The file `~/.claude/CLAUDE.md` must exist and must contain the "Large project analysis protocol" section. That section defines:
+The file `.claude/framework/INSTRUCTIONS.md` must be `@`-included from the project's `CLAUDE.md`, and must contain the "Large project analysis protocol" section. That section defines:
+
 - The `.claudeignore` prerequisite
 - How to work in blocks rather than on the whole project at once
 - When to use the Explore subagent instead of reading files directly
 - Which static analysis tools to run before asking Claude to read source
 
-**To verify:** run `cat ~/.claude/CLAUDE.md` and confirm the section is present.
+**To verify:** confirm `CLAUDE.md` contains `@.claude/framework/INSTRUCTIONS.md`, and that the section is present in the included file.
 
-**If missing:** the evaluation may burn tokens on irrelevant files, saturate the context window, and produce degraded results on large projects. Create or restore the authoritative global copy at `~/.claude/standards/CODE_QUALITY_STANDARDS.md` before continuing.
+**If missing:** the evaluation may burn tokens on irrelevant files, saturate the context window, and produce degraded results on large projects. Run `bash .claude/framework/scripts/init-project.sh` to install or repair the include before continuing.
 
 ### 2. The project under evaluation must have a `.claudeignore`
 
@@ -30,6 +31,7 @@ Before reading any file in the project, verify that a `.claudeignore` exists at 
 ### 3. Scope must be defined before starting
 
 Do not begin a broad evaluation ("analyse everything") without first agreeing an explicit scope with the user:
+
 - Which layer or directory is the focus?
 - Which categories from this document apply?
 - Is this a full evaluation or a targeted audit of one concern?
@@ -43,6 +45,7 @@ A scoped evaluation produces better results than a full sweep, costs fewer token
 > **Note on examples:** Code snippets throughout this document are illustrative only. They use generic or multi-language notation. Language-specific equivalents are in the Appendix at the end of this document.
 
 Each category contains:
+
 - **What it measures** — the concern being evaluated
 - **Subcriteria** — concrete, independently scorable dimensions
 - **What good looks like** — observable signals of quality
@@ -65,16 +68,16 @@ Scoring is always evidence-based: assign a score only when you can point to a sp
 
 Mark a category N/A only when the concern is structurally absent from the project (e.g., "Framework Adherence" for a project with no framework). Do not use N/A to avoid a difficult evaluation.
 
-
 ---
 
 ## Project-level specializations (optional)
 
-For projects where global criteria need grounding in a specific technology stack, create a `CODE_QUALITY_STANDARDS.md` at the project root. Claude reads it alongside this global standard — it extends it, it does not replace it.
+For projects where global criteria need grounding in a specific technology stack, create a `PROJECT_AUDIT_FRAMEWORK.md` in the project's `.claude/` directory. Claude reads it alongside this global standard — it extends it, it does not replace it. `scripts/init-project.sh` scaffolds it automatically.
 
 ### When to create one
 
 Create it when at least one of the following is true:
+
 - The project uses a specific toolchain that maps concretely to a global category (e.g., a custom quality gate command for Cat. 7)
 - The project enforces architectural rules that give observable meaning to abstract criteria (e.g., a strict layer structure for Cat. 3)
 - The project has test kinds or tagging conventions that specialise how Cat. 4 applies
@@ -96,26 +99,17 @@ If the global standard applies without ambiguity, no project file is needed.
 
 ### Format
 
-```markdown
-# Quality specializations — <project name>
-
-> Extends `~/.claude/standards/CODE_QUALITY_STANDARDS.md`. Apply the global standard in full;
-> the entries below add project-specific context where needed.
-
-## Category N — <Name>
-<specific grounding — tool, rule, or constraint for this stack>
-
-## Category M — <Name>
-<specific grounding>
-```
+The skeleton lives in `.claude/framework/templates/PROJECT_AUDIT_FRAMEWORK.md` — one `## Category N — <Name>` heading per category that needs grounding, each followed by the tool, rule, or constraint that gives it observable meaning in this stack.
 
 A healthy project file is 30–80 lines. If it grows longer, it is likely duplicating rather than specializing.
 
 ### Ignore files
 
 No changes to any ignore file are needed:
+
 - **Version control** — commit the file; it documents quality conventions for the whole team.
 - **`.claudeignore`** — do not add it; Claude needs to read it during quality evaluations. Excluding it would silently disable the specializations.
+
 ---
 
 ## Category 1 — OOP & Design Patterns
@@ -191,6 +185,7 @@ Names reveal intent. The name of a variable, function, or class should answer: w
 **Bad:** `calc()`, `doStuff()`, `flag`, `tmp`, `data`, `Manager` (what does it manage?), `Helper` (help with what?).
 
 **Rules of thumb:**
+
 - Boolean variables and functions: `is`, `has`, `can`, `should` prefix
 - Functions: verb phrase describing what they do, not what they return
 - Classes: noun phrase describing what they represent, not what they do
@@ -223,6 +218,7 @@ Errors are first-class citizens, not an afterthought. The error-handling strateg
 **Good:** Domain exceptions with descriptive names (`CoinNotFoundException`, `PaymentDeclinedException`). A single top-level handler that logs the full context and returns a structured error response. No silent failures.
 
 **Bad:**
+
 - `catch (\Exception $e) {}` — swallows all errors silently
 - `@file_get_contents(...)` — suppresses PHP errors with the `@` operator
 - Returning `null` or `false` to signal failure, forcing every caller to check
@@ -268,12 +264,14 @@ Fowler's code smell catalogue provides a shared vocabulary for naming structural
 Technical debt is the accumulated cost of deliberate shortcuts taken to ship faster. It is not inherently bad — incurring debt knowingly and repaying it intentionally is good engineering. The problem is invisible, untracked, or denied debt.
 
 **Good:**
+
 - Shortcuts are annotated inline with the reason and the future intent: `// TODO [tech-debt]: using direct DB query here — refactor to use OrderRepository once migration is complete`
 - A maintained backlog of known debt items, each with: description, business reason it was incurred, estimated cost to repay, priority
 - Debt repayment is budgeted in sprint planning as a first-class activity, not "whenever there's time"
 - New deliberate debt requires a decision record (ADR or ticket) — not a silent shortcut
 
 **Bad:**
+
 - `// TODO: fix this` with no explanation, no author, no date, no ticket reference
 - Technical debt discovered only during incidents — it was never tracked
 - "Cleanup sprints" that never happen because product priorities always win
@@ -293,7 +291,7 @@ Technical debt is the accumulated cost of deliberate shortcuts taken to ship fas
 
 The codebase is organized into layers with a strict dependency direction:
 
-```
+```text
 Domain  ←  Application  ←  Infrastructure
                          ←  Presentation (HTTP, CLI)
 ```
@@ -310,12 +308,14 @@ Domain  ←  Application  ←  Infrastructure
 #### 3.2 Purity of the domain
 
 The domain layer must not know about:
+
 - How data is stored or fetched (SQL, Redis, file system, HTTP)
 - How data is serialized (JSON, XML, CSV)
 - How data is displayed (HTML templates, CSS classes, localized strings)
 - Framework internals (request objects, ORM annotations, DI container)
 
 **Bad:**
+
 - `toCssClass()` on a domain value object — CSS is a presentation concern
 - `fromJsonArray()` on a domain entity — JSON parsing is an infrastructure concern
 - `toArray()` with HTML attributes in the returned keys
@@ -328,6 +328,7 @@ The domain layer must not know about:
 A Value Object models a domain concept whose identity is defined by its value, not its instance. They are immutable and always valid.
 
 **Good:**
+
 - `Price` that validates non-negative amounts and rounds to the correct precision
 - `EmailAddress` that validates format on construction
 - `CoinId` that enforces allowed character set
@@ -349,6 +350,7 @@ Entities have identity that persists across state changes. Aggregates are cluste
 Repository interfaces live in the Domain layer and express domain language: `findById`, `findAllActive`, `save`. Implementations live in Infrastructure.
 
 **Good:**
+
 ```php
 // Domain layer
 interface OrderRepositoryInterface {
@@ -375,12 +377,14 @@ A Domain Event is a named, immutable record that something significant happened 
 The distinction matters: `OrderPlaced`, `PaymentDeclined`, `EmployeeBenefitActivated` are domain events — they express something the business cares about, in language the business uses. `onAfterSave`, `EntityPersistedEvent`, `PostCommitHook` are technical hooks — they express an implementation detail of the persistence layer.
 
 **Good:**
+
 - Domain events named in past tense with domain language: `OrderShipped`, `AccountSuspended`, `BenefitRedeemed`
 - Domain events defined in the Domain layer as immutable value objects containing only domain data
 - Published by the Aggregate Root after a state transition, not by infrastructure code
 - Consumers (side effects: emails, audit logs, webhooks, projections) registered in the Application or Infrastructure layer — never in the Domain
 
 **Bad:**
+
 - Events named after technical operations: `UserSaved`, `DatabaseUpdated`
 - Events that carry references to infrastructure objects (entity managers, HTTP clients)
 - Domain events published from within a repository implementation
@@ -406,12 +410,14 @@ A Bounded Context is the explicit boundary within which a domain model applies. 
 | **Conformist** | Downstream simply adopts the upstream model as-is | Pollutes the downstream domain with upstream concepts |
 
 **Good:**
+
 - An explicit Context Map documenting which bounded contexts exist and how they communicate
 - An Anti-Corruption Layer wherever one context must consume another's model without polluting its own
 - Domain Events (3.7) as the primary mechanism for cross-context communication — avoids direct coupling between contexts
 - Each context has its own ubiquitous language; translation happens at the boundary
 
 **Bad:**
+
 - A single "User" object shared directly across billing, authentication, and profile management — any change to it breaks all three
 - Direct database access from one context into another context's tables
 - Shared DTOs between contexts that evolve at different rates, causing cascading changes
@@ -442,6 +448,7 @@ A Bounded Context is the explicit boundary within which a domain model applies. 
 Tests should be deterministic, fast, independent, and readable.
 
 **Good:**
+
 - Test method names describe the behaviour: `testPriceRejectsNegativeAmount`, `testHighIsAlwaysAboveOrEqualToLow`
 - Each test has a single logical assertion (may be multiple physical `assert*` calls for the same concept)
 - No shared mutable state between tests
@@ -449,6 +456,7 @@ Tests should be deterministic, fast, independent, and readable.
 - Helper methods to reduce construction boilerplate (`makeOrder()`, `makePricePoint()`)
 
 **Bad:**
+
 - Tests named `test1`, `testFoo`, `testHappy`
 - A single test that validates ten different behaviours
 - Tests that depend on execution order
@@ -473,11 +481,13 @@ Tests can verify behaviour in three fundamentally different ways. The style matt
 Tests that exercise the system end-to-end without real external dependencies, using stubs or in-memory implementations.
 
 **Good:**
+
 - HTTP contract tests: dispatch a real request through the full stack (Router → Controller → UseCase → StubRepository), verify status code and response body shape
 - Cover the most important paths: success, not found (404), service unavailable (503), malformed input
 - Use stub implementations, not mocks — stubs are simpler and don't tie tests to implementation details
 
 **Bad:**
+
 - No functional tests at all — unit tests alone cannot catch routing bugs, controller wiring issues, or serialization problems
 - Functional tests that mock every dependency — they end up testing the mock, not the code
 
@@ -488,6 +498,7 @@ Tests that make real calls to external services to verify the API contract is st
 **Purpose:** Detect breaking changes in third-party APIs — shifted field positions, removed keys, changed response shapes — that unit tests cannot catch because they use stubs.
 
 **Good:**
+
 - Run in a separate test suite, excluded from the default CI run (to avoid rate-limiting and flakiness)
 - Annotated with `#[Group('integration')]` and run explicitly with `vendor/bin/phpunit --group integration`
 - Test the raw response contract (field names, types, structure) as well as domain-level invariants (high >= low, chronological order)
@@ -495,17 +506,20 @@ Tests that make real calls to external services to verify the API contract is st
 - Minimize API calls: `setUpBeforeClass()` fetches data once, individual tests assert against the cached result
 
 **Bad:**
+
 - Integration tests mixed into the default test run — causes CI failures due to network issues
 - No integration tests at all — you find out about API contract changes in production
 
 #### 4.5 Test naming and organization
 
 **Good:**
+
 - One test class per production class
 - Tests grouped into mirrored directory structure (`tests/Unit/Domain/ValueObject/PriceTest.php` mirrors `src/Domain/ValueObject/Price.php`)
 - Test method names follow the pattern: `test[Subject][Condition][ExpectedOutcome]` or `test[WhatItDoes][WhenThisCondition]`
 
 **Bad:**
+
 - All tests in a single file or directory
 - Tests that require reading the implementation to understand what they're testing
 
@@ -523,11 +537,13 @@ Freeman & Pryce distinguish five types of test double, each with a specific role
 
 **The critical rule — mock only what you own:**
 Never create a mock of a class you do not control (a third-party library, a framework class, an external SDK). If the library changes its interface, the mock will still pass while the real integration breaks. Instead:
+
 1. Wrap the third-party class in an interface you own (`HttpClientInterface`, `PaymentGatewayInterface`)
 2. Mock *your* interface in tests
 3. Test the adapter that wraps the third-party class with a real (or recorded) integration test
 
 **Good:**
+
 ```php
 // PHP (PHPUnit) — own the interface; mock it freely
 interface HttpClientInterface {
@@ -536,15 +552,18 @@ interface HttpClientInterface {
 $http = $this->createMock(HttpClientInterface::class);
 $http->method('get')->willReturn('{"price": 42000}');
 ```
+
 ```typescript
 // TypeScript (Jest) — same principle
 const http: HttpClientInterface = { get: jest.fn().mockResolvedValue('{"price":42000}') };
 ```
+
 ```python
 # Python (unittest.mock)
 with patch.object(HttpClientInterface, 'get', return_value='{"price": 42000}'):
     ...
 ```
+
 ```swift
 // Swift (XCTest) — protocol-based fake
 class FakeHttpClient: HttpClientProtocol {
@@ -553,6 +572,7 @@ class FakeHttpClient: HttpClientProtocol {
 ```
 
 **Bad:**
+
 ```php
 // Mocking a third-party concrete class — brittle, couples the test to the implementation
 $guzzle = $this->createMock(GuzzleHttp\Client::class);
@@ -598,6 +618,7 @@ State should have a single, explicit owner. Mutation should happen in one place,
 Every function should declare its dependencies explicitly (through parameters or module imports) rather than reaching into global scope.
 
 **Good:**
+
 ```javascript
 function updateCoinHeader(coinId, name, price, getPrice) {
     const livePrice = getPrice(coinId);
@@ -606,6 +627,7 @@ function updateCoinHeader(coinId, name, price, getPrice) {
 ```
 
 **Bad:**
+
 ```javascript
 function updateCoinHeader() {
     const livePrice = priceCache[currentCoinId]; // implicit access to two globals
@@ -626,12 +648,14 @@ JavaScript functions should have the same SRP discipline as PHP classes. A funct
 Every `fetch()`, `WebSocket`, and `setTimeout` must handle failures explicitly. Silent failures are unacceptable in production.
 
 **Good:**
+
 - `.catch(err => console.error('[App] OHLCV fetch failed:', err))` — at minimum, visible in devtools
 - User-facing notification for failures the user must know about
 - WebSocket reconnection logic with exponential backoff
 - `try/catch` on `JSON.parse` wherever WebSocket or fetch messages are parsed
 
 **Bad:**
+
 - `.catch(() => {})` — silent black hole
 - No `.catch()` at all on a `fetch()` call
 - `JSON.parse(event.data)` without a `try/catch` — crashes on malformed messages
@@ -697,6 +721,7 @@ Most modern frameworks favour declaring intent over writing step-by-step procedu
 #### 6.4 No bypass of core mechanisms
 
 **Bad patterns across frameworks:**
+
 - Disabling CSRF protection globally to avoid dealing with it
 - Calling `exit()` or `die()` inside a controller, bypassing the framework's response lifecycle
 - Using `eval()` or dynamic requires to load code
@@ -727,7 +752,7 @@ The question this criterion answers: **is the current tooling choice proportiona
 
 **Scoring is a bell curve, not a ramp:**
 
-```
+```text
 Score
  10 |              ████
   8 |           ██      ██
@@ -744,6 +769,7 @@ A 9–10 is not "has a framework" — it is "has exactly the right amount of str
 **Why over-engineering scores as low as under-engineering:**
 
 Premature framework adoption is not free. It introduces real, measurable costs:
+
 - Every simple operation now carries framework boilerplate that the problem does not require
 - Onboarding requires learning the framework *before* contributing — for a complexity that does not justify it
 - The framework's opinions drive architecture decisions that should be driven by the domain
@@ -775,6 +801,7 @@ These costs compound over time exactly as technical debt does. A junior develope
 **Wrong framework / framework decay:**
 
 A framework that is present and correctly sized can still be a mismatch for other reasons. Score down for:
+
 - Framework is end-of-life (AngularJS 1.x, CakePHP 2.x, CodeIgniter 3.x) — security risk and recruiting disadvantage
 - Framework fights the problem domain (Rails for a stateless API; a full SPA framework for a mostly-static site)
 - Framework version is > 2 major versions behind current stable — upgrade cost compounds every month
@@ -782,6 +809,7 @@ A framework that is present and correctly sized can still be a mismatch for othe
 **Important: score measures structural complexity, not line count.**
 
 Line count is a proxy, not the signal. A 900-line file with 6 well-bounded modules and no cross-cutting state may be healthier than a 400-line file with implicit globals and side-effect-driven flow. Before scoring, identify:
+
 - How many distinct concerns share state across module boundaries
 - Whether adding a new feature requires understanding the entire file or only one section
 - Whether the framework's abstractions are being used, fought, or ignored
@@ -805,6 +833,7 @@ For every significant capability in the codebase — data access, authentication
 This is the **NIH (Not Invented Here) principle applied proportionally.** The failure mode runs in both directions.
 
 **The bell curve applies here as for 6.7:**
+
 - 9–10: each capability is handled at the level of abstraction its complexity warrants
 - Scores decrease symmetrically toward both extremes — excessive hand-rolling and excessive external dependency are penalised identically
 
@@ -845,6 +874,7 @@ Conversely, adding Doctrine to a project with 3 tables and 5 queries imports ~12
 *Over-importing:* `composer.json` / `package.json` grows by one dependency per feature; `composer why` reveals packages no developer recognises; a trivial feature change requires upgrading 4 transitive dependencies.
 
 **Dependency health check — score down additionally for:**
+
 - Any dependency with no commits in > 24 months and no stated maintenance policy
 - Any dependency flagged by `composer audit` / `npm audit` with a known CVE that has not been addressed
 - Any dependency that is a fork of an abandoned project with no clear ownership
@@ -940,16 +970,19 @@ Enforce layer boundaries automatically, not by convention.
 The entire quality suite should be runnable with a single command in development and CI.
 
 **PHP example:**
+
 ```bash
 composer qa  # runs: phpstan + php-cs-fixer check + phpunit
 ```
 
 **Node example:**
+
 ```bash
 npm run qa  # runs: eslint + tsc --noEmit + jest
 ```
 
 **Make/Just example:**
+
 ```makefile
 qa: analyse cs-check test
 ```
@@ -985,6 +1018,7 @@ Observable signals of suppression:
 **Failure mode 2 — Accumulation without a plan:** Deprecation warnings are visible but treated as background noise. No one owns the backlog; warnings accumulate across versions.
 
 The risk compounds in a specific pattern:
+
 1. Dependency releases a minor version with deprecation notices → warnings appear
 2. Team suppresses or ignores → no action taken
 3. Dependency releases a major version removing the deprecated API → **breaking change with no prior work**
@@ -1038,12 +1072,14 @@ Security is not binary. The goal is defence in depth: multiple independent layer
 Every value that enters the system from outside (HTTP query strings, headers, request body, environment variables, file uploads) must be validated and sanitized before use.
 
 **Good:**
+
 - Parse and type-cast inputs at the entry point before any other use — PHP: `(int) $request->get('limit')` / Go: `strconv.Atoi(r.URL.Query().Get("limit"))` / Python: `int(request.args.get("limit"))` / Kotlin: `params["limit"]?.toIntOrNull()` / Swift: `Int(request.queryParameters["limit"] ?? "")`
 - Validate against a domain Value Object that rejects invalid values: `new CoinId($input)` throws if invalid — the language is irrelevant, the pattern is universal
 - Use allowlists, not blocklists, for string validation: `/^[a-z0-9\-]+$/` not `strpos($input, '<')`
 - Validate file uploads: MIME type from file headers (not extension), size limits, path traversal prevention
 
 **Bad:**
+
 - Using `$_GET['id']` directly in an SQL query (SQL injection)
 - Using user input directly in a shell command
 - Trusting `Content-Type` header for file validation (trivially spoofed)
@@ -1096,6 +1132,7 @@ HTTP response headers instruct browsers on how to handle page content. They are 
 | `Strict-Transport-Security` | `max-age=31536000` | Forces HTTPS for one year (production only) |
 
 **CSP guidance:**
+
 - Start with `default-src 'self'` and add exceptions as required
 - Prefer `nonce`-based script allowlisting over `'unsafe-inline'`
 - `connect-src` must include every WebSocket/API domain the frontend connects to
@@ -1105,11 +1142,13 @@ HTTP response headers instruct browsers on how to handle page content. They are 
 #### 8.6 Secrets management
 
 **Good:**
+
 - All secrets (API keys, database passwords, private keys) in environment variables or a secrets manager (AWS Secrets Manager, HashiCorp Vault)
 - `.env` files in `.gitignore`; `.env.example` committed with placeholder values
 - Secret scanning (GitHub Secret Scanning, `git-secrets`, `truffleHog`) in CI
 
 **Bad:**
+
 - API keys committed to the repository, even in "private" repos
 - Hardcoded credentials in configuration files
 - Secrets in log output
@@ -1152,11 +1191,13 @@ Logs should be machine-parseable (NDJSON or similar) and contain consistent fiel
 | `critical` | System is unusable: database unreachable, disk full, fatal configuration error |
 
 **Good:**
+
 ```json
 {"ts":"2026-05-27T10:14:22.000+00:00","level":"error","message":"External service unavailable","context":{"service":"price-api","error":"Connection timed out after 12s"}}
 ```
 
 **Bad:**
+
 - `echo "Error: " . $e->getMessage();` — unstructured, goes to stdout not logs
 - Logging only in catch blocks — half the picture
 - No correlation ID — cannot trace a request across multiple log lines
@@ -1179,6 +1220,7 @@ Unhandled exceptions and application errors should be captured, aggregated, and 
 A `/health` (or `/healthz`, `/ping`) endpoint allows load balancers, container orchestrators, and monitoring systems to verify the application is alive and its dependencies are reachable.
 
 **Minimum response:**
+
 ```json
 {
   "status": "ok",
@@ -1201,6 +1243,7 @@ Application metrics — request rate, error rate, response time percentiles (p50
 **Tools:** Prometheus + Grafana, Datadog, New Relic, CloudWatch.
 
 **Minimum for a web service:**
+
 - Request count by route and status code
 - Response time by route (histogram)
 - Error rate
@@ -1212,11 +1255,13 @@ Application metrics — request rate, error rate, response time percentiles (p50
 When a dependency fails, the system should continue serving users as best it can, not crash entirely.
 
 **Good:**
+
 - CoinGecko API down → return a cached page with a "data may be outdated" notice, not a 500 error
 - Redis cache unavailable → fall through to database, log a warning, continue serving
 - Non-critical feature (A/B test, recommendation engine) fails → hide the feature, continue serving the main content
 
 **Bad:**
+
 - One failed external API call causes a full page crash
 - No fallback for a missing non-critical dependency
 - Cascading failures: one slow service causes threads to pile up, crashing unrelated services
@@ -1234,11 +1279,13 @@ Every log sink has a bound. The question is whether you chose it or inherited it
 - **Debug-level output does not reach durable storage in production** (see 9.1).
 
 **Good:**
+
 - Retention bounds declared in configuration that is version-controlled or documented in a runbook — not left to distribution defaults
 - Free space exposed as a health signal (see 9.3), so exhaustion is noticed while it is still cheap to fix
 - A fallback chain on the primary sink (e.g. file → stderr) so an unwritable log cannot kill a request or a job
 
 **Bad:**
+
 - "It rotates by default" — without knowing which default, or whether that default bounds time as well as size
 - One channel producing the overwhelming majority of log volume, unnoticed for months, because volume was never measured
 - The logger raising an exception that propagates into application code
@@ -1257,11 +1304,13 @@ Logs are not the only thing that grows without limit. Append-only *data* — aud
 **How to check:** list the persisted datasets ordered by size, then for each of the largest ask *which scheduled job bounds this, and when did it last succeed?* Reconcile the list of append-only datasets against the list of scheduled retention jobs — the gap is the finding.
 
 **Good:**
+
 - Every append-only dataset maps to exactly one retention job, and the mapping is explicit enough to be reviewed (a documented list, a configuration table, or a test that fails when a new table has no policy)
 - Retention windows chosen from a stated requirement — legal, forensic, or operational — rather than left implicit
 - Datasets whose growth rate is measured and recorded, so a change of regime is visible
 
 **Bad:**
+
 - A purge command in the codebase that was never added to the scheduler, and therefore has never run
 - A high-volume log table with no timestamp column, purgeable only by id
 - A temporary diagnostic tracker, added during an incident, still growing indefinitely
@@ -1280,6 +1329,7 @@ Logs are not the only thing that grows without limit. Append-only *data* — aud
 Every build from the same source revision must produce the same artefact.
 
 **Good:**
+
 - Lock files committed: `composer.lock`, `package-lock.json`, `Pipfile.lock`, `Cargo.lock`
 - Docker images pinned by digest, not floating tags (`image: php:8.3.7-fpm`, not `php:latest`)
 - Build dependencies explicitly declared, not installed ad-hoc
@@ -1291,12 +1341,14 @@ Every build from the same source revision must produce the same artefact.
 Code must run identically in all environments; only configuration changes.
 
 **Good:**
+
 - Dev, staging, production environments identical except for configuration values
 - Configuration via environment variables (12-Factor principle)
 - No `if ($env === 'production')` branches in business logic
 - Infrastructure as Code (Terraform, CDK, Pulumi) for environment definitions
 
 **Bad:**
+
 - Hotfixes applied directly to production that are never back-ported
 - Code that behaves differently based on detected hostname or IP
 - Manual configuration steps not tracked in version control
@@ -1306,6 +1358,7 @@ Code must run identically in all environments; only configuration changes.
 Every push to a shared branch triggers the full quality suite: static analysis, style checks, tests.
 
 **Minimum pipeline:**
+
 ```yaml
 - static-analysis   # phpstan / tsc --noEmit
 - style-check       # php-cs-fixer / eslint / prettier --check
@@ -1321,12 +1374,14 @@ Every push to a shared branch triggers the full quality suite: static analysis, 
 #### 10.4 Database migrations
 
 **Good:**
+
 - All schema changes versioned as migration files
 - Migrations run automatically on deploy
 - Migrations are backward-compatible: add columns as nullable before removing old code, then remove old code before making them required ("expand-contract" pattern)
 - Migrations are reversible (down migrations) where feasible
 
 **Bad:**
+
 - Manual SQL applied directly to production databases
 - Schema changes deployed simultaneously with code changes (downtime risk)
 - Migrations that cannot be rolled back
@@ -1336,33 +1391,39 @@ Every push to a shared branch triggers the full quality suite: static analysis, 
 **Strategies:** Blue-green deployment, canary releases, rolling updates.
 
 **Good:**
+
 - New version deployed alongside old version; traffic shifted gradually
 - Automated health checks gate the rollout — if error rate spikes, rollout stops automatically
 - Load balancer drains connections from the old version before terminating it
 
 **Bad:**
+
 - Deploy by stopping all instances, deploying, restarting (100% downtime per deploy)
 - Relying on "it's 3am, nobody is using it" as a deployment strategy
 
 #### 10.6 Rollback capability
 
 **Good:**
+
 - Any deployment can be rolled back in under 5 minutes
 - Rollback is a one-command operation (`kubectl rollout undo`, `git revert` + redeploy)
 - Rollback tested regularly (not just theoretically available)
 
 **Bad:**
+
 - Rollback requires manually undoing database migrations with no documented procedure
 - Last known good artefact is not retained
 
 #### 10.7 Secrets in CI/CD
 
 **Good:**
+
 - Secrets injected as environment variables from the CI platform's secrets store (GitHub Secrets, GitLab CI Variables, AWS SSM)
 - Secrets never echoed in build logs
 - Separate secrets per environment; no production credentials accessible from development jobs
 
 **Bad:**
+
 - Secrets hardcoded in `.gitlab-ci.yml` or `Makefile`
 - The same API key used in all environments
 - Build logs that print environment variables on failure
@@ -1380,6 +1441,7 @@ Every push to a shared branch triggers the full quality suite: static analysis, 
 An evolutionary architecture is one that supports incremental, guided change across multiple dimensions simultaneously. The central idea (Fowler, Ford, Parsons) is that architecture fitness functions — automated checks that verify architectural properties — should be treated as first-class citizens alongside functional tests.
 
 **Strangler Fig pattern (Fowler):** When replacing a legacy subsystem, do not attempt a big-bang rewrite. Instead:
+
 1. Place a facade in front of the legacy system that intercepts calls
 2. Incrementally redirect calls from the facade to the new implementation, path by path
 3. When all calls are redirected, remove the legacy system
@@ -1388,18 +1450,21 @@ An evolutionary architecture is one that supports incremental, guided change acr
 This pattern applies to any large-scale refactoring: replacing a monolith with services, migrating from one data store to another, re-platforming a legacy API — all are Strangler Fig scenarios.
 
 **Signals of evolutionary readiness:**
+
 - New features can be added without modifying existing, tested code (OCP in practice at the system level)
 - Bounded contexts can be extracted into separate deployable units without rewriting their internal logic
 - Data schema changes are additive and backward-compatible (new columns nullable; old columns deprecated before removal)
 - A new integration partner can be onboarded by implementing an existing interface, not by modifying core flows
 
 **Signals of evolutionary brittleness:**
+
 - Adding a new market or customer type requires changes in 20+ files
 - A "simple" feature request triggers a rewrite discussion
 - No seams between major subsystems — everything is entangled in a shared database schema or a shared object graph
 - Every schema migration is a deployment freeze risk
 
 **Fitness functions (architecture tests):** Automated checks that verify architectural properties remain intact over time. Examples:
+
 - `deptrac` fails if any domain class imports an infrastructure class (architectural boundary)
 - A test that verifies all public API endpoints return within 200ms (performance fitness function)
 - A mutation test threshold that fails CI if mutation score drops below 60% (test quality fitness function)
@@ -1410,12 +1475,14 @@ This pattern applies to any large-scale refactoring: replacing a monolith with s
 A branching strategy is a team contract, not a technical setting. Any well-known flow (Git Flow, trunk-based development, GitHub Flow) is acceptable; the failure mode is the absence of any explicit agreement, which produces organic chaos: long-lived branches that diverge for weeks, silent merge conflicts, and no shared understanding of "what is in production right now."
 
 **Signals of a healthy strategy:**
+
 - The strategy is written down (in `CONTRIBUTING.md`, a wiki, or a team agreement) — not just assumed
 - Every branch has a clear purpose and a clear owner; stale branches are deleted after merge
 - The main branch reflects production at all times (trunk-based) or a well-defined integration branch does (Git Flow `develop`)
 - Feature branches are short-lived: merged within days, not weeks
 
 **Signals of no strategy:**
+
 - Branches named `fix`, `test2`, `nicolaTempBranch`, `mario-lavori` accumulate and are never merged or deleted
 - The same logical change exists on multiple branches without a merge plan
 - Nobody can answer "what is currently deployed to production?" without checking with a person
@@ -1437,7 +1504,7 @@ A commit message is the only piece of documentation that travels with the code f
 
 **Conventional Commits format (de facto standard):**
 
-```
+```text
 <type>(<scope>): <short summary in imperative mood>
 
 [optional body — explains WHY, not WHAT]
@@ -1448,7 +1515,8 @@ A commit message is the only piece of documentation that travels with the code f
 **Types:** `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `ci`, `build`
 
 **Good examples:**
-```
+
+```text
 feat(pricing): add support for OHLCV interval selection
 
 fix(health): return 503 when disk usage exceeds 90%
@@ -1458,7 +1526,8 @@ refactor(http-client): extract decodeJson to eliminate duplication
 ```
 
 **Bad examples:**
-```
+
+```text
 fix stuff
 WIP
 update
@@ -1467,6 +1536,7 @@ changed things, now works
 ```
 
 **Why it matters beyond aesthetics:**
+
 - `feat:` and `fix:` commits enable automated semantic versioning (Conventional Commits + `semantic-release`)
 - `git bisect` becomes effective only when commits are atomic and their messages describe their intent
 - A one-year-old commit message is the only context available when debugging a regression at 2am
@@ -1478,6 +1548,7 @@ changed things, now works
 A pull request is not just a merge mechanism — it is the primary asynchronous communication channel between the author and the rest of the team. Its quality directly determines the quality of the review it receives.
 
 **A reviewable PR:**
+
 - Is focused on one coherent change (a feature, a bug fix, a refactor — not all three at once)
 - Has a description that explains the **why** (what problem does this solve? why this approach and not another?)
 - Is ≤400 lines of meaningful code change (excluding generated files, lock files, migrations)
@@ -1486,6 +1557,7 @@ A pull request is not just a merge mechanism — it is the primary asynchronous 
 - Is submitted in a state the author considers mergeable — not "I'll clean it up after review"
 
 **A non-reviewable PR:**
+
 - 3,000-line diff touching 40 files across unrelated concerns
 - Description: "fixes bug" or left blank
 - No context about what was broken or why this is the right fix
@@ -1494,6 +1566,7 @@ A pull request is not just a merge mechanism — it is the primary asynchronous 
 **The size trap:** Large PRs are not reviewed — they are rubber-stamped. Studies consistently show review quality drops sharply above 400 lines. If a change genuinely requires more, split it into a stacked PR series: infrastructure first, then feature on top.
 
 **Good signals:**
+
 - Average PR size is tracked (GitHub Insights, LinearB, etc.)
 - There is a team norm on PR size and it is enforced socially or tooling
 - Reviewers leave substantive comments, not just approvals
@@ -1515,6 +1588,7 @@ Branch protection rules are the enforcement layer that makes all other practices
 | Restrict who can push directly | Only break-glass for emergency hotfixes, with a documented procedure |
 
 **Additional protections for enterprise:**
+
 - Require signed commits (`git commit -S`) — non-repudiation for regulated environments
 - Require linear history (no merge commits on `main`) — cleaner `git log` and `git bisect`
 - Require conversation resolution before merge — no open review threads at merge time
@@ -1534,12 +1608,14 @@ A version tag is a pointer from a human-readable name to a specific commit. It a
 | `MAJOR` | Breaking change | `1.5.0` → `2.0.0` |
 
 **Good practices:**
+
 - Every production release has a git tag: `git tag -a v1.5.0 -m "feat: OHLCV interval selection"`
 - Tags are pushed explicitly: `git push origin v1.5.0` (tags are not pushed by default)
 - `CHANGELOG.md` is generated automatically from Conventional Commits (tools: `conventional-changelog`, `semantic-release`, `release-please`)
 - Pre-release versions use the semver pre-release syntax: `v2.0.0-rc.1`, `v2.0.0-beta.3`
 
 **Bad practices:**
+
 - No tags at all — "you can check the deploy log in Slack" is not a substitute
 - Tags named `final`, `final2`, `final-REAL`, `production-dec`
 - Version bumps are manual and inconsistent — the CHANGELOG is written by hand and frequently out of date
@@ -1552,21 +1628,25 @@ A version tag is a pointer from a human-readable name to a specific commit. It a
 Significant architectural decisions should be documented in short, committed records that capture context, rationale, and alternatives considered. Code alone cannot explain why a decision was made.
 
 **Good:**
+
 - A `/docs/adr/` directory exists with numbered ADR files
 - Each ADR states the decision plainly, its context, its consequences, and the alternatives rejected
 - Superseded ADRs are marked as deprecated, not deleted
 - The ADR index answers "why is this structured this way?" for every non-obvious structural choice
 
 **Bad:**
+
 - Architecture that can only be explained through tribal knowledge or long conversations
 - No record of decisions reversed or superseded — only the current state, not the history
 - ADRs written retrospectively as busywork, not prospectively as decision aids
 
 **How to score:**
+
 - 0–2: No ADRs; structural decisions are implicit and undocumented
 - 3–5: Some decisions documented informally (README, comments), but no systematic practice
 - 6–7: ADR practice present; coverage incomplete or format inconsistent
 - 8–10: All significant structural decisions have ADRs; history is traceable; new decisions trigger new ADRs as a matter of course
+
 ---
 
 ## How to conduct a quality evaluation
@@ -1574,6 +1654,7 @@ Significant architectural decisions should be documented in short, committed rec
 ### Step 1 — Read before scoring
 
 Read at least these files before assigning any score:
+
 1. The core domain models (Entities, Value Objects)
 2. The main use case or service entry points
 3. A representative controller or API handler
@@ -1591,6 +1672,7 @@ For each subcategory, write: "Score X/10 because [specific file, line, or observ
 ### Step 3 — Identify the top 3 improvement opportunities
 
 Across all categories, identify the three improvements that would have the highest impact per unit of effort. Prioritise:
+
 - Gaps with severity: a missing CSRF token is higher priority than an imperfect naming convention
 - Automation gaps: any quality that currently relies only on developer discipline
 - Test coverage gaps: untested critical paths

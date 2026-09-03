@@ -1,0 +1,11 @@
+# The framework ships documents and shell scripts only — nothing else is worth traversing.
+.git/
+.github/
+node_modules/
+vendor/
+dist/
+build/
+coverage/
+*.lock
+*.log
+.DS_Store

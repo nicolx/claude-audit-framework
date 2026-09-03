@@ -1,124 +1,114 @@
-# claude-audit-framework
+# Working ON claude-audit-framework
 
-Instructions for Claude Code in any project that uses `claude-audit-framework` as a submodule.
-This file is included via `@.claude/framework/CLAUDE.md` in the project's `CLAUDE.md`.
-
----
-
-## Developer profile
-
-If `~/.claude/context/user_profile.md` exists, read it in full before proposing any technical solution, architectural choice, or implementation strategy. Calibrate every response to the competency levels defined inside:
-- **Fluente** — propose advanced patterns freely; skip basic explanations; use domain terms without glossing
-- **Operativo** — use in proposals but explain non-obvious choices; avoid advanced patterns without rationale
-- **Base** — avoid as the primary technology; prefer alternatives where available; when unavoidable, use simple patterns and explain clearly
-
-Entries marked with `*` are gaps the developer intends to fill. When a task genuinely requires one, flag it explicitly before proceeding — the goal is to grow the competency in context, not to avoid it.
-
-At the start of each session, check the `next_review_date` field. If today's date is on or past that date, flag it once:
-> 📋 Competency review due — run `/competency-review` when ready.
-
-**If the file does NOT exist:** mention it once at the start of the session — `> 💡 No developer profile found. Run /init-profile to enable skill-level calibration.` — then proceed normally without repeating it.
+Instructions for Claude Code when the task is **developing this framework**, not using it.
 
 ---
 
-## Enterprise Quality Standard
+## ⚠ Stop — are you reading this from a consumer project?
 
-A 10-category quality framework is active in this project.
+This file is **not** the file consumer projects include. If you are reading it because a project's
+`CLAUDE.md` contains `@.claude/framework/CLAUDE.md`, that project's installation predates the
+`INSTRUCTIONS.md` split and is pointing at the wrong file.
 
-**Full document:** `.claude/framework/standards/PROJECT_AUDIT_FRAMEWORK.md`
+**How to tell:** if `.claude/framework/` exists in the working tree, you are in a consumer project.
+If `standards/` and `commands/` are at the root instead, you are in the framework repo itself and
+the rest of this file applies.
 
-Read it before conducting any quality evaluation or scoring. Do not score from memory alone.
+**In a consumer project:** flag it once, then read `.claude/framework/INSTRUCTIONS.md` instead and
+follow that for the rest of the session.
 
-### The 10 categories
+> ⚠ Outdated framework install — your `CLAUDE.md` includes `@.claude/framework/CLAUDE.md`, which is now the framework's own development file. Run `bash .claude/framework/scripts/init-project.sh` to migrate the include to `INSTRUCTIONS.md`.
 
-| # | Category | Always evaluated? |
+---
+
+## What this repo is
+
+A portable quality framework distributed to other projects as a git submodule at
+`.claude/framework/`. It ships documents and commands — no application code.
+
+| Path | Audience | Role |
 |---|---|---|
-| 1 | OOP & Design Patterns | Yes |
-| 2 | Clean Code | Yes |
-| 3 | Domain-Driven Design (DDD) | If domain layer is present |
-| 4 | Testing | Yes |
-| 5 | JavaScript / Frontend Quality | If JS/TS is present |
-| 6 | Framework, Library & Dependency Fitness | Yes (6.7 and 6.8 always; 6.1–6.6 if a framework is in use) |
-| 7 | Tooling & Quality Standards | Yes |
-| 8 | Application Security | Yes |
-| 9 | Observability & Operability | Yes |
-| 10 | CI/CD & Version Control Discipline | Yes |
-
-### Score targets by project maturity
-
-| Maturity | Min target per category |
-|---|---|
-| Prototype | 4/10 |
-| Early production | 6/10 |
-| Established | 7/10 |
-| Enterprise | 8/10 |
-
-### How to conduct an evaluation
-
-1. Read `.claude/framework/standards/PROJECT_AUDIT_FRAMEWORK.md` in full before scoring
-2. Check for `.claude/PROJECT_AUDIT_FRAMEWORK.md` — if present, it extends the global framework; apply both
-3. Score each subcategory with specific file/line evidence — no vague scores
-4. Identify top 3 improvement opportunities by impact/effort ratio
-5. Produce a category summary table with score, top gap, and recommended action
-6. Re-score only after changes are implemented and verified — not for planned work
+| `INSTRUCTIONS.md` | Consumer projects | The file `@`-included into a project's `CLAUDE.md`. Loaded into every session of every consuming project. |
+| `CLAUDE.md` | This repo | This file. Never travels into a consumer session. |
+| `standards/PROJECT_AUDIT_FRAMEWORK.md` | Consumer projects | The 10-category evaluation standard — *what good is measured against*. |
+| `standards/CODING_STANDARDS.md` | Consumer projects | The 13 principles applied to every code proposal — *what good looks like*. |
+| `commands/*.md` | Consumer projects | Slash commands, **copied** into `.claude/commands/` by `init-project.sh`. |
+| `templates/*.md` | Consumer projects | Scaffolding for the project-level specialization files. |
+| `scripts/*.sh` | Operators | Install, uninstall, and the framework's own quality gate. |
 
 ---
 
-## Coding standards
+## Rules for changing this framework
 
-Apply `.claude/framework/standards/CODING_STANDARDS.md` before every implementation decision. Every code proposal must reflect these standards — this is not optional and does not require an explicit request.
+### 1. One fact, one place
 
-**Before writing code in any project, check:**
-- Does `.claude/CODING_STANDARDS.md` exist? If not, flag it **once per session**:
-  > ⚠ No project-level `.claude/CODING_STANDARDS.md` found. Stack-specific coding conventions are not defined. See `.claude/framework/templates/CODING_STANDARDS.md` for the format.
-- Does `.claude/PROJECT_AUDIT_FRAMEWORK.md` exist? If not, flag it **once per session**:
-  > ⚠ No project-level `.claude/PROJECT_AUDIT_FRAMEWORK.md` found. Quality evaluation will use only the global framework.
+The most frequent defect in this repo's history is the same statement living in two files and
+drifting apart. Before adding a sentence, check whether it already exists elsewhere.
 
-If `.claude/CODING_STANDARDS.md` or `.claude/PROJECT_AUDIT_FRAMEWORK.md` exist, they take precedence over the global framework where they conflict.
+- A global rule belongs in `standards/` — never restated in `templates/` or `INSTRUCTIONS.md`
+- A template is a *fill-in-the-blanks skeleton*, never a copy of the standard it extends
+- `INSTRUCTIONS.md` **points at** the standards; it does not summarise their content
+- A path written in prose is a fact like any other: if it appears in three files, it will be wrong
+  in two of them after the next migration
+
+### 2. Paths are load-bearing
+
+Every `.claude/framework/...` path in a document is a live reference — a consumer project resolves
+it at session start. When a file moves, `scripts/check-consistency.sh` is what catches the stragglers.
+Run it before committing.
+
+### 3. Version every change to a shipped document
+
+A consumer project pins or pulls this repo by git ref. A change to anything under `standards/`,
+`commands/`, `templates/`, or to `INSTRUCTIONS.md`, is a change to their sessions.
+
+- Bump `VERSION` (semver) and add a `CHANGELOG.md` entry **in the same commit** as the change
+- **Major** — a consumer must edit their own files to keep working (e.g. the `@`-include split)
+- **Minor** — new category, new subcriteria, new command
+- **Patch** — corrections, clarifications, path fixes
+- Every breaking change needs a migration path in `scripts/init-project.sh`, not just a note in the
+  changelog: the script is what consumers actually run
+
+### 4. Scripts must be portable and non-destructive
+
+`init-project.sh` and `uninstall.sh` run on developer machines and in CI, on macOS and Linux.
+
+- POSIX-compatible text editing only — no `sed -i ''` (BSD) and no `sed -i` (GNU); use a temp file + `mv`
+- Both scripts are **idempotent**: running twice changes nothing the second time
+- `uninstall.sh` removes only what the framework installed. A file the project owns is never touched,
+  and a directory is removed only when empty
+- `shellcheck` clean, no exceptions
+
+### 5. Criteria need observable evidence
+
+A subcriteria that cannot be scored from a file, a line, or a command's output is not a criteria —
+it is an opinion. When adding one to `PROJECT_AUDIT_FRAMEWORK.md`, include what *good* and *bad*
+look like as things a reader can point at, and keep the existing structure:
+`what it measures → subcriteria → good → bad`.
 
 ---
 
-## Large project analysis protocol
+## Quality gate
 
-These rules apply to **exploratory and general analysis**.
-
-> **Exception — `/project-audit`:** that command intentionally reads the full project source before scoring. Do not apply the block-reading rules when running `/project-audit`.
-
-### Prerequisite — verify `.claudeignore` before any analysis
-
-Do not begin any analysis on a project until a `.claudeignore` exists at its root. Without it, traversals include dependency trees (`vendor/`, `node_modules/`), build artefacts, caches, and logs. If missing, create it or ask the user before proceeding.
-
-Minimum contents for a web/backend project:
-```
-vendor/
-node_modules/
-.git/
-var/
-storage/
-dist/
-build/
-coverage/
-*.lock
-*.log
+```bash
+bash scripts/check-consistency.sh    # path integrity, retired names, changelog/version sync
+bash scripts/test-install-cycle.sh   # install twice, migrate a pre-1.0 project, uninstall safely
+shellcheck scripts/*.sh              # script correctness
 ```
 
-### Context is finite — work in blocks
+All three run in CI on every push (`.github/workflows/ci.yml`) alongside markdownlint. Run them
+locally before committing — this is the framework's own answer to subcriteria 7.7.
 
-- **Scoped reads** over full-project reads: analyse `src/Billing/` before `src/`
-- **Targeted searches** (`Grep`, `Glob`) over directory listings
-- **Summary-first, detail-on-demand**: understand the structure before reading file contents
-- **One concern at a time**: deprecations, then architecture, then security
+`test-install-cycle.sh` works on throwaway `mktemp` projects and never touches this repo. It is the
+only way to catch the in-place text editing bugs: a BSD-vs-GNU `sed` difference produces a silent
+no-op, not an error.
 
-### Use the Explore subagent for structural analysis
+---
 
-For tasks that require understanding project structure, finding patterns across many files, or answering architectural questions, launch an `Explore` subagent. It runs in an isolated context and returns a focused summary without consuming the main session window.
+## Conventions
 
-### Use static analysis tools before asking Claude to read source
-
-| Concern | Run first |
-|---|---|
-| PHP deprecations | `vendor/bin/phpstan analyse --level=max src 2>&1 \| grep -i deprecated` |
-| JS/TS deprecations | `npx tsc --noEmit 2>&1 \| grep deprecated` |
-| Dependency vulnerabilities | `composer audit` / `npm audit` / `pip-audit` |
-| Architecture violations | `vendor/bin/deptrac analyse` / `npx eslint --rule 'import/no-restricted-paths'` |
-| Dead code | `vendor/bin/phpstan analyse --level=max` / `npx ts-prune` |
+- **Language:** all shipped documents are written in English, regardless of the conversation language
+- **Commits:** Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`), scoped to a
+  category where relevant (`feat(cat9):`)
+- **Dogfooding:** `/project-audit` should run cleanly on this repo. When it cannot, that is a finding
+  about the framework, not about the repo
