@@ -21,23 +21,22 @@ done
 # pwd -P: on macOS a path through a symlink (/tmp, /var/folders) keeps its logical
 # form here while `git rev-parse` returns the physical one, and the two would not
 # compare equal — the scripts then refused to work in a perfectly valid checkout.
-SCRIPT_DIR=$(cd -P "$(dirname "$0")" && pwd -P)
-FRAMEWORK_DIR=$(dirname "$SCRIPT_DIR")
-
-if [ "$(basename "$FRAMEWORK_DIR")" != "framework" ] ||
-   [ "$(basename "$(dirname "$FRAMEWORK_DIR")")" != ".claude" ]; then
-    echo "❌ Not a consumer install."
-    echo "   Run this as <project>/.claude/framework/scripts/uninstall.sh"
-    echo "   Found instead: $FRAMEWORK_DIR"
+# Two lines of bootstrap, then the shared logic. The library cannot locate itself,
+# so this much must be here — and it is logical (`cd`, not `cd -P`) for the reason
+# framework-paths.sh explains at length: the physical path says where the framework
+# lives, not which project asked.
+SCRIPT_BOOTSTRAP_DIR=$(cd "$(dirname "$0")" && pwd)
+if [ ! -f "$SCRIPT_BOOTSTRAP_DIR/lib/framework-paths.sh" ]; then
+    echo "❌ $SCRIPT_BOOTSTRAP_DIR/lib/framework-paths.sh is missing."
+    echo "   The framework checkout is incomplete — usually a partial or sparse checkout."
+    echo "   → git submodule update --init --recursive"
     exit 2
 fi
+# shellcheck source=scripts/lib/framework-paths.sh
+. "$SCRIPT_BOOTSTRAP_DIR/lib/framework-paths.sh"
 
-PROJECT_ROOT=$(cd -P "$FRAMEWORK_DIR/../.." && pwd -P)
-
-if ! git -C "$PROJECT_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
-    echo "❌ $PROJECT_ROOT is not a git repository — nothing was installed here by this framework."
-    exit 2
-fi
+framework_paths_init "$0"
+require_git_repo
 
 COMMANDS_DIR="$PROJECT_ROOT/.claude/commands"
 
@@ -62,6 +61,9 @@ strip_leading_blanks() {
 
 echo "🗑  Removing claude-audit-framework..."
 echo ""
+# This script deletes. Naming the target first is the difference between an
+# operator seeing where the deletions land and not seeing it at all.
+announce_target
 
 # ── Installed commands ──────────────────────────────────────────────────────────
 # Remove only the command files this framework installed. Commands the project

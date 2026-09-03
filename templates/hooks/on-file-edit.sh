@@ -20,6 +20,12 @@
 #      surfacing in CI an hour later. This is the point of the hook: the
 #      standards are instructions Claude can overlook, a checker is not.
 #
+#      Trust boundary: whatever you pass to `report` reaches the model as
+#      context. A linter's output quotes the source it read, so passing tool
+#      output through sends file content into the conversation. Keep to the
+#      project's own files, and do not pipe a tool's raw output from anything
+#      the confinement below does not cover.
+#
 # Verify the plumbing before enabling anything:
 #     bash .claude/hooks/on-file-edit.sh --selftest
 #
@@ -63,7 +69,13 @@ no_parser() {
 extract_file_path() {
     local payload="$1"
     if command -v jq >/dev/null 2>&1; then
-        printf '%s' "$payload" | jq -r '.tool_response.filePath // .tool_input.file_path // empty' 2>/dev/null
+        # `objects` guards each container the way the python branch does with
+        # isinstance. Without it, a payload whose tool_response is a string made jq
+        # abort the whole filter before the `//` fallback was reached — so a
+        # malformed-but-plausible payload silently suppressed every check on a jq
+        # machine and not on a python one. Same hook, two behaviours.
+        printf '%s' "$payload" |
+            jq -r '(.tool_response? | objects | .filePath?) // (.tool_input? | objects | .file_path?) // empty' 2>/dev/null
     elif command -v python3 >/dev/null 2>&1; then
         printf '%s' "$payload" | python3 -c '
 import json, sys
@@ -118,17 +130,44 @@ fi
 # No path at all, or a path that is not a regular file: nothing to do.
 [ -n "$FILE" ] && [ -f "$FILE" ] || exit 0
 
-# Confine to the project. A payload naming ~/.ssh/config is not ours to hand to a
-# formatter, and `-f` alone does not exclude it.
+# ── Confinement, and exactly how far it goes ─────────────────────────────────
 #
-# A symlink is refused outright rather than resolved: it can point anywhere,
-# resolving it portably is fiddly (BSD readlink has no -f), and a per-file check
-# hook has no business following a link out of the tree. `pwd -P` then handles the
-# other half — a symlinked *directory* inside the tree whose target is outside.
+# A payload naming ~/.ssh/config is not ours to hand to a formatter, and `-f`
+# alone does not exclude it. What follows blocks the straightforward cases and
+# does NOT block two others — stated plainly, because a comment claiming more
+# than the code delivers is worse than no comment:
+#
+#   BLOCKED  an absolute path outside the project
+#   BLOCKED  `..` traversal out of the project
+#   BLOCKED  a symlink as the final component (refused outright rather than
+#            resolved: it can point anywhere, and resolving portably is fiddly)
+#   BLOCKED  a symlinked directory mid-path (both sides resolved with `pwd -P`)
+#
+#   NOT BLOCKED  a hardlink to a file outside the project. Same inode, regular
+#                file, dirname inside — indistinguishable without inode
+#                bookkeeping this hook will not do.
+#   NOT BLOCKED  a swap between this check and the tool's use of the path. These
+#                are check-then-use tests against a path string; a concurrent
+#                writer flipping a component wins the race a measurable share of
+#                the time. Closing it needs fd-based access (`openat`), which is
+#                not available to a bash hook.
+#
+# Both residual cases require an existing local write, so they are not remote.
+# They matter because a check does not only read: a formatter rewrites the file,
+# and `report` sends a checker's output into Claude's context — so an escape is
+# an exfiltration channel, not only a write primitive.
+#
+# The project root comes from this script's own location, not from
+# `git rev-parse --show-toplevel`: that obeys GIT_WORK_TREE and GIT_DIR, so an
+# environment variable — reachable through a repo's own settings, direnv, or the
+# user's shell — could move the root up and widen the confinement to $HOME.
 [ -L "$FILE" ] && exit 0
 
-PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || PROJECT_ROOT="$PWD"
-PROJECT_ROOT=$(cd -P "$PROJECT_ROOT" 2>/dev/null && pwd -P) || exit 0
+# Installed at <project>/.claude/hooks/on-file-edit.sh, so the project is two up.
+# Physical on both sides: for containment, "is this inode inside the tree" is the
+# right question, and both sides must be in the same form to compare.
+HOOK_DIR=$(cd -P "$(dirname "$0")" 2>/dev/null && pwd -P) || exit 0
+PROJECT_ROOT=$(cd -P "$HOOK_DIR/../.." 2>/dev/null && pwd -P) || exit 0
 FILE_DIR=$(cd -P "$(dirname "$FILE")" 2>/dev/null && pwd -P) || exit 0
 case "$FILE_DIR/" in
     "$PROJECT_ROOT"/*) ;;
@@ -145,7 +184,7 @@ esac
 case "$FILE" in
 
     *.php)
-        # vendor/bin/php-cs-fixer fix -- "$FILE" --quiet 2>/dev/null
+        # vendor/bin/php-cs-fixer fix --quiet -- "$FILE" 2>/dev/null
         #
         # if ! OUT=$(vendor/bin/phpstan analyse --no-progress --error-format=raw -- "$FILE" 2>&1); then
         #     report "PHPStan on $FILE:"$'\n'"$OUT"

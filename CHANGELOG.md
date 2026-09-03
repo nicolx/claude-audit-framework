@@ -8,6 +8,105 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.9.0] — 2026-09-03
+
+An adversarial pass — one agent told to break three fixes rather than score them — broke all three,
+with reproductions. One was destructive, and the cause was a fix from the previous release.
+
+### Fixed — the guard was designed wrong, not implemented wrong
+
+`pwd -P` was added in 1.8.1 to reconcile a macOS logical/physical path mismatch. It answers *where
+does this script live*, and the guard silently used it for *which project asked*. With
+`.claude/framework` as a symlink the guard therefore passed **for the wrong project**:
+
+- **Two projects sharing one framework checkout.** `uninstall.sh` run from project B deleted project
+  A's commands, both specialization files, the marker, the `@`-include, and `.gitattributes`
+  outright. Project B was untouched, and the operator saw ten green checkmarks in project B's
+  terminal.
+- **A supply-chain vector.** Git stores symlinks, and a relative one may escape the repository. A
+  repository containing a single committed `.claude/framework -> ../../victim/.claude/framework`
+  plus a README carrying the framework's own documented install line was enough: clone it as a
+  sibling, follow the README, and the neighbouring project is stripped. No attacker code runs — the
+  scripts are the victim's own, only the path is redirected.
+- **And the mirror image:** the legitimate "one shared clone symlinked into each project" layout was
+  *refused*, with a message contradicting what the operator had typed.
+
+The fix is a redesign, in the new `scripts/lib/framework-paths.sh`. The project is derived from the
+**logical** invocation path — `cd` without `-P` keeps the path as typed, symlink and all, which is
+precisely "who asked" — and the physical form is kept separately for the one comparison that needs
+it, against `git rev-parse`, which resolves. Both mutating scripts now **print the project and
+framework directories before touching anything**, with the symlink target shown when there is one:
+that is what turns a redirection from silent into obvious. All three cases are regression-tested,
+including the layout that must be *accepted*.
+
+### Fixed — the paste vector the allowlist did not cover
+
+The 1.8.1 tag allowlist held under attack, but its stated purpose — nothing remote reaches the
+operator's terminal unfiltered — was still open through two other channels, neither bounded by
+git's refname rules:
+
+- **Commit subjects.** A subject carrying `\033[1A\033[2K` moves the cursor up and erases the line
+  the script just printed, forging a line directly above the block of four commands the operator is
+  told to paste.
+- **The `VERSION` file**, which is submodule content and therefore equally remote. `tr -d
+  '[:space:]'` does not remove `ESC`, and the value was then written verbatim into
+  `.claude/.framework-version`, a file Claude reads.
+
+Every remote-derived display string now passes through `sanitize_display`. Verified: zero `ESC`
+bytes reach the terminal from either channel.
+
+- **The allowlist was also not self-sufficient.** `grep -qE` matches if *any line* matches, so a
+  value containing a newline followed by `v1.0.0` passed. Git's refname rules forbid newlines, which
+  meant the check was safe by git's construction rather than its own — and would have become an
+  injection primitive the moment the same helper met a value git does not bound. Replaced by a
+  `case` test that rejects the multi-line form.
+
+### Fixed — the hook
+
+- **`GIT_WORK_TREE` widened the confinement.** `git rev-parse --show-toplevel` obeys the
+  environment, so a variable reachable through a repository's own settings, direnv, or the user's
+  shell could move the project root up to `$HOME`. The hook now derives its project root from its
+  own installed location and does not consult git at all.
+- **The jq and python3 branches disagreed.** The python branch guarded each container with
+  `isinstance`; the jq filter did not, so a payload whose `tool_response` was a string aborted the
+  whole filter before the fallback and **silently suppressed every check on a jq machine** while
+  running normally on a python one. Same hook, two behaviours, and `--selftest` could not surface it.
+- The `php-cs-fixer` example contradicted its own instruction, passing `--quiet` after `--` so the
+  formatter read it as a second path.
+- **Two residual bypasses are now documented rather than implied away**: a hardlink to a file
+  outside the project, and a swap between the check and the tool's use of the path — measured at 11%
+  and 28% hit rates by a plain local racer. Neither is closable with path-string checks in bash. The
+  comment said `pwd -P` "handles the other half"; it does not, and now says so.
+- `report()` is documented as what it is: a channel into the model's context. A linter quotes the
+  source it read, so passing tool output through sends file content into the conversation.
+
+### Changed — the duplication the last re-audit measured
+
+Category 2's `2.3` had gone from 11 duplicated-knowledge sites to 16, the path-derivation preamble
+from 2 copies to 5, and the consumer-install guard from 2 to 4 *with two divergent messages for the
+same rule*. `scripts/lib/framework-paths.sh` now holds the guard, the git-repo check, the version
+readers, the tag validator and the sanitiser — one message, one implementation. There was no
+`source` statement anywhere in the corpus before this, so the obvious fix had been architecturally
+unavailable rather than merely deferred.
+
+`shellcheck` runs with `-x` so the sourced library is followed and linted too.
+
+### Also fixed
+
+- A missing library now produces a diagnosis and exit 2 rather than `unbound variable`.
+- The marker read takes `head -1`, so a hand-edited file with two `version=` lines cannot yield a
+  multi-line value that is then compared and echoed.
+- A comment in `check-updates.sh` described a `sed` hazard while the code beneath it was `awk` — a
+  comment that outlived its code, in the release that added it.
+
+### On the shape of this release
+
+Three consecutive releases fixed a defect and introduced another; this one fixes a defect introduced
+by the last. The pattern was not bad luck: the guard could not work, because inferring which project
+invoked a script from that script's resolved location is impossible when the location can be a
+symlink. The lesson recorded here is the one the framework already states as principle 9 — when a
+fix produces the next symptom, the design is the defect.
+
 ## [1.8.1] — 2026-09-03
 
 A scoped re-audit of the four categories 1.8.0 touched. Three moved — Observability 7→8, Tooling

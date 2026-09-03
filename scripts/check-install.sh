@@ -39,18 +39,18 @@ done
 # pwd -P: on macOS a path through a symlink (/tmp, /var/folders) keeps its logical
 # form here while `git rev-parse` returns the physical one, and the two would not
 # compare equal — the scripts then refused to work in a perfectly valid checkout.
-SCRIPT_DIR=$(cd -P "$(dirname "$0")" && pwd -P)
-FRAMEWORK_DIR=$(dirname "$SCRIPT_DIR")
-
-if [ "$(basename "$FRAMEWORK_DIR")" != "framework" ] ||
-   [ "$(basename "$(dirname "$FRAMEWORK_DIR")")" != ".claude" ]; then
-    echo "ℹ  This is the framework's own repository, not a project that installs it."
-    echo "   Run this from a consumer project:"
-    echo "     bash .claude/framework/scripts/check-install.sh"
+SCRIPT_BOOTSTRAP_DIR=$(cd "$(dirname "$0")" && pwd)
+if [ ! -f "$SCRIPT_BOOTSTRAP_DIR/lib/framework-paths.sh" ]; then
+    echo "❌ $SCRIPT_BOOTSTRAP_DIR/lib/framework-paths.sh is missing."
+    echo "   The framework checkout is incomplete — usually a partial or sparse checkout."
+    echo "   → git submodule update --init --recursive"
     exit 2
 fi
+# shellcheck source=scripts/lib/framework-paths.sh
+. "$SCRIPT_BOOTSTRAP_DIR/lib/framework-paths.sh"
 
-PROJECT_ROOT=$(cd -P "$FRAMEWORK_DIR/../.." && pwd -P)
+framework_paths_init "$0"
+
 COMMANDS_DIR="$PROJECT_ROOT/.claude/commands"
 VERSION_MARKER="$PROJECT_ROOT/.claude/.framework-version"
 SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
@@ -59,10 +59,7 @@ HOOK_SCRIPT="$PROJECT_ROOT/.claude/hooks/on-file-edit.sh"
 INCLUDE_LINE="@.claude/framework/INSTRUCTIONS.md"
 LEGACY_INCLUDE_LINE="@.claude/framework/CLAUDE.md"
 
-FRAMEWORK_VERSION="unknown"
-if [ -f "$FRAMEWORK_DIR/VERSION" ]; then
-    FRAMEWORK_VERSION=$(tr -d '[:space:]' < "$FRAMEWORK_DIR/VERSION")
-fi
+FRAMEWORK_VERSION=$(read_framework_version)
 
 ERRORS=0
 WARNINGS=0
@@ -97,7 +94,8 @@ ok()   { echo "  ✓  $1"; }
 
 echo "────────────────────────────────────────────────"
 echo "🩺 claude-audit-framework — install conformance"
-echo "   framework version: $FRAMEWORK_VERSION"
+echo "   project:   $PROJECT_ROOT"
+echo "   framework: $FRAMEWORK_DIR ($FRAMEWORK_VERSION)"
 echo "────────────────────────────────────────────────"
 echo ""
 
@@ -171,7 +169,7 @@ if [ ! -f "$VERSION_MARKER" ]; then
          "→ bash .claude/framework/scripts/init-project.sh"
     INSTALLED_VERSION=""
 else
-    INSTALLED_VERSION=$(grep '^version=' "$VERSION_MARKER" | cut -d= -f2)
+    INSTALLED_VERSION=$(read_marker_version)
     if [ "$INSTALLED_VERSION" = "$FRAMEWORK_VERSION" ]; then
         ok "Install was last run against $INSTALLED_VERSION, matching the submodule"
     else

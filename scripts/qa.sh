@@ -70,7 +70,7 @@ if command -v shellcheck >/dev/null 2>&1; then
     LOCAL_SC=$(shellcheck --version | awk '/^version:/ { print $2 }')
     [ "$LOCAL_SC" = "0.11.0" ] ||
         echo "  ⚠  local shellcheck is $LOCAL_SC; CI pins 0.11.0 — findings may differ"
-    run "shellcheck" shellcheck scripts/*.sh templates/hooks/*.sh || true
+    run "shellcheck" shellcheck -x scripts/*.sh scripts/lib/*.sh templates/hooks/*.sh || true
 else
     SKIPPED="$SKIPPED shellcheck"
 fi

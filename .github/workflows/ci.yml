@@ -34,7 +34,7 @@ jobs:
             | tar -xJ --strip-components=1 -C /usr/local/bin shellcheck-v0.11.0/shellcheck
           shellcheck --version
       - name: Lint scripts
-        run: shellcheck scripts/*.sh templates/hooks/*.sh
+        run: shellcheck -x scripts/*.sh scripts/lib/*.sh templates/hooks/*.sh
 
   markdown:
     name: Markdown

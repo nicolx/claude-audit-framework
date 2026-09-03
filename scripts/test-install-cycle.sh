@@ -357,8 +357,10 @@ rm -rf "$PROJ"
 new_case "check-install.sh: an empty framework directory is an error, not a pass"
 PROJ=$(mktemp -d)
 git -C "$PROJ" init --quiet
-mkdir -p "$PROJ/.claude/framework/scripts" "$PROJ/.claude/commands"
-cp "$FRAMEWORK_SRC/scripts/check-install.sh" "$PROJ/.claude/framework/scripts/"
+mkdir -p "$PROJ/.claude/framework" "$PROJ/.claude/commands"
+# scripts/ and lib/ present, commands/ absent — a partial checkout, which is what
+# the consumer actually hits. A wholly empty directory has no script to run.
+cp -R "$FRAMEWORK_SRC/scripts" "$PROJ/.claude/framework/"
 printf '@.claude/framework/INSTRUCTIONS.md\n\n# P\n' > "$PROJ/CLAUDE.md"
 run_check "$PROJ"
 if [ "$check_code" -eq 2 ]; then
@@ -605,6 +607,109 @@ else
     else
         fail "expected exit 1, got $CODE"
     fi
+fi
+rm -rf "$(dirname "$PROJ")"
+
+# ── Cases 29–32 — the bypasses an adversarial pass found ─────────────────────
+# All four were working attacks against v1.8.1, three of them destructive.
+
+new_case "A symlinked .claude/framework does not redirect writes to another project"
+ROOT=$(mktemp -d)
+for name in projA projB; do
+    git init -q "$ROOT/$name"
+    git -C "$ROOT/$name" config user.email test@example.com
+    git -C "$ROOT/$name" config user.name Test
+    printf '# %s\n' "$name" > "$ROOT/$name/CLAUDE.md"
+    mkdir -p "$ROOT/$name/.claude"
+done
+cp -R "$FRAMEWORK_SRC" "$ROOT/projA/.claude/framework"
+rm -rf "$ROOT/projA/.claude/framework/.git"
+(cd "$ROOT/projA" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
+ln -s "$ROOT/projA/.claude/framework" "$ROOT/projB/.claude/framework"
+OUT=$(cd "$ROOT/projB" && bash .claude/framework/scripts/uninstall.sh 2>&1)
+expect_file "$ROOT/projA/.claude/commands/project-audit.md"
+expect_grep "$ROOT/projA/CLAUDE.md" "@.claude/framework/INSTRUCTIONS.md" "projA keeps its @-include"
+expect_file "$ROOT/projA/.gitattributes"
+case "$OUT" in
+    *"Project:   $ROOT/projB"*) pass "names projB as the target before acting" ;;
+    *) fail "did not announce the target project:"; indent "$OUT" ;;
+esac
+case "$OUT" in
+    *"(symlinked)"*) pass "discloses that the framework is a symlink" ;;
+    *) fail "symlink not disclosed" ;;
+esac
+
+new_case "The legitimate shared-clone layout is accepted, not refused"
+mkdir -p "$ROOT/shared"
+cp -R "$FRAMEWORK_SRC" "$ROOT/shared/framework"
+rm -rf "$ROOT/shared/framework/.git"
+git init -q "$ROOT/projC"
+git -C "$ROOT/projC" config user.email test@example.com
+git -C "$ROOT/projC" config user.name Test
+printf '# C\n' > "$ROOT/projC/CLAUDE.md"
+mkdir -p "$ROOT/projC/.claude"
+ln -s "$ROOT/shared/framework" "$ROOT/projC/.claude/framework"
+(cd "$ROOT/projC" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
+expect_file "$ROOT/projC/.claude/commands/project-audit.md"
+expect_grep "$ROOT/projC/CLAUDE.md" "@.claude/framework/INSTRUCTIONS.md" "projC got its include"
+rm -rf "$ROOT"
+
+new_case "GIT_WORK_TREE cannot widen the hook's project confinement"
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh --with-hooks >/dev/null 2>&1)
+OUTSIDE=$(mktemp -d)
+echo "x = 1" > "$OUTSIDE/target.py"
+# Make a reached dispatch observable: replace a commented example with a report.
+perl -pi -e 's|^        \# ruff format -- "\$FILE" 2>/dev/null|        report "DISPATCH-REACHED"|' \
+    "$PROJ/.claude/hooks/on-file-edit.sh"
+OUT=$(printf '%s' "{\"tool_input\":{\"file_path\":\"$OUTSIDE/target.py\"}}" |
+      GIT_WORK_TREE="$OUTSIDE" GIT_DIR="$PROJ/.git" bash "$PROJ/.claude/hooks/on-file-edit.sh" 2>&1)
+case "$OUT" in
+    *DISPATCH-REACHED*) fail "GIT_WORK_TREE widened the confinement — out-of-project file reached the checks" ;;
+    *) pass "the out-of-project file was refused" ;;
+esac
+# And an in-project file must still reach the checks, or the guard is useless.
+echo "y = 2" > "$PROJ/inside.py"
+OUT=$(printf '%s' "{\"tool_input\":{\"file_path\":\"$PROJ/inside.py\"}}" |
+      bash "$PROJ/.claude/hooks/on-file-edit.sh" 2>&1)
+case "$OUT" in
+    *DISPATCH-REACHED*) pass "an in-project file still reaches the checks" ;;
+    *) fail "the guard now refuses legitimate files too:"; indent "$OUT" ;;
+esac
+rm -rf "$OUTSIDE" "$PROJ"
+
+new_case "Remote-controlled strings are stripped of terminal escapes before display"
+read -r PROJ UPSTREAM <<EOF
+$(new_submodule_project)
+EOF
+if [ ! -e "$PROJ/.claude/framework/.git" ]; then
+    fail "submodule fixture failed"
+else
+    # A commit subject that moves the cursor up and erases the line above it,
+    # forging a line over the block of commands the script tells you to paste.
+    git -C "$UPSTREAM" commit -q --allow-empty \
+        -m "$(printf 'chore: docs\033[1A\033[2Kforged-line')" 2>/dev/null
+    git -C "$UPSTREAM" tag -a v1.2.0 -m v1.2.0 2>/dev/null
+    # VERSION is submodule content, so equally remote. ESC is not in [:space:].
+    printf '9.9.9\033[31mUPGRADE-NOW\033[0m\n' > "$UPSTREAM/VERSION"
+    git -C "$UPSTREAM" commit -qam "chore: bump" 2>/dev/null
+    git -C "$PROJ/.claude/framework" fetch -q --tags origin 2>/dev/null || true
+    git -C "$PROJ/.claude/framework" checkout -q v1.0.0 2>/dev/null
+    printf 'version=1.0.0\n' > "$PROJ/.claude/.framework-version"
+    OUTFILE=$(mktemp)
+    (cd "$PROJ" && bash .claude/framework/scripts/check-updates.sh --offline) > "$OUTFILE" 2>&1
+    if grep -qc $'\033' "$OUTFILE" 2>/dev/null && [ "$(grep -c $'\033' "$OUTFILE")" -gt 0 ]; then
+        fail "ESC bytes reached the terminal — the paste/overwrite vector is open"
+    else
+        pass "no ESC bytes in check-updates output"
+    fi
+    (cd "$PROJ" && bash .claude/framework/scripts/check-install.sh) > "$OUTFILE" 2>&1
+    if [ "$(grep -c $'\033' "$OUTFILE")" -gt 0 ]; then
+        fail "ESC bytes from the VERSION file reached the terminal"
+    else
+        pass "no ESC bytes in check-install output"
+    fi
+    rm -f "$OUTFILE"
 fi
 rm -rf "$(dirname "$PROJ")"
 
