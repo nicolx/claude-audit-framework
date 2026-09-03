@@ -5,7 +5,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 ## What it includes
 
 - **10-category quality framework** for code review and architecture evaluation (`/project-audit`)
-- **13 coding principles** applied automatically to every code proposal
+- **19 coding principles** applied automatically to every code proposal, traced to the audit criteria that measure them
 - **Developer profile system** — calibrates Claude's recommendations to each developer's skill level
 - **Skill commands**: `/project-audit`, `/competency-review`, `/init-profile`
 
@@ -14,10 +14,13 @@ A portable quality framework for Claude Code — travels with any project as a g
 ```bash
 # Add the submodule — pin a released version rather than tracking main
 git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-git -C .claude/framework checkout v1.0.0
+git -C .claude/framework checkout v1.1.0
 
 # Bootstrap: installs the commands, scaffolds the project files, records the version
 bash .claude/framework/scripts/init-project.sh
+
+# Optional: also install the per-file check hook (see "Enforcement" below)
+bash .claude/framework/scripts/init-project.sh --with-hooks
 ```
 
 Then edit the generated `CLAUDE.md`, `.claude/PROJECT_AUDIT_FRAMEWORK.md`, and
@@ -54,6 +57,47 @@ git add .claude/ && git commit -m "chore: update claude-audit-framework to v1.1.
 submodule alone leaves the old copies in place. The installed version is recorded in
 `.claude/.framework-version`, and Claude flags the mismatch at the start of a session when the
 copies fall behind.
+
+## Two halves: writing and measuring
+
+An audit that only produces a score changes nothing about the code written after it. The framework
+works on both sides of that line.
+
+| | Write-time | Audit-time |
+|---|---|---|
+| **What** | 19 coding principles | 10 scored categories |
+| **When** | Every code proposal, automatically | `/project-audit`, on demand |
+| **Where** | `standards/CODING_STANDARDS.md` | `standards/PROJECT_AUDIT_FRAMEWORK.md` |
+
+The traceability table at the end of `CODING_STANDARDS.md` maps each principle to the criteria that
+measure it, and states which criteria are audit-only by nature (CI setup, security headers, health
+endpoints — things configured once, not written per feature). That table is the only cross-reference
+between the two documents, and CI fails if it drifts from either.
+
+**The loop closes both ways.** `/project-audit` writes `.claude/audit-focus.md`: the 3–5 criteria
+this project scores worst on, each with a concrete rule to apply when touching related code. Claude
+reads it before writing, so the next feature is written against this codebase's real weaknesses
+rather than generic ones. It is regenerated at every audit.
+
+## Skill level changes the delivery, never the target
+
+A developer profile calibrates *how* work is delivered — how much is explained, whether a gap is
+addressed jointly, which of several compliant options is chosen. It never lowers a quality
+criterion. Code written for someone whose profile says `Observability | Base *` still gets
+structured logging; the difference is that Claude says so and walks through it instead of handing
+over a finished Monolog config.
+
+## Enforcement
+
+Instructions are the framework's main mechanism, and instructions can be overlooked. `--with-hooks`
+adds the one mechanical check: a `PostToolUse` hook that runs the formatter and type checker on
+**the file that just changed** — never the whole suite — and feeds any failure straight back into
+the same turn, so Claude fixes it immediately instead of leaving it for CI.
+
+The script arrives as a stub at `.claude/hooks/on-file-edit.sh` with no checks enabled: fill in the
+commands for your stack. It is opt-in because it changes how the harness behaves, and
+`init-project.sh` never modifies an existing `.claude/settings.json` — it prints the snippet to
+merge instead.
 
 ## Versioning
 
@@ -99,9 +143,10 @@ bash .claude/framework/scripts/uninstall.sh
 ```
 
 It removes only what it installed: framework commands (project-owned commands in
-`.claude/commands/` are left alone), the scaffolded specialization files, the `@`-include, and the
-`.gitattributes` entry. Your developer profile is untouched. The script prints the three
-`git submodule` commands needed to finish.
+`.claude/commands/` are left alone), the scaffolded specialization files, `.claude/audit-focus.md`,
+the hook script, the `@`-include, and the `.gitattributes` entry. It keeps your developer profile
+and `docs/audits/` — the quality history belongs to the project, not to the framework. The script
+prints the three `git submodule` commands needed to finish.
 
 ## Developing the framework itself
 
@@ -110,5 +155,5 @@ See `CLAUDE.md` in this repo. Its quality gate:
 ```bash
 bash scripts/check-consistency.sh
 bash scripts/test-install-cycle.sh
-shellcheck scripts/*.sh
+shellcheck scripts/*.sh templates/hooks/*.sh
 ```

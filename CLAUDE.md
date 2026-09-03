@@ -31,7 +31,7 @@ A portable quality framework distributed to other projects as a git submodule at
 | `INSTRUCTIONS.md` | Consumer projects | The file `@`-included into a project's `CLAUDE.md`. Loaded into every session of every consuming project. |
 | `CLAUDE.md` | This repo | This file. Never travels into a consumer session. |
 | `standards/PROJECT_AUDIT_FRAMEWORK.md` | Consumer projects | The 10-category evaluation standard — *what good is measured against*. |
-| `standards/CODING_STANDARDS.md` | Consumer projects | The 13 principles applied to every code proposal — *what good looks like*. |
+| `standards/CODING_STANDARDS.md` | Consumer projects | The 19 principles applied to every code proposal — *what good looks like*. |
 | `commands/*.md` | Consumer projects | Slash commands, **copied** into `.claude/commands/` by `init-project.sh`. |
 | `templates/*.md` | Consumer projects | Scaffolding for the project-level specialization files. |
 | `scripts/*.sh` | Operators | Install, uninstall, and the framework's own quality gate. |
@@ -93,7 +93,7 @@ look like as things a reader can point at, and keep the existing structure:
 ```bash
 bash scripts/check-consistency.sh    # path integrity, retired names, changelog/version sync
 bash scripts/test-install-cycle.sh   # install twice, migrate a pre-1.0 project, uninstall safely
-shellcheck scripts/*.sh              # script correctness
+shellcheck scripts/*.sh templates/hooks/*.sh   # script correctness
 ```
 
 All three run in CI on every push (`.github/workflows/ci.yml`) alongside markdownlint. Run them

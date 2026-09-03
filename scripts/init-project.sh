@@ -2,14 +2,28 @@
 # init-project.sh — Initialize claude-audit-framework in a project
 # Run from the project root after adding the submodule:
 #   git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-#   bash .claude/framework/scripts/init-project.sh
+#   bash .claude/framework/scripts/init-project.sh [--with-hooks]
+#
+#   --with-hooks   also install the PostToolUse hook that runs fast per-file
+#                  checks after every edit. Opt-in: it changes how the harness
+#                  behaves, so it is never installed silently.
 
 set -e
+
+WITH_HOOKS=0
+for arg in "$@"; do
+    case "$arg" in
+        --with-hooks) WITH_HOOKS=1 ;;
+        *) echo "❌ Unknown option: $arg"; echo "   Usage: init-project.sh [--with-hooks]"; exit 1 ;;
+    esac
+done
 
 PROJECT_ROOT="$(git rev-parse --show-toplevel)"
 FRAMEWORK_DIR="$PROJECT_ROOT/.claude/framework"
 COMMANDS_DIR="$PROJECT_ROOT/.claude/commands"
 VERSION_MARKER="$PROJECT_ROOT/.claude/.framework-version"
+HOOKS_DIR="$PROJECT_ROOT/.claude/hooks"
+SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
 
 INCLUDE_LINE="@.claude/framework/INSTRUCTIONS.md"
 LEGACY_INCLUDE_LINE="@.claude/framework/CLAUDE.md"   # pre-1.0 installs
@@ -93,6 +107,38 @@ fi
 
 echo ""
 
+# ── Step 3b — Install the per-file check hook (opt-in) ───────────────────────
+# The coding standards are instructions Claude can overlook. A checker cannot.
+# This is the only mechanical enforcement the framework offers, which is also
+# why it is never installed without being asked for.
+
+if [ "$WITH_HOOKS" -eq 1 ]; then
+    mkdir -p "$HOOKS_DIR"
+
+    if [ -f "$HOOKS_DIR/on-file-edit.sh" ]; then
+        echo "  ↩  .claude/hooks/on-file-edit.sh already exists (skipped — your edits are kept)"
+    else
+        cp "$FRAMEWORK_DIR/templates/hooks/on-file-edit.sh" "$HOOKS_DIR/on-file-edit.sh"
+        chmod +x "$HOOKS_DIR/on-file-edit.sh"
+        echo "  ✓  Created .claude/hooks/on-file-edit.sh (no checks enabled yet — edit it)"
+    fi
+
+    if [ ! -f "$SETTINGS_FILE" ]; then
+        cp "$FRAMEWORK_DIR/templates/settings.hooks.json" "$SETTINGS_FILE"
+        echo "  ✓  Created .claude/settings.json with the PostToolUse hook"
+    elif grep -qF "on-file-edit.sh" "$SETTINGS_FILE"; then
+        echo "  ↩  .claude/settings.json already wires the hook (skipped)"
+    else
+        echo "  ⚠  .claude/settings.json exists — not modified, to avoid clobbering your settings."
+        echo "     Merge this into its \"hooks\" key (or run /hooks in Claude Code):"
+        echo ""
+        sed 's/^/       /' "$FRAMEWORK_DIR/templates/settings.hooks.json"
+        echo ""
+    fi
+
+    echo ""
+fi
+
 # ── Step 4 — Record the installed version ────────────────────────────────────
 # Commands are copies, so they go stale when the submodule moves ahead. This
 # marker is what lets Claude detect the drift and tell the developer to re-run.
@@ -163,6 +209,16 @@ else
     WARNINGS=$((WARNINGS + 1))
 fi
 
+# Per-file check hook
+if [ -f "$HOOKS_DIR/on-file-edit.sh" ] && grep -qF "on-file-edit.sh" "$SETTINGS_FILE" 2>/dev/null; then
+    if grep -qE '^\s*(vendor/bin|node_modules/\.bin|ruff|npx|php|python)' "$HOOKS_DIR/on-file-edit.sh"; then
+        echo "  ✓  Per-file check hook installed and configured"
+    else
+        echo "  ⚠  Per-file check hook installed but no checks enabled — edit .claude/hooks/on-file-edit.sh"
+        WARNINGS=$((WARNINGS + 1))
+    fi
+fi
+
 # .claudeignore
 if [ -f "$PROJECT_ROOT/.claudeignore" ]; then
     echo "  ✓  .claudeignore present"
@@ -226,12 +282,25 @@ STEP=$((STEP + 1))
 echo "  $STEP. Edit CODING_STANDARDS.md        — add language-specific conventions"
 STEP=$((STEP + 1))
 
-if [ -f "$PROJECT_ROOT/.claudeignore" ]; then
-    echo "  $STEP. Once the above are done, open Claude Code and run /project-audit"
-else
+if [ ! -f "$PROJECT_ROOT/.claudeignore" ]; then
     echo "  $STEP. Create .claudeignore to exclude vendor/, node_modules/, build artefacts"
     STEP=$((STEP + 1))
-    echo "  $STEP. Once the above are done, open Claude Code and run /project-audit"
+fi
+
+if [ "$WITH_HOOKS" -eq 1 ]; then
+    echo "  $STEP. Edit .claude/hooks/on-file-edit.sh — enable the per-file checks for this stack"
+    STEP=$((STEP + 1))
+fi
+
+echo "  $STEP. Once the above are done, open Claude Code and run /project-audit"
+echo "         It writes docs/audits/ and .claude/audit-focus.md, which then steers every"
+echo "         later session toward this project's actual weak spots."
+
+if [ "$WITH_HOOKS" -eq 0 ]; then
+    echo ""
+    echo "  Optional: re-run with --with-hooks to install a PostToolUse hook that runs fast"
+    echo "  per-file checks (formatter, type check) after each edit and reports failures back"
+    echo "  to Claude in the same turn."
 fi
 
 echo ""

@@ -173,6 +173,50 @@ else
     else
         pass "VERSION and CHANGELOG agree on $VERSION"
     fi
+
+    # The README tells people which tag to pin. A stale example pins them to a
+    # version that predates whatever the rest of the README describes.
+    STALE=$(grep -oE '\bv[0-9]+\.[0-9]+\.[0-9]+\b' README.md | sort -u | grep -vFx "v$VERSION" || true)
+    if [ -n "$STALE" ]; then
+        fail "README pins a version other than the current one ($VERSION)"
+        indent "$STALE"
+    else
+        pass "README's pinned version matches VERSION"
+    fi
+fi
+
+# ── 8. The traceability table must match both documents ─────────────────────
+# CODING_STANDARDS.md maps each principle to the criteria that measure it. That
+# mapping is the only cross-reference between the write-time and audit-time
+# halves of the framework, so it is also the only place they can drift.
+
+start "Traceability table"
+
+PRINCIPLES=$(grep -oE '^## [0-9]+\.' standards/CODING_STANDARDS.md | tr -d '#. ' | sort -n)
+MAPPED=$(sed -n '/^## Traceability/,$p' standards/CODING_STANDARDS.md |
+         grep -oE '^\| [0-9]+ \|' | tr -d '| ' | sort -n)
+
+if [ "$PRINCIPLES" != "$MAPPED" ]; then
+    fail "the traceability table does not list every principle"
+    indent "principles defined: $(echo "$PRINCIPLES" | tr '\n' ' ')"
+    indent "principles mapped:  $(echo "$MAPPED" | tr '\n' ' ')"
+else
+    pass "all $(echo "$PRINCIPLES" | wc -l | tr -d ' ') principles appear in the traceability table"
+fi
+
+BROKEN=0
+CITED=$(sed -n '/^## Traceability/,$p' standards/CODING_STANDARDS.md |
+        grep -oE '\b[0-9]{1,2}\.[0-9]{1,2}\b' | sort -u -t. -k1,1n -k2,2n)
+
+for ref in $CITED; do
+    if ! grep -qE "^#### $ref " standards/PROJECT_AUDIT_FRAMEWORK.md; then
+        fail "traceability cites subcriteria $ref, which is not a heading in PROJECT_AUDIT_FRAMEWORK.md"
+        BROKEN=$((BROKEN + 1))
+    fi
+done
+
+if [ "$BROKEN" -eq 0 ]; then
+    pass "all $(echo "$CITED" | wc -l | tr -d ' ') cited subcriteria exist"
 fi
 
 # ── Summary ──────────────────────────────────────────────────────────────────

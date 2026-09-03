@@ -8,6 +8,55 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.1.0] — 2026-09-03
+
+Closes the gap between measuring quality and writing it. Before this release the framework had a
+write-time layer covering 6 of its 10 audited categories, and an audit whose findings reached no
+later session. Security and observability — the two categories where a rule while writing matters
+most, because a vulnerability and a missing log are written rather than discovered — had no
+write-time counterpart at all.
+
+### Added
+
+- **Six coding principles** covering the categories that had none: check what already exists (14),
+  validate at the boundary (15), observability is part of the feature (16), test doubles at the
+  boundary (17), a deprecation is a deadline (18), history is part of the deliverable (19).
+- **A traceability table** in `CODING_STANDARDS.md` mapping every principle to the subcriteria that
+  measure it, plus an explicit list of criteria that are audit-only by nature and why. It is the
+  single cross-reference between the two halves of the framework, and `check-consistency.sh` now
+  fails if it drifts from either document — a new principle without a mapping, or a cited
+  subcriteria that does not exist.
+- **`.claude/audit-focus.md`**, written by `/project-audit`: the 3–5 weakest criteria *that have a
+  write-time principle behind them*, each with a concrete rule for code that touches them.
+  `INSTRUCTIONS.md` has Claude read it before writing. Infrastructure gaps stay in the report as
+  project work, since no rule can honour them mid-feature. Regenerated at each audit; removed on
+  uninstall.
+- **Audit freshness check** — Claude flags once when the newest report in `docs/audits/` is more
+  than three months old.
+- **`init-project.sh --with-hooks`** — an opt-in `PostToolUse` hook running fast per-file checks
+  after each edit. Beyond formatting, a failing check reports back through
+  `hookSpecificOutput.additionalContext`, so the error reaches Claude in the same turn instead of
+  surfacing in CI. Ships as a stub with nothing enabled; never modifies an existing
+  `.claude/settings.json`, printing the snippet to merge instead. Four new cases in
+  `test-install-cycle.sh` cover opt-in, wiring, non-clobbering and cleanup.
+
+### Changed
+
+- **The precedence rule between the quality standard and the developer profile is now explicit:**
+  the standard fixes the target, the profile fixes the delivery. A competency level decides how much
+  is explained, whether the work is done jointly, and which of several compliant options is chosen —
+  it never lowers a criterion. Previously the two documents could be read as contradicting each
+  other: a profile entry of `Base` said "avoid as a primary technology" while the audit demanded
+  7/10 in that category, and nothing said which won.
+- `Base` in the profile template no longer reads "avoid as a primary technology"; it reads "prefer
+  the simplest approach that still meets the standard, and explain as you go". `Base *` now
+  forbids silently handing over correct work as well as working around the gap — silent correctness
+  teaches nothing.
+- `INSTRUCTIONS.md` no longer exempts `/project-audit` from the block-reading protocol; since 1.0.0
+  the command reaches coverage by fanning out, not by reading the whole tree.
+- `uninstall.sh` keeps `docs/audits/` and says so — the quality history belongs to the project, not
+  to the framework.
+
 ## [1.0.0] — 2026-09-03
 
 First versioned release. Consolidates the framework after two migrations — global install →

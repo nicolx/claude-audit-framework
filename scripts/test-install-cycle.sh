@@ -21,7 +21,7 @@ expect_file() {
 }
 
 expect_absent() {
-    if [ -e "$1" ]; then fail "$1 should have been removed"; else pass "$(basename "$1") removed"; fi
+    if [ -e "$1" ]; then fail "$1 should not exist"; else pass "$(basename "$1") absent"; fi
 }
 
 expect_dir() {
@@ -146,6 +146,54 @@ PROJ=$(new_project)
 (cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
 (cd "$PROJ" && bash .claude/framework/scripts/uninstall.sh >/dev/null 2>&1)
 expect_absent "$PROJ/.claude/commands"
+rm -rf "$PROJ"
+
+# ── Case 6 — hooks are opt-in ────────────────────────────────────────────────
+
+new_case "Default install: no hook, no settings.json"
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
+expect_absent "$PROJ/.claude/hooks"
+expect_absent "$PROJ/.claude/settings.json"
+rm -rf "$PROJ"
+
+# ── Case 7 — --with-hooks on a project with no settings.json ─────────────────
+
+new_case "--with-hooks: installs the script and wires settings.json"
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh --with-hooks >/dev/null 2>&1)
+expect_file "$PROJ/.claude/hooks/on-file-edit.sh"
+expect_file "$PROJ/.claude/settings.json"
+expect_grep "$PROJ/.claude/settings.json" "on-file-edit.sh" "settings.json wires the hook"
+expect_grep "$PROJ/.claude/settings.json" "PostToolUse" "hook is on PostToolUse"
+if [ -x "$PROJ/.claude/hooks/on-file-edit.sh" ]; then
+    pass "hook script is executable"
+else
+    fail "hook script is not executable"
+fi
+# The stub must be a silent no-op until configured, whatever it is fed.
+OUT=$(echo '{"tool_name":"Edit","tool_input":{"file_path":"'"$PROJ"'/CLAUDE.md"}}' |
+      bash "$PROJ/.claude/hooks/on-file-edit.sh" 2>&1)
+if [ -z "$OUT" ]; then
+    pass "unconfigured hook produces no output"
+else
+    fail "unconfigured hook wrote output: $OUT"
+fi
+
+# ── Case 8 — --with-hooks must never clobber an existing settings.json ───────
+
+new_case "--with-hooks: existing settings.json is left untouched"
+printf '{\n  "env": { "PROJECT_OWNED": "keep me" }\n}\n' > "$PROJ/.claude/settings.json"
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh --with-hooks >/dev/null 2>&1)
+expect_grep "$PROJ/.claude/settings.json" "PROJECT_OWNED" "project settings preserved"
+expect_missing_line "$PROJ/.claude/settings.json" "on-file-edit.sh"
+
+# ── Case 9 — uninstall removes the hook script ───────────────────────────────
+
+new_case "Uninstall: removes the hook script, keeps project settings"
+(cd "$PROJ" && bash .claude/framework/scripts/uninstall.sh >/dev/null 2>&1)
+expect_absent "$PROJ/.claude/hooks"
+expect_grep "$PROJ/.claude/settings.json" "PROJECT_OWNED" "project settings survived uninstall"
 rm -rf "$PROJ"
 
 # ── Summary ──────────────────────────────────────────────────────────────────

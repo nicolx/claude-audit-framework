@@ -391,3 +391,189 @@ What else was evaluated and why was it not chosen?
 - Architecture that cannot be explained without a long conversation
 - Decisions reversed without recording why the original choice was wrong
 - "We've always done it this way" as the only available explanation for a structural choice
+
+---
+
+## 14. Check what already exists before building it
+
+Before writing a capability, find out whether the framework, the standard library, or a dependency
+already in the project provides it. Hand-rolled versions of solved problems are the most expensive
+code in a codebase: they carry no upstream fixes, no documentation, and no other maintainers.
+
+The inverse is equally true. A dependency added for something the standard library does in five
+lines is a supply-chain liability, a version to track, and an upgrade to schedule.
+
+**What good looks like:**
+
+- The framework's own abstraction used for cache, queue, HTTP client, validation, serialisation
+- A dependency added when it owns a genuinely hard problem — crypto, parsing, protocol handling
+- A short note in the ADR or commit when a native mechanism was deliberately *not* used
+
+**Signals of drift:**
+
+- A custom router, container, validator, or ORM alongside a framework that ships all four
+- A dependency whose entire use is one function that the standard library also has
+- Reimplementation because the native mechanism "did not quite fit", with no record of how
+
+---
+
+## 15. Validate at the boundary, trust inside
+
+Every value that enters the process from outside is untrusted: HTTP requests, CLI arguments, queue
+messages, webhook payloads, deserialised documents, deep links, environment variables. Validate at
+the entry point and convert to a type that carries the guarantee — then code inside the boundary can
+stop asking.
+
+This is principle 5 applied to the outside world: the reason to validate at the edge is so that
+`EmailAddress` means a valid email everywhere it appears, instead of every consumer re-checking.
+
+**What good looks like:**
+
+- One validation site per entry point, producing typed values, not sanitised strings
+- Output encoded at the moment of rendering, for the specific context (HTML, SQL, shell, JSON)
+- Authorisation checked on the operation being performed, not only on the route that reached it
+- Secrets read from configuration or environment, never literals, and never written to logs
+- State-changing requests carrying CSRF protection where the framework provides it
+
+**Signals of drift:**
+
+- The same `if (!isset($x))` guard repeated in controller, service, and repository
+- String concatenation into SQL, HTML, or a shell command anywhere
+- A route protected by middleware while the underlying operation can also be reached unprotected
+- A credential, token, or key visible in source, in a fixture, or in a log line
+
+---
+
+## 16. Observability is part of the feature, not added afterwards
+
+A feature that cannot be diagnosed in production is unfinished. The person reading the logs is not
+the person who wrote the code, and they are reading at three in the morning with no access to the
+developer's assumptions.
+
+**What good looks like:**
+
+- Every failure path emits one structured record with the identifiers needed to trace it
+- Context as fields, not prose: `order_id`, `user_id`, `duration_ms` — never a sentence to be grepped
+- Log levels that mean something: `error` for something a human must act on, not for expected outcomes
+- Degradation that is visible — a fallback path says it took the fallback
+- Long-running or scheduled work with bounded output and a retention rule
+
+**Signals of drift:**
+
+- A caught exception with no record of it, or a record with no identifier
+- Log messages assembled by string interpolation into a single free-text field
+- Secrets, tokens, or personal data inside log payloads
+- Everything at `info`, or everything at `error`
+- A process that writes unbounded output to a file nothing rotates
+
+---
+
+## 17. Use test doubles at the boundary, real objects inside
+
+Double what the unit does not own: the network, the clock, the filesystem, a third-party service.
+Use the real thing for what it does own: its own value objects, entities, and domain logic. A test
+that mocks the code under test asserts only that the mock was configured.
+
+**What good looks like:**
+
+- In-memory implementations of repository interfaces, reused across the suite
+- Real value objects and entities constructed in tests, never mocked
+- Time, randomness, and IDs injected so a test can fix them
+- One test name stating one behaviour: what it does, under which condition, with what outcome
+
+**Signals of drift:**
+
+- A mock of a value object, a DTO, or an entity
+- Assertions on how many times a collaborator was called, when the outcome is what matters
+- A unit test that cannot run without a database, a network, or a real clock
+- `testItWorks()`, or one test asserting six unrelated things
+
+---
+
+## 18. A deprecation is a deadline
+
+A deprecation warning means: *this will break in a future version, and you have until then.*
+Suppressing the notice does not extend the deadline — it deletes the reminder.
+
+When you touch code that emits a deprecation warning, fix the call site. When you cannot, record
+why and by when, somewhere a person will see it again.
+
+**What good looks like:**
+
+- Deprecated calls resolved as they are encountered, in the change that touches them
+- A suppression that carries the reason and the removal deadline, if one is unavoidable
+- Upgrades taken in their own change, separate from feature work
+
+**Signals of drift:**
+
+- A suppression added to make a quality gate green
+- `ignoreErrors`, `@ts-ignore`, `noqa`, or `filterwarnings` entries with no expiry and no author
+- A dependency pinned below its current major for reasons nobody can now reconstruct
+
+---
+
+## 19. History is part of the deliverable
+
+The commit log is read far more often than it is written, and almost always by someone trying to
+understand *why* a line exists. A change whose reasoning lives only in a chat log is a change that
+will be undone by accident.
+
+**What good looks like:**
+
+- One logical change per commit — a refactor and a behaviour change are two commits
+- A subject line saying what changed, and a body saying why, when the why is not obvious
+- The project's existing convention followed exactly, whatever it is
+- Anything that would need explaining in a review explained in the commit instead
+
+**Signals of drift:**
+
+- "fix", "wip", "update", or a file list as a commit subject
+- A single commit spanning a refactor, a feature, and a formatting pass
+- Reasoning that exists only in the pull request description, which outlives nothing
+
+---
+
+## Traceability — where each principle is measured
+
+These principles are the write-time half of the framework; `PROJECT_AUDIT_FRAMEWORK.md` is the
+measurement half. The mapping below is the only place the two documents cross-reference each other:
+a principle is defined here and nowhere else, a criterion is defined there and nowhere else.
+
+The table exists to make gaps visible. A criterion with no principle behind it is a quality that
+can only be found in an audit, never written correctly the first time.
+
+| # | Principle | Measured by |
+|---|---|---|
+| 1 | Express intent through structure | 2.1, 2.5 |
+| 2 | Introduce abstractions at the right moment | 1.3, 1.5, 2.6 |
+| 3 | One concern per unit | 1.2, 2.2 |
+| 4 | Depend on abstractions | 1.4, 3.5 |
+| 5 | Make invalid states unrepresentable | 1.1, 3.3 |
+| 6 | Prefer explicit over implicit | 1.4, 3.2, 5.3 |
+| 7 | Architecture follows the problem | 3.1, 6.7 |
+| 8 | Distinguish failure modes | 2.4, 5.5, 9.5 |
+| 9 | Fix at the root | 2.6, 2.7 |
+| 10 | Agree on expected behaviour first | 4.2, 4.5 |
+| 11 | Refactor in two passes | 4.3, 10.9 |
+| 12 | Start simple, earn complexity | 6.7, 10.9 |
+| 13 | Document decisions with ADRs | 10.15 |
+| 14 | Check what already exists | 6.2, 6.4, 6.8 |
+| 15 | Validate at the boundary | 8.1, 8.2, 8.3, 8.4, 8.6, 8.7 |
+| 16 | Observability is part of the feature | 9.1, 9.2, 9.4, 9.6 |
+| 17 | Test doubles at the boundary | 4.4, 4.6 |
+| 18 | A deprecation is a deadline | 7.8 |
+| 19 | History is part of the deliverable | 10.11, 10.14 |
+
+### Criteria with no write-time principle, and why
+
+Not every criterion can have one. These are measured in an audit and cannot be governed while
+writing a feature — stating which, and why, keeps the table above honest instead of padded.
+
+| Criteria | Why it is audit-only |
+|---|---|
+| 4.1 coverage level | An outcome of principles 10 and 17, not a separate instruction |
+| 7.1–7.7 tooling | Project infrastructure: configured once, not written per change |
+| 8.5 security headers | Configuration of the framework or web server, not of a feature |
+| 9.3 health endpoint, 9.7 data lifecycle | Built once as operational surface, then maintained |
+| 10.1–10.8, 10.10, 10.12, 10.13 | Pipeline, environment, and repository setup — outside any single change |
+| 5.1, 5.2, 5.4, 5.6, 5.7 | Principles 3, 4, 6 and 8 applied to JS. Stack-specific rules belong in the project's own `.claude/CODING_STANDARDS.md`, not in a language-agnostic document |

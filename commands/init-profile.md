@@ -41,6 +41,9 @@ Tell the developer:
 > - **Operativo** — you work independently but look things up occasionally; you know the concepts
 > - **Base** — you understand the basics but would need guidance or examples for real tasks
 >
+> Your level never lowers the quality bar of the code I write — it decides how much I explain and
+> whether we build something together. Answering "Base" gets you more explanation, not weaker code.
+>
 > Entries you mark as priority learning targets get a `*` — when a task requires one of those, I'll flag it and we'll address it together rather than work around it."
 
 ---
@@ -144,11 +147,18 @@ Present the complete profile in this format and ask for confirmation:
 
 - **Fluente** — propose advanced patterns freely; skip basic explanations; use domain terms without glossing.
 - **Operativo** — use in proposals but explain non-obvious choices; avoid advanced patterns without rationale.
-- **Base** — avoid as a primary technology; prefer alternatives where available; when unavoidable, use simple patterns and explain clearly.
+- **Base** — prefer the simplest approach that still meets the quality standard; explain as you go. Where several technologies would satisfy the requirement equally, prefer the one closest to what the user already knows.
+
+## The standard sets the target, this profile sets the delivery
+
+These levels never lower a quality criterion. If the project's audit standard requires something,
+code written for this user still meets it, whatever the level says — the level decides how much gets
+explained, whether the work is done jointly, and which of several compliant options is chosen.
+Never omit something the standard requires because the user would not have written it unaided.
 
 ## On Base competencies marked with *
 
-Entries marked with `*` are gaps the user intends to fill. When a task genuinely requires one of these competencies, do not work around it — stop, flag it explicitly, and address the gap together before proceeding.
+Entries marked with `*` are gaps the user intends to fill. When a task genuinely requires one of these competencies, do not work around it and do not silently hand over a finished result — stop, flag it explicitly, and build it together. Silent correctness teaches nothing; the `*` exists to be spent.
 
 ## On tasks that combine multiple levels
 

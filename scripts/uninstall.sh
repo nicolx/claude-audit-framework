@@ -71,7 +71,7 @@ fi
 
 # ── Specialization files ──────────────────────────────────────────────────────
 
-for spec in PROJECT_AUDIT_FRAMEWORK.md CODING_STANDARDS.md; do
+for spec in PROJECT_AUDIT_FRAMEWORK.md CODING_STANDARDS.md audit-focus.md; do
     if [ -f "$PROJECT_ROOT/.claude/$spec" ]; then
         rm "$PROJECT_ROOT/.claude/$spec"
         echo "  ✓  Removed .claude/$spec"
@@ -79,6 +79,23 @@ for spec in PROJECT_AUDIT_FRAMEWORK.md CODING_STANDARDS.md; do
         echo "  ↩  .claude/$spec not found (skipped)"
     fi
 done
+
+# ── Per-file check hook ───────────────────────────────────────────────────────
+# The script goes; the settings.json entry is left alone, because that file may
+# hold settings the project owns. A leftover entry is harmless: its command ends
+# in `|| true`, so a missing script is a silent no-op rather than an error.
+
+if [ -f "$PROJECT_ROOT/.claude/hooks/on-file-edit.sh" ]; then
+    rm "$PROJECT_ROOT/.claude/hooks/on-file-edit.sh"
+    echo "  ✓  Removed .claude/hooks/on-file-edit.sh"
+    if rmdir "$PROJECT_ROOT/.claude/hooks" 2>/dev/null; then
+        echo "  ✓  Removed empty .claude/hooks/"
+    fi
+    if grep -qF "on-file-edit.sh" "$PROJECT_ROOT/.claude/settings.json" 2>/dev/null; then
+        echo "  ℹ  .claude/settings.json still references the hook — harmless, but you can"
+        echo "     drop the PostToolUse entry (or run /hooks in Claude Code) to tidy up"
+    fi
+fi
 
 # ── Version marker ────────────────────────────────────────────────────────────
 
@@ -128,8 +145,9 @@ echo "────────────────────────�
 echo ""
 echo "✅ Framework files removed. Run the three commands above to finish."
 echo ""
-echo "Your developer profile at ~/.claude/context/user_profile.md was NOT removed —"
-echo "it is personal, shared across projects, and outlives any single install."
+echo "Two things were deliberately kept:"
+echo "  • ~/.claude/context/user_profile.md — personal, shared across projects"
+echo "  • docs/audits/ — the project's own quality history, valuable without the framework"
 echo ""
 echo "To reinstall:"
 echo "  git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework"
