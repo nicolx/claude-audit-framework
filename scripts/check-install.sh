@@ -36,7 +36,10 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+# pwd -P: on macOS a path through a symlink (/tmp, /var/folders) keeps its logical
+# form here while `git rev-parse` returns the physical one, and the two would not
+# compare equal — the scripts then refused to work in a perfectly valid checkout.
+SCRIPT_DIR=$(cd -P "$(dirname "$0")" && pwd -P)
 FRAMEWORK_DIR=$(dirname "$SCRIPT_DIR")
 
 if [ "$(basename "$FRAMEWORK_DIR")" != "framework" ] ||
@@ -47,7 +50,7 @@ if [ "$(basename "$FRAMEWORK_DIR")" != "framework" ] ||
     exit 2
 fi
 
-PROJECT_ROOT=$(cd "$FRAMEWORK_DIR/../.." && pwd)
+PROJECT_ROOT=$(cd -P "$FRAMEWORK_DIR/../.." && pwd -P)
 COMMANDS_DIR="$PROJECT_ROOT/.claude/commands"
 VERSION_MARKER="$PROJECT_ROOT/.claude/.framework-version"
 SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
@@ -82,8 +85,10 @@ if [ "$FRAMEWORK_HAS_COMMANDS" -eq 0 ]; then
     echo "       bash .claude/framework/scripts/init-project.sh"
     echo ""
     echo "────────────────────────────────────────────────"
+    # 2, not 1: the header reserves 2 for "cannot tell", and that is exactly this
+    # case — nothing about conformance can be assessed against an empty framework.
     echo "❌ Cannot verify: the framework itself is missing."
-    exit 1
+    exit 2
 fi
 
 err()  { echo "  ✗  $1"; shift; for l in "$@"; do echo "     $l"; done; ERRORS=$((ERRORS + 1)); }
@@ -129,26 +134,33 @@ fi
 MISSING=0
 STALE=0
 TOTAL=0
-for skill in "$FRAMEWORK_DIR"/commands/*.md; do
-    [ -e "$skill" ] || continue
+DETAIL=""
+for command_file in "$FRAMEWORK_DIR"/commands/*.md; do
+    [ -e "$command_file" ] || continue
     TOTAL=$((TOTAL + 1))
-    target="$COMMANDS_DIR/$(basename "$skill")"
-    name="/$(basename "$skill" .md)"
+    target="$COMMANDS_DIR/$(basename "$command_file")"
+    name="/$(basename "$command_file" .md)"
     if [ ! -f "$target" ]; then
-        echo "     missing: $name"
+        DETAIL="$DETAIL
+missing: $name"
         MISSING=$((MISSING + 1))
-    elif ! cmp -s "$skill" "$target"; then
-        echo "     differs: $name"
+    elif ! cmp -s "$command_file" "$target"; then
+        DETAIL="$DETAIL
+differs: $name"
         STALE=$((STALE + 1))
     fi
 done
 
+# The detail lines are collected rather than printed as they are found: printed
+# inline they appeared above the ✗ they belong to, and read as continuation of
+# whatever finding came before.
 if [ "$MISSING" -eq 0 ] && [ "$STALE" -eq 0 ]; then
     ok "All $TOTAL commands installed and identical to this version"
 else
     err "$MISSING command(s) missing, $STALE differing from version $FRAMEWORK_VERSION" \
         "Commands are copies; updating the submodule does not refresh them." \
         "→ bash .claude/framework/scripts/init-project.sh"
+    printf '%s\n' "$DETAIL" | sed '/^$/d; s/^/       /'
 fi
 
 # ── Version marker ───────────────────────────────────────────────────────────

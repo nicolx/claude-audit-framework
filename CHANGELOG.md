@@ -8,6 +8,92 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.8.1] — 2026-09-03
+
+A scoped re-audit of the four categories 1.8.0 touched. Three moved — Observability 7→8, Tooling
+7→8, Testing 6→7 — and **Security did not**, because the previous release fixed the instance and
+left the root: the same remote-controlled tag name still reached `git log` argv and the operator's
+clipboard, eight lines below its own fix. That is principle 9 failing in the release that shipped
+it, and this release fixes the root.
+
+### Fixed — security, at the point of capture
+
+- **Tag names are now allowlisted where they are read**, not sanitised where they are used.
+  `check-updates.sh` filters both `CURRENT_TAG` and `LATEST_TAG` through `^v[0-9]+\.[0-9]+\.[0-9]+$`
+  at capture, so a value that is not a well-formed release tag never enters the script. That closes
+  all three sinks at once — the `sed` address 1.8.0 patched, the `git log` argv position it did not
+  (a tag named `--output=<path>` is a valid refname and git parses it as an option, giving an
+  attacker-chosen file write with attacker-influenced content), and the copy-pasteable commands the
+  script prints, where `';id>…;'` closed the quoting. Case 28 creates both hostile tags upstream and
+  asserts nothing is executed and nothing is echoed.
+- **The hook's containment check was bypassable by symlinks.** It resolved the dirname without `-P`,
+  so a symlinked directory inside the tree and a symlinked file both passed and reached the
+  dispatch — inert only because every check ships commented out. Symlinks are now refused outright,
+  and `pwd -P` handles symlinked directories.
+- **`qa.sh` reintroduced two classes 1.8.0 had just fixed elsewhere**, in the script written to
+  consolidate the gate: `cd "$(git rev-parse --show-toplevel)" || exit 2` is dead code because
+  `cd ""` succeeds, so outside a git repo it ran the whole gate in the wrong directory and exited 1
+  instead of 2; and it parsed no arguments, so `qa.sh --dry-run` ran everything and exited 0.
+
+### Fixed — a portability defect the new tests exposed
+
+- **All five scripts compared a logical path against a physical one.** `cd … && pwd` keeps the
+  logical form while `git rev-parse` returns the resolved one, so on macOS any project reached
+  through a symlink — `/tmp`, `/var/folders`, a symlinked home — failed the "is this a consumer
+  install" guard and the scripts refused to work in a perfectly valid checkout. Now `cd -P` /
+  `pwd -P` throughout, and the git side normalised too. Found by a sandbox test, not by reading.
+
+### Fixed — legibility
+
+- `check-install.sh` exited 1 under a banner reading `❌ Cannot verify` while its own header
+  reserves 2 for "cannot tell". Now 2, and case 16 asserts it.
+- The `missing:`/`differs:` detail lines printed before the finding they belong to, reading as
+  continuation of the previous one. Collected and printed after it.
+- `init-project.sh` and `uninstall.sh` document their exit codes, and a bad flag exits 2 everywhere
+  rather than 1 in one script and 2 in the other three.
+- The hook now reports when a parser exists but the payload is unreadable — previously it exited 0
+  in silence, the same failure as having no parser, which 1.8.0 fixed only for the parser-absent half.
+
+### Fixed — two tests of my own that could not fail
+
+- **Case 22 asserted how many paths the gate counted, never that it caught a broken one** — a
+  vacuous pass inside the case written to kill vacuous passes. It now injects three real defects (a
+  dangling framework path, a retired command, a `VERSION`/`CHANGELOG` mismatch) and requires a
+  failure for each. Its retired-command literal is assembled at runtime, because written out it
+  would be caught by the very check it asserts.
+- **Case 20 had a fallback arm that passed with a different message**, so it passed either way. The
+  arm is gone.
+- Case 28 was itself vacuous on first run: git refuses a refname containing `..` or a space, so
+  neither hostile tag was created and every assertion passed against an attack that was not there.
+  It now asserts the tags exist before asserting they are harmless.
+
+### Added
+
+- **A real submodule fixture.** `check-updates.sh` was covered for 2 branches of ~19 — measured by
+  execution trace, not by reading — so everything from the fetch onwards was unreachable, including
+  1.8.0's security fix, which shipped with no test. `new_submodule_project()` stands up a local
+  upstream with tags and a consumer with a genuine git submodule, and case 28 exercises the upstream
+  half through it.
+- Cases 23–27 close the mutants the re-audit found surviving: a project's `.gitattributes` appended
+  rather than replaced on install, a project-owned file in `.claude/hooks/` surviving uninstall, a
+  legacy include not on its own line reported rather than announced as migrated, both mutating
+  scripts refusing a non-git directory with a reason, and the hook speaking when it has no parser.
+- **Check 9 — gate composition.** `qa.sh` fixed the CLAUDE.md-vs-CI drift and opened a qa.sh-vs-CI
+  one: CI re-declares the same checks as jobs and nothing tied them, so a fifth job would silently
+  falsify both the script and the documentation. The check compares the two and found its own first
+  defect immediately — an anchored pattern counted two of four `run` calls. `qa.sh` no longer
+  hardcodes "four" either; it counts.
+- `.github/` is now inside the consistency corpus for path resolution.
+
+### Still standing, and named
+
+Category 8 will not reach 8/10 until the CI supply chain is hardened: `curl | tar` with no checksum,
+actions on floating major tags rather than SHAs, and three registry fetches with version pins but no
+integrity pins. Category 4 will not move much further without a formatter, a metric threshold, and
+`check-consistency.sh` growing tests for the checks case 22 does not cover. Category 10 is untouched:
+no ADRs, no `CONTRIBUTING.md`, `main` unprotected, no pull requests. None of these is a defect a
+consumer hits.
+
 ## [1.8.0] — 2026-09-03
 
 `/project-audit` was run on this repository — its first real execution — and the ten scoring agents

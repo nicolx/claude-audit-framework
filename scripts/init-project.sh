@@ -7,6 +7,8 @@
 #   --with-hooks   also install the PostToolUse hook that runs fast per-file
 #                  checks after every edit. Opt-in: it changes how the harness
 #                  behaves, so it is never installed silently.
+#
+# Exit codes:  0 installed and conformant · 1 installed but not conformant · 2 cannot run
 
 set -euo pipefail
 
@@ -14,7 +16,7 @@ WITH_HOOKS=0
 for arg in "$@"; do
     case "$arg" in
         --with-hooks) WITH_HOOKS=1 ;;
-        *) echo "❌ Unknown option: $arg"; echo "   Usage: init-project.sh [--with-hooks]"; exit 1 ;;
+        *) echo "❌ Unknown option: $arg"; echo "   Usage: init-project.sh [--with-hooks]"; exit 2 ;;
     esac
 done
 
@@ -22,7 +24,10 @@ done
 # `git rev-parse --show-toplevel` answers about wherever the caller happens to be
 # standing, so run from another checkout this script would install into it — and
 # would execute *that* project's check-install.sh.
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+# pwd -P: on macOS a path through a symlink (/tmp, /var/folders) keeps its logical
+# form here while `git rev-parse` returns the physical one, and the two would not
+# compare equal — the scripts then refused to work in a perfectly valid checkout.
+SCRIPT_DIR=$(cd -P "$(dirname "$0")" && pwd -P)
 FRAMEWORK_DIR=$(dirname "$SCRIPT_DIR")
 
 if [ "$(basename "$FRAMEWORK_DIR")" != "framework" ] ||
@@ -33,7 +38,7 @@ if [ "$(basename "$FRAMEWORK_DIR")" != "framework" ] ||
     exit 2
 fi
 
-PROJECT_ROOT=$(cd "$FRAMEWORK_DIR/../.." && pwd)
+PROJECT_ROOT=$(cd -P "$FRAMEWORK_DIR/../.." && pwd -P)
 
 if ! git -C "$PROJECT_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
     echo "❌ $PROJECT_ROOT is not a git repository."

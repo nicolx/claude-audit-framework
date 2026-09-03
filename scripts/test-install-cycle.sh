@@ -74,6 +74,44 @@ indent() {
     printf '%s%s\n' "$pad" "${1//$'\n'/$'\n'$pad}"
 }
 
+# new_submodule_project — a project with the framework added as a REAL git submodule
+# from a local upstream carrying tags. Echoes "<project> <upstream>".
+# This is the fixture the suite lacked: without it everything from
+# check-updates.sh's fetch onwards was unreachable, including a security fix.
+new_submodule_project() {
+    local root up proj
+    root=$(mktemp -d)
+    up="$root/upstream"
+    proj="$root/project"
+
+    git init -q "$up"
+    git -C "$up" config user.email test@example.com
+    git -C "$up" config user.name Test
+    mkdir -p "$up/scripts" "$up/commands" "$up/templates" "$up/standards"
+    cp -R "$FRAMEWORK_SRC/scripts/." "$up/scripts/"
+    cp -R "$FRAMEWORK_SRC/commands/." "$up/commands/"
+    cp -R "$FRAMEWORK_SRC/templates/." "$up/templates/"
+    cp -R "$FRAMEWORK_SRC/standards/." "$up/standards/"
+    cp "$FRAMEWORK_SRC/INSTRUCTIONS.md" "$FRAMEWORK_SRC/CHANGELOG.md" "$up/"
+    printf '1.0.0\n' > "$up/VERSION"
+    git -C "$up" add -A
+    git -C "$up" commit -qm "feat: first release"
+    git -C "$up" tag -a v1.0.0 -m v1.0.0
+    printf '1.1.0\n' > "$up/VERSION"
+    git -C "$up" commit -qam "feat: second release"
+    git -C "$up" tag -a v1.1.0 -m v1.1.0
+
+    git init -q "$proj"
+    git -C "$proj" config user.email test@example.com
+    git -C "$proj" config user.name Test
+    printf '# Consumer\n' > "$proj/CLAUDE.md"
+    git -C "$proj" add -A
+    git -C "$proj" commit -qm init
+    mkdir -p "$proj/.claude"
+    git -C "$proj" -c protocol.file.allow=always submodule add -q "$up" .claude/framework >/dev/null 2>&1
+    printf '%s %s\n' "$proj" "$up"
+}
+
 new_case() {
     CASES=$((CASES + 1))
     echo ""
@@ -323,10 +361,10 @@ mkdir -p "$PROJ/.claude/framework/scripts" "$PROJ/.claude/commands"
 cp "$FRAMEWORK_SRC/scripts/check-install.sh" "$PROJ/.claude/framework/scripts/"
 printf '@.claude/framework/INSTRUCTIONS.md\n\n# P\n' > "$PROJ/CLAUDE.md"
 run_check "$PROJ"
-if [ "$check_code" -eq 1 ]; then
-    pass "exits 1 instead of reporting a vacuous pass"
+if [ "$check_code" -eq 2 ]; then
+    pass "exits 2 (cannot tell) instead of reporting a vacuous pass"
 else
-    fail "expected exit 1, got $check_code:"; indent "$check_out"
+    fail "expected exit 2, got $check_code:"; indent "$check_out"
 fi
 case "$check_out" in
     *"not checked out"*) pass "names the cause and the fix" ;;
@@ -372,20 +410,18 @@ rm -rf "$PROJ"
 new_case "init-project.sh propagates failure instead of exiting 0 after printing ❌"
 PROJ=$(new_project)
 (cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
-# Make the install non-conformant in a way init-project cannot repair
-rm "$PROJ/.claude/commands/project-audit.md"
-printf 'version=0.0.1\n' > "$PROJ/.claude/.framework-version"
-chmod -w "$PROJ/.claude/commands" 2>/dev/null
+# Break the install in a way init-project cannot repair: a command file it cannot
+# overwrite. No fallback arm — this case must observe a non-zero exit or fail.
+chmod -w "$PROJ/.claude/commands/project-audit.md"
+chmod -w "$PROJ/.claude/commands"
 OUT=$(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh 2>&1)
 CODE=$?
-chmod +w "$PROJ/.claude/commands" 2>/dev/null
+chmod +w "$PROJ/.claude/commands" "$PROJ/.claude/commands/project-audit.md" 2>/dev/null
 if [ "$CODE" -ne 0 ]; then
-    pass "non-zero exit when the install is not conformant ($CODE)"
+    pass "non-zero exit when the install cannot be made conformant ($CODE)"
 else
-    case "$OUT" in
-        *"❌"*) fail "printed ❌ and still exited 0 — the && chain cannot break" ;;
-        *)      pass "install repaired itself, exit 0 is correct" ;;
-    esac
+    fail "exited 0 despite a broken install — the documented && chain cannot break:"
+    indent "$OUT"
 fi
 rm -rf "$PROJ"
 
@@ -403,27 +439,174 @@ expect_file "$PROJ/.claude/commands/project-audit.md"
 expect_grep "$PROJ/CLAUDE.md" "@.claude/framework/INSTRUCTIONS.md" "nothing was removed"
 rm -rf "$PROJ"
 
-new_case "check-consistency.sh cannot pass vacuously when its own extraction breaks"
-# The gate script had the exact vacuity bug case 16 was written to kill: break the
-# path-extraction regex and it reported "all 1 cited paths resolve", exit 0.
+new_case "check-consistency.sh detects a broken path, not just counts them"
+# The previous version of this case asserted only how many paths were counted, so
+# neutering the checks left it green — a vacuous pass inside the case written to
+# kill vacuous passes. Now it injects a real defect and requires a real failure.
 SANDBOX=$(mktemp -d)
-cp -R "$FRAMEWORK_SRC/." "$SANDBOX/" 2>/dev/null
-if [ -d "$SANDBOX/.git" ] && [ -f "$SANDBOX/scripts/check-consistency.sh" ]; then
-    OUT=$(cd "$SANDBOX" && bash scripts/check-consistency.sh 2>&1)
-    case "$OUT" in
-        *"cited framework paths resolve"*) pass "reports how many paths it actually checked" ;;
-        *) fail "no path count in output" ;;
-    esac
-    COUNT=$(printf '%s' "$OUT" | grep -oE 'all [0-9]+ cited framework paths' | grep -oE '[0-9]+')
-    if [ "${COUNT:-0}" -ge 5 ]; then
-        pass "checked $COUNT framework paths, not a vacuous handful"
-    else
-        fail "only $COUNT framework paths checked — extraction is probably broken"
-    fi
+cp -R "$FRAMEWORK_SRC/." "$SANDBOX/"
+if [ ! -f "$SANDBOX/scripts/check-consistency.sh" ] || [ ! -d "$SANDBOX/.git" ]; then
+    fail "sandbox copy incomplete — cannot exercise the gate"
 else
-    pass "skipped — sandbox copy incomplete"
+    if (cd "$SANDBOX" && bash scripts/check-consistency.sh >/dev/null 2>&1); then
+        pass "passes on an unmodified copy"
+    else
+        fail "fails on an unmodified copy — the sandbox itself is wrong"
+    fi
+    # A document citing a framework path that does not exist must fail check 4.
+    # shellcheck disable=SC2016  # the backticks are literal markdown, not a substitution
+    printf '\nSee `.claude/framework/standards/DOES_NOT_EXIST.md` for details.\n' >> "$SANDBOX/README.md"
+    if (cd "$SANDBOX" && bash scripts/check-consistency.sh >/dev/null 2>&1); then
+        fail "a broken framework path did NOT fail the gate"
+    else
+        pass "a broken framework path fails the gate"
+    fi
+    (cd "$SANDBOX" && git checkout -- README.md 2>/dev/null) || true
+    # A retired command reappearing must fail check 1. The literal is assembled at
+    # runtime: written out, it would be found by the very check this asserts — and
+    # excluding this file from the corpus to accommodate the test would weaken it.
+    # shellcheck disable=SC2016  # the backticks are literal markdown, not a substitution
+    printf '\nRun `git %s origin main` to update.\n' pull >> "$SANDBOX/README.md"
+    if (cd "$SANDBOX" && bash scripts/check-consistency.sh >/dev/null 2>&1); then
+        fail "a retired command did NOT fail the gate"
+    else
+        pass "a retired command fails the gate"
+    fi
+    (cd "$SANDBOX" && git checkout -- README.md 2>/dev/null) || true
+    # VERSION out of step with the changelog must fail check 7.
+    printf '99.0.0\n' > "$SANDBOX/VERSION"
+    if (cd "$SANDBOX" && bash scripts/check-consistency.sh >/dev/null 2>&1); then
+        fail "a VERSION/CHANGELOG mismatch did NOT fail the gate"
+    else
+        pass "a VERSION/CHANGELOG mismatch fails the gate"
+    fi
 fi
 rm -rf "$SANDBOX"
+
+# ── Cases 23–28 — gaps the re-audit measured ─────────────────────────────────
+
+new_case "Install appends to a project's .gitattributes instead of replacing it"
+PROJ=$(new_project)
+printf '* text=auto\n*.php diff=php\n' > "$PROJ/.gitattributes"
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
+expect_grep "$PROJ/.gitattributes" "* text=auto" "project's first attribute survives install"
+expect_grep "$PROJ/.gitattributes" "*.php diff=php" "project's second attribute survives install"
+expect_grep "$PROJ/.gitattributes" ".claude/ export-ignore" "framework entry added"
+rm -rf "$PROJ"
+
+new_case "Uninstall keeps a project-owned file in .claude/hooks/"
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh --with-hooks >/dev/null 2>&1)
+echo "project's own hook" > "$PROJ/.claude/hooks/on-commit.sh"
+(cd "$PROJ" && bash .claude/framework/scripts/uninstall.sh >/dev/null 2>&1)
+expect_absent "$PROJ/.claude/hooks/on-file-edit.sh"
+expect_file "$PROJ/.claude/hooks/on-commit.sh"
+expect_grep "$PROJ/.claude/hooks/on-commit.sh" "project's own hook" "its content is intact"
+rm -rf "$PROJ"
+
+new_case "A legacy include not on its own line is reported, not announced as migrated"
+PROJ=$(new_project "$(printf 'See @.claude/framework/CLAUDE.md for details.\n\n# Project\n')")
+OUT=$(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh 2>&1)
+case "$OUT" in
+    *"Could not migrate the @-include"*) pass "reports the failure" ;;
+    *"Migrated @-include"*) fail "announced a migration that did not happen" ;;
+    *) fail "neither reported nor announced:"; indent "$OUT" ;;
+esac
+expect_missing_line "$PROJ/CLAUDE.md" "@.claude/framework/INSTRUCTIONS.md"
+rm -rf "$PROJ"
+
+new_case "Both mutating scripts refuse a non-git directory with a reason, not a raw fatal"
+BARE=$(mktemp -d)
+mkdir -p "$BARE/.claude"
+cp -R "$FRAMEWORK_SRC" "$BARE/.claude/framework"
+rm -rf "$BARE/.claude/framework/.git"
+for script in init-project uninstall; do
+    OUT=$(cd "$BARE" && bash ".claude/framework/scripts/$script.sh" 2>&1)
+    CODE=$?
+    case "$OUT" in
+        *"not a git repository"*)
+            if [ "$CODE" -eq 2 ]; then
+                pass "$script.sh: explains and exits 2"
+            else
+                fail "$script.sh: explained but exited $CODE, expected 2"
+            fi ;;
+        *"fatal:"*) fail "$script.sh leaked a raw git fatal:" ;;
+        *) fail "$script.sh gave no git-repo diagnosis:"; indent "$OUT" ;;
+    esac
+done
+rm -rf "$BARE"
+
+new_case "The hook speaks when it has no JSON parser, instead of no-opping silently"
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh --with-hooks >/dev/null 2>&1)
+STUB=$(mktemp -d)
+for b in cat printf grep git dirname basename sed; do
+    real=$(command -v "$b" 2>/dev/null) && ln -sf "$real" "$STUB/$b"
+done
+BASH_BIN=$(command -v bash)
+OUT=$(echo '{"tool_input":{"file_path":"'"$PROJ"'/CLAUDE.md"}}' |
+      PATH="$STUB" "$BASH_BIN" "$PROJ/.claude/hooks/on-file-edit.sh" 2>&1)
+case "$OUT" in
+    *"neither jq nor python3"*) pass "reports that no checks ran" ;;
+    "") fail "silent no-op — the failure this case exists to catch" ;;
+    *) fail "unexpected output:"; indent "$OUT" ;;
+esac
+OUT=$(PATH="$STUB" "$BASH_BIN" "$PROJ/.claude/hooks/on-file-edit.sh" --selftest 2>&1)
+case "$OUT" in
+    *"neither jq nor python3"*) pass "--selftest reports it too, no false pass" ;;
+    *) fail "--selftest gave a false pass:"; indent "$OUT" ;;
+esac
+rm -rf "$STUB" "$PROJ"
+
+new_case "check-updates.sh: upstream half, and a hostile tag reaches neither shell nor output"
+read -r PROJ UPSTREAM <<EOF
+$(new_submodule_project)
+EOF
+if [ ! -d "$PROJ/.claude/framework/.git" ] && [ ! -f "$PROJ/.claude/framework/.git" ]; then
+    fail "submodule fixture failed — cannot exercise the upstream half"
+else
+    git -C "$PROJ/.claude/framework" checkout -q v1.0.0
+    printf 'version=1.0.0\n' > "$PROJ/.claude/.framework-version"
+    # git refuses a refname containing "..", so the marker path must not have one —
+    # otherwise update-ref fails and every assertion below passes vacuously.
+    MARK="$(dirname "$UPSTREAM")/PWNED"
+    git -C "$UPSTREAM" update-ref "refs/tags/--output=$MARK" HEAD 2>/dev/null
+    # No space either: git forbids spaces in a refname, so the paste-vector tag uses
+    # a redirection rather than a command with an argument.
+    git -C "$UPSTREAM" update-ref "refs/tags/v9.9.9';id>$MARK;'" HEAD 2>/dev/null
+    HOSTILE=$(git -C "$UPSTREAM" tag -l | grep -c -e '--output=' -e ";id>" || true)
+    if [ "$HOSTILE" -ge 2 ]; then
+        pass "both hostile tags exist upstream — the attack is really present"
+    else
+        fail "only $HOSTILE hostile tag(s) created; the assertions below would be vacuous"
+    fi
+    git -C "$PROJ/.claude/framework" fetch -q --tags origin 2>/dev/null || true
+    OUT=$(cd "$PROJ" && bash .claude/framework/scripts/check-updates.sh --offline 2>&1)
+    CODE=$?
+    case "$OUT" in
+        *"Pinned at v1.0.0"*) pass "reaches the upstream comparison at all" ;;
+        *) fail "never reached the tag comparison:"; indent "$OUT" ;;
+    esac
+    case "$OUT" in
+        *"upstream is at v1.1.0"*) pass "picks the newest well-formed release" ;;
+        *) fail "wrong or missing latest tag" ;;
+    esac
+    case "$OUT" in
+        *PWNED*|*"9.9.9'"*) fail "a hostile tag name reached the output — paste vector" ;;
+        *) pass "no hostile tag name in the output" ;;
+    esac
+    if [ -e "$MARK" ]; then
+        fail "a hostile tag name was EXECUTED"
+    else
+        pass "nothing was executed"
+    fi
+    if [ "$CODE" -eq 1 ]; then
+        pass "exits 1 (action recommended)"
+    else
+        fail "expected exit 1, got $CODE"
+    fi
+fi
+rm -rf "$(dirname "$PROJ")"
 
 # ── Summary ──────────────────────────────────────────────────────────────────
 

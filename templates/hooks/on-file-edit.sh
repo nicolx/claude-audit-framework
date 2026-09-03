@@ -107,13 +107,29 @@ fi
 
 FILE=$(extract_file_path "$PAYLOAD")
 
-# No path, or a path that is not a regular file: nothing to do.
+# A parser exists but produced nothing from a non-empty payload: the payload was
+# malformed, or its shape changed. Same failure as having no parser at all — the
+# hook runs and checks nothing — so it gets the same treatment: say so.
+if [ -z "$FILE" ] && [ -n "$PAYLOAD" ]; then
+    report "on-file-edit.sh received a tool payload it could not read — no file path in it, so NO per-file checks ran. If the hook payload format changed, update extract_file_path in .claude/hooks/on-file-edit.sh."
+    exit 0
+fi
+
+# No path at all, or a path that is not a regular file: nothing to do.
 [ -n "$FILE" ] && [ -f "$FILE" ] || exit 0
 
-# Confine to the project. A payload naming ~/.ssh/config or /etc/hosts is not
-# ours to hand to a formatter, and `-f` alone does not exclude it.
-PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-FILE_DIR=$(cd "$(dirname "$FILE")" 2>/dev/null && pwd) || exit 0
+# Confine to the project. A payload naming ~/.ssh/config is not ours to hand to a
+# formatter, and `-f` alone does not exclude it.
+#
+# A symlink is refused outright rather than resolved: it can point anywhere,
+# resolving it portably is fiddly (BSD readlink has no -f), and a per-file check
+# hook has no business following a link out of the tree. `pwd -P` then handles the
+# other half — a symlinked *directory* inside the tree whose target is outside.
+[ -L "$FILE" ] && exit 0
+
+PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || PROJECT_ROOT="$PWD"
+PROJECT_ROOT=$(cd -P "$PROJECT_ROOT" 2>/dev/null && pwd -P) || exit 0
+FILE_DIR=$(cd -P "$(dirname "$FILE")" 2>/dev/null && pwd -P) || exit 0
 case "$FILE_DIR/" in
     "$PROJECT_ROOT"/*) ;;
     *) exit 0 ;;

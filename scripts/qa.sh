@@ -11,13 +11,43 @@
 
 set -uo pipefail
 
-cd "$(git rev-parse --show-toplevel)" || exit 2
+for arg in "$@"; do
+    case "$arg" in
+        *) echo "❌ Unknown option: $arg"
+           echo "   qa.sh takes no options — it always runs the whole gate."
+           exit 2 ;;
+    esac
+done
+
+# From $0, not from `git rev-parse --show-toplevel`: the previous form was dead
+# code, because `cd ""` succeeds, so outside a git repo this ran the whole gate
+# in the wrong directory and exited 1 instead of 2.
+# pwd -P: on macOS a path through a symlink (/tmp, /var/folders) keeps its logical
+# form here while `git rev-parse` returns the physical one, and the two would not
+# compare equal — the scripts then refused to work in a perfectly valid checkout.
+SCRIPT_DIR=$(cd -P "$(dirname "$0")" && pwd -P)
+REPO_ROOT=$(dirname "$SCRIPT_DIR")
+
+if [ ! -f "$REPO_ROOT/standards/PROJECT_AUDIT_FRAMEWORK.md" ]; then
+    echo "❌ $REPO_ROOT is not the claude-audit-framework repository."
+    echo "   This is the framework's own gate. A consumer project runs check-install.sh instead."
+    exit 2
+fi
+
+cd "$REPO_ROOT" || exit 2
+
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+    echo "❌ $REPO_ROOT is not a git repository — check-consistency.sh needs git ls-files."
+    exit 2
+fi
 
 FAILED=""
 SKIPPED=""
+RAN=0
 
 run() {
     local name="$1"; shift
+    RAN=$((RAN + 1))
     echo ""
     echo "──────── $name ────────"
     if "$@"; then
@@ -61,8 +91,8 @@ if [ -n "$FAILED" ]; then
 fi
 if [ -n "$SKIPPED" ]; then
     echo "⚠  Passed what could run. Not run:$SKIPPED"
-    echo "   CI runs all four, so this is not a clean bill of health."
+    echo "   CI runs the full set, so this is not a clean bill of health."
     exit 2
 fi
-echo "✅ All four checks passed."
+echo "✅ All $RAN checks passed."
 exit 0

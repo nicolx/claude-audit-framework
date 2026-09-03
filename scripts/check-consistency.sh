@@ -134,7 +134,8 @@ BROKEN=0
 # SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split
 # into separate grep arguments; quoting them would pass one giant filename.
 # shellcheck disable=SC2086
-CITED=$(grep -rhoE '\b(standards|templates|commands|scripts)/[A-Za-z0-9_./*-]+' $DOCS 2>/dev/null |
+CITED=$(grep -rhoE '(^|[^A-Za-z0-9_./-])(\.github|standards|templates|commands|scripts)/[A-Za-z0-9_./*-]+' $DOCS 2>/dev/null |
+        grep -oE '(\.github|standards|templates|commands|scripts)/[A-Za-z0-9_./*-]+' |
         sed 's/[.,:;`)]*$//' |
         sort -u)
 
@@ -229,6 +230,40 @@ done
 
 if [ "$BROKEN" -eq 0 ]; then
     pass "all $(echo "$CITED" | wc -l | tr -d ' ') cited subcriteria exist"
+fi
+
+# ── 9. The gate has one composition, not two ────────────────────────────────
+# scripts/qa.sh was added so the gate would be one command, which fixed the
+# CLAUDE.md-vs-CI drift — and immediately created a qa.sh-vs-CI one, because CI
+# re-declares the same checks as separate jobs and nothing tied the two. A fifth
+# CI job would silently falsify both the script and the documentation.
+
+start "Gate composition"
+
+# Leading whitespace matters: two of the run calls sit inside `if` blocks, and an
+# anchored pattern counted two of four — the check's own first finding.
+GATE_STEPS=$(grep -cE '^[[:space:]]*run "' scripts/qa.sh)
+CI_JOBS=$(awk '/^jobs:/ { injobs = 1; next } injobs && /^  [a-z][a-z0-9-]*:$/ { n++ } END { print n + 0 }' \
+          .github/workflows/ci.yml)
+
+if [ "$GATE_STEPS" -eq "$CI_JOBS" ]; then
+    pass "qa.sh runs $GATE_STEPS checks and CI declares $CI_JOBS jobs"
+else
+    fail "qa.sh runs $GATE_STEPS checks but CI declares $CI_JOBS jobs — the gate has two definitions"
+    indent "qa.sh:            $(grep -oE '^[[:space:]]*run \"[^\"]+\"' scripts/qa.sh | sed 's/.*run //' | tr '\n' ' ')"
+    indent ".github/ci.yml:   $(awk '/^jobs:/ { injobs = 1; next } injobs && /^  [a-z][a-z0-9-]*:$/ { gsub(/[ :]/, "", $0); printf "%s ", $0 }' .github/workflows/ci.yml)"
+fi
+
+# Each check qa.sh runs must be recognisable in the workflow, and vice versa.
+MISSING_IN_CI=""
+for token in check-consistency test-install-cycle shellcheck markdownlint; do
+    grep -q "$token" scripts/qa.sh || continue
+    grep -q "$token" .github/workflows/ci.yml || MISSING_IN_CI="$MISSING_IN_CI $token"
+done
+if [ -n "$MISSING_IN_CI" ]; then
+    fail "qa.sh runs checks the workflow does not:$MISSING_IN_CI"
+else
+    pass "every check in qa.sh appears in the workflow"
 fi
 
 # ── Summary ──────────────────────────────────────────────────────────────────

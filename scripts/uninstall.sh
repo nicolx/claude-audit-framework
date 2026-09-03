@@ -2,6 +2,8 @@
 # uninstall.sh — Remove claude-audit-framework from a project
 # Run from the project root BEFORE removing the submodule:
 #   bash .claude/framework/scripts/uninstall.sh
+#
+# Exit codes:  0 removed · 2 cannot run (wrong location, not a git repo, bad option)
 
 set -euo pipefail
 
@@ -16,7 +18,10 @@ for arg in "$@"; do
     esac
 done
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+# pwd -P: on macOS a path through a symlink (/tmp, /var/folders) keeps its logical
+# form here while `git rev-parse` returns the physical one, and the two would not
+# compare equal — the scripts then refused to work in a perfectly valid checkout.
+SCRIPT_DIR=$(cd -P "$(dirname "$0")" && pwd -P)
 FRAMEWORK_DIR=$(dirname "$SCRIPT_DIR")
 
 if [ "$(basename "$FRAMEWORK_DIR")" != "framework" ] ||
@@ -27,7 +32,7 @@ if [ "$(basename "$FRAMEWORK_DIR")" != "framework" ] ||
     exit 2
 fi
 
-PROJECT_ROOT=$(cd "$FRAMEWORK_DIR/../.." && pwd)
+PROJECT_ROOT=$(cd -P "$FRAMEWORK_DIR/../.." && pwd -P)
 
 if ! git -C "$PROJECT_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
     echo "❌ $PROJECT_ROOT is not a git repository — nothing was installed here by this framework."

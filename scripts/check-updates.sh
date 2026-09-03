@@ -25,7 +25,10 @@ for arg in "$@"; do
     esac
 done
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+# pwd -P: on macOS a path through a symlink (/tmp, /var/folders) keeps its logical
+# form here while `git rev-parse` returns the physical one, and the two would not
+# compare equal — the scripts then refused to work in a perfectly valid checkout.
+SCRIPT_DIR=$(cd -P "$(dirname "$0")" && pwd -P)
 FRAMEWORK_DIR=$(dirname "$SCRIPT_DIR")
 
 # This script answers a consumer's question, so it needs a consumer install:
@@ -39,7 +42,7 @@ if [ "$(basename "$FRAMEWORK_DIR")" != "framework" ] ||
     exit 2
 fi
 
-PROJECT_ROOT=$(cd "$FRAMEWORK_DIR/../.." && pwd)
+PROJECT_ROOT=$(cd -P "$FRAMEWORK_DIR/../.." && pwd -P)
 VERSION_MARKER="$PROJECT_ROOT/.claude/.framework-version"
 
 ACTION=0
@@ -84,6 +87,9 @@ echo "[2] Pinned submodule vs upstream"
 # rather than added as a submodule would answer with the *project's* tags and
 # produce confident nonsense. Require the repository found to be its own.
 FW_TOPLEVEL=$(git -C "$FRAMEWORK_DIR" rev-parse --show-toplevel 2>/dev/null || true)
+if [ -n "$FW_TOPLEVEL" ]; then
+    FW_TOPLEVEL=$(cd -P "$FW_TOPLEVEL" 2>/dev/null && pwd -P) || FW_TOPLEVEL=""
+fi
 
 if [ "$FW_TOPLEVEL" != "$FRAMEWORK_DIR" ]; then
     echo "  ⚠  Not a git checkout of the framework — cannot compare with upstream"
@@ -107,10 +113,27 @@ else
     echo "  ⚠  Could not reach origin — comparing against tags already fetched"
 fi
 
+# Tag names come from the remote, and git permits / $ ( ) { } ; | # in a refname.
+# Those characters are why the previous version of this script could be steered
+# into executing a shell through a sed address — but de-fanging that one line left
+# the same value reaching `git log` argv, where a tag named `--output=<path>` is
+# parsed as an option, and reaching commands the operator is told to paste.
+#
+# So the fix is at the point of capture, not at each use: a value that is not a
+# well-formed release tag is not a release tag, and never enters the script.
+# After this filter CURRENT_TAG and LATEST_TAG can only match RELEASE_TAG_RE,
+# which makes every downstream use — argv, output, comparison — safe by
+# construction rather than by remembering to quote.
+RELEASE_TAG_RE='^v[0-9]+\.[0-9]+\.[0-9]+$'
+
 CURRENT_TAG=$(git -C "$FRAMEWORK_DIR" describe --tags --exact-match HEAD 2>/dev/null || true)
+if ! printf '%s' "$CURRENT_TAG" | grep -qE "$RELEASE_TAG_RE"; then
+    # Not at a release tag — which is also what a malformed or hostile tag means here.
+    CURRENT_TAG=""
+fi
 CURRENT_SHA=$(git -C "$FRAMEWORK_DIR" rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BRANCH=$(git -C "$FRAMEWORK_DIR" symbolic-ref --short -q HEAD || true)
-LATEST_TAG=$(git -C "$FRAMEWORK_DIR" tag -l 'v*' | sort -V | tail -1)
+LATEST_TAG=$(git -C "$FRAMEWORK_DIR" tag -l 'v*' | grep -E "$RELEASE_TAG_RE" | sort -V | tail -1)
 
 if [ -z "$LATEST_TAG" ]; then
     echo "  ⚠  No release tags available locally — nothing to compare against"
@@ -137,7 +160,9 @@ else
     # / $ ( ) { } ; \ | # in a ref name. Interpolated into a sed *address* those
     # close the address and can reach GNU sed's `e` command, which runs a shell.
     # Match the tag as a fixed whole line instead: no regex, no interpreter.
-    BEHIND=$(git -C "$FRAMEWORK_DIR" tag -l 'v*' | sort -V |
+    # Same allowlist as the capture above: this list is printed to the operator's
+    # terminal, which is the paste vector — a tag name is never echoed unfiltered.
+    BEHIND=$(git -C "$FRAMEWORK_DIR" tag -l 'v*' | grep -E "$RELEASE_TAG_RE" | sort -V |
              awk -v t="$CURRENT_TAG" 'seen { print } $0 == t { seen = 1 }' | tr '\n' ' ')
     echo "  ⚠  Pinned at $CURRENT_TAG — upstream is at $LATEST_TAG"
     echo "     Releases since: $BEHIND"
