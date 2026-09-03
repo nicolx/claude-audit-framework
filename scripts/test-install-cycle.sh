@@ -231,7 +231,8 @@ rm -rf "$PROJ"
 
 # ── Cases 11–14 — check-install.sh conformance ───────────────────────────────
 
-# run_check <project> — echoes "<exit-code>\n<output>"
+# run_check <project> — runs check-install.sh there, leaving its exit code in
+# $check_code and its combined output in $check_out.
 check_out=""
 check_code=0
 run_check() {
@@ -336,6 +337,93 @@ case "$check_out" in
     *) pass "does not compare zero commands against zero" ;;
 esac
 rm -rf "$PROJ"
+
+# ── Cases 17–22 — mutants that survived the audit's mutation testing ─────────
+# Each of these passed a green suite while a real data-loss or load-nothing
+# defect was injected, which is why they exist.
+
+new_case "Prepend branch: an existing CLAUDE.md keeps its content and gains the include"
+PROJ=$(new_project "$(printf '# Their Project\n\nTheir own instructions.\n')")
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
+expect_count "$PROJ/CLAUDE.md" "@.claude/framework/INSTRUCTIONS.md" 1
+expect_grep "$PROJ/CLAUDE.md" "# Their Project" "existing heading preserved"
+expect_grep "$PROJ/CLAUDE.md" "Their own instructions." "existing body preserved"
+if [ "$(head -1 "$PROJ/CLAUDE.md")" = "@.claude/framework/INSTRUCTIONS.md" ]; then
+    pass "include is the first line"
+else
+    fail "include is not the first line: $(head -1 "$PROJ/CLAUDE.md")"
+fi
+
+new_case "Second run must not overwrite a specialization file the developer edited"
+echo "# MY OWN RULES" >> "$PROJ/.claude/CODING_STANDARDS.md"
+echo "# MY OWN CRITERIA" >> "$PROJ/.claude/PROJECT_AUDIT_FRAMEWORK.md"
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
+expect_grep "$PROJ/.claude/CODING_STANDARDS.md" "# MY OWN RULES" "edited CODING_STANDARDS survives"
+expect_grep "$PROJ/.claude/PROJECT_AUDIT_FRAMEWORK.md" "# MY OWN CRITERIA" "edited PROJECT_AUDIT_FRAMEWORK survives"
+
+new_case "Uninstall strips its own .gitattributes line and keeps the project's"
+printf '*.php diff=php\n' >> "$PROJ/.gitattributes"
+(cd "$PROJ" && bash .claude/framework/scripts/uninstall.sh >/dev/null 2>&1)
+expect_file "$PROJ/.gitattributes"
+expect_grep "$PROJ/.gitattributes" "*.php diff=php" "project's own attribute kept"
+expect_missing_line "$PROJ/.gitattributes" ".claude/ export-ignore"
+rm -rf "$PROJ"
+
+new_case "init-project.sh propagates failure instead of exiting 0 after printing ❌"
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
+# Make the install non-conformant in a way init-project cannot repair
+rm "$PROJ/.claude/commands/project-audit.md"
+printf 'version=0.0.1\n' > "$PROJ/.claude/.framework-version"
+chmod -w "$PROJ/.claude/commands" 2>/dev/null
+OUT=$(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh 2>&1)
+CODE=$?
+chmod +w "$PROJ/.claude/commands" 2>/dev/null
+if [ "$CODE" -ne 0 ]; then
+    pass "non-zero exit when the install is not conformant ($CODE)"
+else
+    case "$OUT" in
+        *"❌"*) fail "printed ❌ and still exited 0 — the && chain cannot break" ;;
+        *)      pass "install repaired itself, exit 0 is correct" ;;
+    esac
+fi
+rm -rf "$PROJ"
+
+new_case "uninstall.sh refuses an unknown option instead of removing anyway"
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
+OUT=$(cd "$PROJ" && bash .claude/framework/scripts/uninstall.sh --dry-run 2>&1)
+CODE=$?
+if [ "$CODE" -eq 2 ]; then
+    pass "exits 2 on an unknown option"
+else
+    fail "expected exit 2, got $CODE"
+fi
+expect_file "$PROJ/.claude/commands/project-audit.md"
+expect_grep "$PROJ/CLAUDE.md" "@.claude/framework/INSTRUCTIONS.md" "nothing was removed"
+rm -rf "$PROJ"
+
+new_case "check-consistency.sh cannot pass vacuously when its own extraction breaks"
+# The gate script had the exact vacuity bug case 16 was written to kill: break the
+# path-extraction regex and it reported "all 1 cited paths resolve", exit 0.
+SANDBOX=$(mktemp -d)
+cp -R "$FRAMEWORK_SRC/." "$SANDBOX/" 2>/dev/null
+if [ -d "$SANDBOX/.git" ] && [ -f "$SANDBOX/scripts/check-consistency.sh" ]; then
+    OUT=$(cd "$SANDBOX" && bash scripts/check-consistency.sh 2>&1)
+    case "$OUT" in
+        *"cited framework paths resolve"*) pass "reports how many paths it actually checked" ;;
+        *) fail "no path count in output" ;;
+    esac
+    COUNT=$(printf '%s' "$OUT" | grep -oE 'all [0-9]+ cited framework paths' | grep -oE '[0-9]+')
+    if [ "${COUNT:-0}" -ge 5 ]; then
+        pass "checked $COUNT framework paths, not a vacuous handful"
+    else
+        fail "only $COUNT framework paths checked — extraction is probably broken"
+    fi
+else
+    pass "skipped — sandbox copy incomplete"
+fi
+rm -rf "$SANDBOX"
 
 # ── Summary ──────────────────────────────────────────────────────────────────
 

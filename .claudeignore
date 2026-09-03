@@ -1,6 +1,6 @@
 # The framework ships documents and shell scripts only — nothing else is worth traversing.
 .git/
-.github/
+# .github/ is NOT excluded: it declares every pinned tool version, and 6.9 needs it visible.
 node_modules/
 vendor/
 dist/

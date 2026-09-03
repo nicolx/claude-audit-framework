@@ -133,8 +133,12 @@ elif [ -z "$CURRENT_TAG" ]; then
 elif [ "$CURRENT_TAG" = "$LATEST_TAG" ]; then
     echo "  ✓  Pinned at $CURRENT_TAG, the latest release"
 else
+    # CURRENT_TAG comes from refs just fetched from the remote, and git allows
+    # / $ ( ) { } ; \ | # in a ref name. Interpolated into a sed *address* those
+    # close the address and can reach GNU sed's `e` command, which runs a shell.
+    # Match the tag as a fixed whole line instead: no regex, no interpreter.
     BEHIND=$(git -C "$FRAMEWORK_DIR" tag -l 'v*' | sort -V |
-             sed -n "/^$CURRENT_TAG$/,\$p" | tail -n +2 | tr '\n' ' ')
+             awk -v t="$CURRENT_TAG" 'seen { print } $0 == t { seen = 1 }' | tr '\n' ' ')
     echo "  ⚠  Pinned at $CURRENT_TAG — upstream is at $LATEST_TAG"
     echo "     Releases since: $BEHIND"
     echo ""

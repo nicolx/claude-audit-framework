@@ -8,6 +8,112 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.8.0] — 2026-09-03
+
+`/project-audit` was run on this repository — its first real execution — and the ten scoring agents
+found what reading had not. Scores: Cat 2 7/10, Cat 4 6/10, Cat 6 8/10, Cat 7 7/10, Cat 8 6/10,
+Cat 9 7/10, Cat 10 6/10; Cats 1, 3 and 5 N/A. This release fixes everything the audit surfaced that
+a user could hit, and records what was deliberately deferred.
+
+### Fixed — the upgrade path
+
+Five of the six critical defects were in `init-project.sh` and `uninstall.sh`: the two commands
+every consumer runs to update.
+
+- **`init-project.sh` printed `❌ Install is not conformant` and exited 0.** The error message was
+  followed by sixty lines of `echo`, and the last command set the status — so in the `&&` chain the
+  README documents, the installer could not fail, and could not gate a CI job. It now propagates the
+  conformance result.
+- **It announced `✓ Migrated @-include` for a migration that had not happened.** The branch is
+  chosen on a substring match while the rewrite was anchored, so a legacy include line with trailing
+  whitespace took the path and matched nothing. The rewrite now tolerates surrounding whitespace and
+  the result is verified before it is reported.
+- **An uninitialised submodule produced a raw `cp: ... No such file or directory`.** The glob guard
+  that `check-install.sh` and `uninstall.sh` both had was missing here — the same defect class 1.7.2
+  fixed in the checker, in the installer.
+- **Outside a git repository both mutating scripts died with `fatal: not a git repository`, exit
+  128.** Both now detect it and explain what they needed it for.
+- **`init-project.sh` located `check-install.sh` via `git rev-parse --show-toplevel`.** Run from
+  another checkout it would have installed into that project and executed *its* copy of the checker.
+  Both mutating scripts now derive their paths from `$0`, as the read-only scripts already did.
+- **`uninstall.sh` ignored every argument it was given** — `--dry-run` performed a real uninstall in
+  silence. It now refuses unknown options and says there is no dry run.
+- `set -u` added to both mutating scripts. They were the only two without it: the scripts that
+  delete and rewrite a consumer's files were the ones where an unset path variable expanded to empty.
+
+### Fixed — security
+
+- **A tag name from the remote reached a `sed` address.** `check-updates.sh` interpolated
+  `$CURRENT_TAG` — from `git describe` over just-fetched refs — into `sed -n "/^$CURRENT_TAG$/,$p"`.
+  Git permits `/ $ ( ) { } ; \ | #` in a ref name, which is enough to close the address and reach
+  GNU sed's `e` command, which executes a shell; verified empirically (BSD sed refuses, GNU does
+  not). Reaching it needs a hostile upstream tag, and that access already grants execution through
+  the installer — so this was a broken pattern rather than a crossed boundary, but a network-derived
+  string reached an interpreter. Replaced with an `awk` fixed-string comparison: no regex, no
+  interpreter.
+- **The hook stub silently did nothing when neither `jq` nor `python3` was present**, and looked
+  healthy doing it — `--selftest` also printed nothing and exited 0, so the check whose stated job
+  is to prove the reporting path works reported a false pass. Four of the ten agents found this
+  independently. The no-parser case now emits the context envelope by hand (its message is a literal,
+  so it needs no escaping) and says that no checks ran; `--selftest` exercises the extraction path,
+  not only the reporting path.
+- **The hook claimed a containment check it did not have.** Its comment said the guard rejected
+  paths outside the project; it tested `-f` only, so a payload naming `~/.ssh/config` passed through
+  to whatever the consumer had enabled. There is now a real containment check against the project
+  root, and every example invocation passes `--` before the path so a file named `-x.php` cannot
+  arrive as an option.
+
+### Fixed — the framework's own claims
+
+- **`CLAUDE.md` asserted "shellcheck clean, no exceptions" against five live `disable=SC2086`
+  directives** — a false statement in the file loaded into every session of this repo. Corrected,
+  and each directive now carries its reason.
+- **`scripts/qa.sh`: the gate is one command.** It was three commands in `CLAUDE.md`, the same three
+  in `README.md`, and four jobs in CI — and the documented three omitted markdownlint, so a
+  developer running the gate exactly as written could still go red. The framework authored
+  subcriteria 7.7 and did not satisfy it. `qa.sh` runs all four and reports which it could not run
+  rather than passing silently; both documents now point at it instead of restating the list.
+- **`.claudeignore` excluded `.github/`** — hiding the one file that declares every pinned tool
+  version from the traversal protocol the framework mandates, while 6.9 asks about exactly those
+  pins.
+- **`/project-audit` hard-coded the N/A escape hatch for Categories 3 and 5 only**, while
+  `INSTRUCTIONS.md` lists Cat 1 as "Always evaluated: Yes". An agent scoring OOP on a shell-only
+  project had to infer the permission; this one did, another might have invented a score. Any
+  category can now be N/A under the standard's own rule.
+- **`/project-audit` said the audit report is "meant to be committed" without qualification.** A
+  report names security weaknesses with file and line. In a private repository the history is the
+  point; in a public one it is a disclosure. The command now requires asking whether the repository
+  is public before recommending a commit, and offers the alternatives.
+- `skill` was used for command files in user-facing output while the directory, `CLAUDE.md` and
+  `check-install.sh` said *command* — and `skill` was overloaded in one file for both a command file
+  and a developer competency. Two comments describing behaviour the code no longer had, corrected.
+
+### Added — tests for the mutants that survived
+
+The Testing agent ran mutation tests rather than reading, and three mutants survived a green suite,
+all on data-loss paths. Cases 17–22 close them: the prepend-to-existing-`CLAUDE.md` branch (the most
+common real install, previously untested), preservation of a developer-edited specialization file
+across a second run, `.gitattributes` line-stripping versus deletion, the installer's exit code, the
+uninstaller's argument handling, and a guard against `check-consistency.sh` passing vacuously — the
+gate script that catches everyone else's drift had no test of its own.
+
+### Deferred, deliberately
+
+Recorded here because 2.7 asks for debt *carried*, not only debt prevented: no `scripts/lib/`
+(reading `VERSION` is written in four places, the consumer-install guard in two), the longer scripts
+are still comment-divided procedures rather than functions, CI runs Linux only while the `sed`
+portability bug is a BSD one, and the version-control half of Category 10 is untouched — no ADRs, no
+`CONTRIBUTING.md`, `main` verified unprotected, no pull requests. None is a regression; all are real.
+
+### Note on the tooling
+
+Two defects in `/project-audit` itself were found before the agents were launched and fixed first:
+`common.md` carried the entire 2,100-line standard for all ten agents to read — 31k tokens each,
+which is the duplication the 1.0.0 rewrite claimed to have removed, moved from the source to the
+standard — and the manifest's `find` matched only application languages, returning zero files on a
+shell-and-documents project. The framework is now sliced per category, and the manifest covers shell
+and reports honestly when a project has no application source.
+
 ## [1.7.2] — 2026-09-03
 
 A pre-release pass over the batch shipped today, looking for defects rather than scoring quality.

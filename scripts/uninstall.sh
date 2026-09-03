@@ -3,10 +3,37 @@
 # Run from the project root BEFORE removing the submodule:
 #   bash .claude/framework/scripts/uninstall.sh
 
-set -e
+set -euo pipefail
 
-PROJECT_ROOT="$(git rev-parse --show-toplevel)"
-FRAMEWORK_DIR="$PROJECT_ROOT/.claude/framework"
+# This script deletes files. Silently ignoring an unrecognised option means an
+# operator who tries --dry-run gets a real uninstall instead of a rehearsal.
+for arg in "$@"; do
+    case "$arg" in
+        *) echo "❌ Unknown option: $arg"
+           echo "   uninstall.sh takes no options — it always performs a real removal."
+           echo "   There is no --dry-run. To preview, read the list below in this file."
+           exit 2 ;;
+    esac
+done
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+FRAMEWORK_DIR=$(dirname "$SCRIPT_DIR")
+
+if [ "$(basename "$FRAMEWORK_DIR")" != "framework" ] ||
+   [ "$(basename "$(dirname "$FRAMEWORK_DIR")")" != ".claude" ]; then
+    echo "❌ Not a consumer install."
+    echo "   Run this as <project>/.claude/framework/scripts/uninstall.sh"
+    echo "   Found instead: $FRAMEWORK_DIR"
+    exit 2
+fi
+
+PROJECT_ROOT=$(cd "$FRAMEWORK_DIR/../.." && pwd)
+
+if ! git -C "$PROJECT_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+    echo "❌ $PROJECT_ROOT is not a git repository — nothing was installed here by this framework."
+    exit 2
+fi
+
 COMMANDS_DIR="$PROJECT_ROOT/.claude/commands"
 
 # strip_line <file> <extended-regex> — delete matching lines in place.
@@ -31,19 +58,19 @@ strip_leading_blanks() {
 echo "🗑  Removing claude-audit-framework..."
 echo ""
 
-# ── Installed skills ──────────────────────────────────────────────────────────
+# ── Installed commands ──────────────────────────────────────────────────────────
 # Remove only the command files this framework installed. Commands the project
 # owns are left in place, and the directory is removed only if it ends up empty.
 
 if [ -d "$COMMANDS_DIR" ]; then
     REMOVED=0
     if [ -d "$FRAMEWORK_DIR/commands" ]; then
-        for skill in "$FRAMEWORK_DIR"/commands/*.md; do
-            [ -e "$skill" ] || continue
-            target="$COMMANDS_DIR/$(basename "$skill")"
+        for command_file in "$FRAMEWORK_DIR"/commands/*.md; do
+            [ -e "$command_file" ] || continue
+            target="$COMMANDS_DIR/$(basename "$command_file")"
             if [ -f "$target" ]; then
                 rm "$target"
-                echo "  ✓  Removed skill: /$(basename "$skill" .md)"
+                echo "  ✓  Removed command: /$(basename "$command_file" .md)"
                 REMOVED=$((REMOVED + 1))
             fi
         done
@@ -52,13 +79,13 @@ if [ -d "$COMMANDS_DIR" ]; then
         for name in project-audit competency-review init-profile; do
             if [ -f "$COMMANDS_DIR/$name.md" ]; then
                 rm "$COMMANDS_DIR/$name.md"
-                echo "  ✓  Removed skill: /$name"
+                echo "  ✓  Removed command: /$name"
                 REMOVED=$((REMOVED + 1))
             fi
         done
     fi
 
-    [ "$REMOVED" -eq 0 ] && echo "  ↩  No framework skills found in .claude/commands/ (skipped)"
+    [ "$REMOVED" -eq 0 ] && echo "  ↩  No framework commands found in .claude/commands/ (skipped)"
 
     if rmdir "$COMMANDS_DIR" 2>/dev/null; then
         echo "  ✓  Removed empty .claude/commands/"

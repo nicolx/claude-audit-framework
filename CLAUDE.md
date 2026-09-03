@@ -80,7 +80,8 @@ A consumer project pins or pulls this repo by git ref. A change to anything unde
 - Both scripts are **idempotent**: running twice changes nothing the second time
 - `uninstall.sh` removes only what the framework installed. A file the project owns is never touched,
   and a directory is removed only when empty
-- `shellcheck` clean, no exceptions
+- `shellcheck` clean. The only suppressions are per-line `disable=SC2086` on deliberate
+  word-splitting in `check-consistency.sh`, each with its reason on the line above
 
 ### 5. Criteria need observable evidence
 
@@ -94,13 +95,14 @@ look like as things a reader can point at, and keep the existing structure:
 ## Quality gate
 
 ```bash
-bash scripts/check-consistency.sh    # path integrity, retired names, changelog/version sync
-bash scripts/test-install-cycle.sh   # install twice, migrate a pre-1.0 project, uninstall safely
-shellcheck scripts/*.sh templates/hooks/*.sh   # script correctness
+bash scripts/qa.sh
 ```
 
-All three run in CI on every push (`.github/workflows/ci.yml`) alongside markdownlint. Run them
-locally before committing — this is the framework's own answer to subcriteria 7.7.
+It runs all four checks CI runs — consistency, the install cycle, shellcheck, markdownlint — and
+reports which it could **not** run rather than passing silently. This is the framework's own answer
+to subcriteria 7.7, and the single place the gate is defined: do not restate the individual commands
+elsewhere. They were previously listed here and in `README.md`, the list here omitted markdownlint,
+and CI ran four jobs against a documented three.
 
 `test-install-cycle.sh` works on throwaway `mktemp` projects and never touches this repo. It is the
 only way to catch the in-place text editing bugs: a BSD-vs-GNU `sed` difference produces a silent

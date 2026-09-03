@@ -46,7 +46,10 @@ all traversals.
 Everything in `$AUDIT_DIR/common.md`, each section under a clear `##` separator. This file is
 small and every agent reads all of it:
 
-- `$FRAMEWORK_DIR/standards/PROJECT_AUDIT_FRAMEWORK.md` — the global framework
+- From `$FRAMEWORK_DIR/standards/PROJECT_AUDIT_FRAMEWORK.md`, **only the shared parts**: the
+  preconditions, the score anchors table, and the N/A rules. Not the categories — those are
+  sliced in 1.4, because ten agents reading a 2,000-line standard in full costs the document
+  ten times over for nine tenths they do not need.
 - `.claude/PROJECT_AUDIT_FRAMEWORK.md` — project specializations (note explicitly if absent)
 - `CLAUDE.md`, `README.md` — project context
 - Dependency manifests: `composer.json`, `package.json`, `pyproject.toml`, `go.mod`, `build.gradle`
@@ -54,12 +57,40 @@ small and every agent reads all of it:
   `phpunit.xml`, `pytest.ini`, `ruff.toml` — whichever exist
 - CI/CD config: everything under `.github/workflows/`, plus `Makefile`, `Jenkinsfile`, `.gitlab-ci.yml`
 - Database and ORM config: `doctrine.yaml`, `database.php`, `settings.py` DATABASES, `schema.prisma`,
-  plus any slow-query or statement-logging setting — what the project *intends*, which 1.4 then checks against reality
+  plus any slow-query or statement-logging setting — what the project *intends*, which 1.5 then checks against reality
 - Quality gate output: `composer qa 2>&1` / `make qa` / `npm run qa` — whichever the project defines.
   Capture the output verbatim, including failures. If no gate exists, record that as the finding it is.
 - `git log --oneline -20`, `git branch -a`, and `git log -1 --format=%cd` (last commit date)
 
-### 1.4 — Capture database evidence (only if declared)
+### 1.4 — Slice the framework by category
+
+Each agent scores one category and needs one category. Write `$AUDIT_DIR/framework/cat-N.md` for
+N in 1–10, each holding just that category's section:
+
+```bash
+mkdir -p "$AUDIT_DIR/framework"
+STD="$FRAMEWORK_DIR/standards/PROJECT_AUDIT_FRAMEWORK.md"
+for n in $(seq 1 10); do
+    next=$((n + 1))
+    if [ "$n" -eq 10 ]; then
+        awk '/^## Category 10 —/,/^## How to conduct a quality evaluation/' "$STD" > "$AUDIT_DIR/framework/cat-10.md"
+    else
+        awk -v a="^## Category $n —" -v b="^## Category $next —" '$0 ~ a {p=1} $0 ~ b {p=0} p' "$STD" \
+            > "$AUDIT_DIR/framework/cat-$n.md"
+    fi
+done
+wc -l "$AUDIT_DIR"/framework/cat-*.md
+```
+
+If a project-level `.claude/PROJECT_AUDIT_FRAMEWORK.md` exists, append its matching
+`## Category N` section to the corresponding slice — the specializations must travel with the
+criteria they specialise, not sit in a file the agent has to correlate by hand.
+
+Sanity-check the output: an empty or single-line slice means the awk ranges no longer match the
+standard's headings, and an agent handed an empty slice will invent criteria rather than report the
+problem.
+
+### 1.5 — Capture database evidence (only if declared)
 
 Read the **Database access for query analysis** section of `.claude/PROJECT_AUDIT_FRAMEWORK.md`. If
 it is absent, note it in the report and skip this step — do not go looking for credentials.
@@ -78,14 +109,16 @@ If it is declared, append to `common.md`:
 > disclosure, not evidence. Schema, counts, statistics and plans only. The rules in
 > `INSTRUCTIONS.md` § *Database access* apply in full.
 
-### 1.5 — Write the source manifest
+### 1.6 — Write the source manifest
 
 `$AUDIT_DIR/manifest.md` — an **index**, not the contents. One line per file: path, line count,
 and inferred role. Confine to `$ARGUMENTS` when a scope was given.
 
 ```bash
 find "${ARGUMENTS:-.}" -type f \( -name '*.php' -o -name '*.js' -o -name '*.ts' -o -name '*.jsx' \
-     -o -name '*.tsx' -o -name '*.py' -o -name '*.go' -o -name '*.kt' -o -name '*.swift' \) \
+     -o -name '*.tsx' -o -name '*.py' -o -name '*.go' -o -name '*.kt' -o -name '*.swift' \
+     -o -name '*.rb' -o -name '*.java' -o -name '*.cs' -o -name '*.rs' -o -name '*.sh' \
+     -o -name '*.vue' -o -name '*.svelte' \) \
   -not -path '*/vendor/*' -not -path '*/node_modules/*' -not -path '*/.git/*' \
   -not -path '*/var/*' -not -path '*/dist/*' -not -path '*/build/*' \
   | xargs wc -l | sort -rn
@@ -95,7 +128,13 @@ Group the result by directory and annotate each group with what it appears to be
 application, infrastructure, controllers/http, tests, config, views). The annotation is what lets
 an agent pick its files without reading everything.
 
-### 1.6 — State preconditions
+**If the manifest comes back empty**, do not hand the agents an empty file and let them guess. Say
+what the project actually consists of — documents, shell scripts, configuration, generated code —
+and record it in `common.md`. A project with no application source is a legitimate thing to audit,
+but several categories will be N/A and the agents need to be told why rather than deducing it from
+an absence.
+
+### 1.7 — State preconditions
 
 Before launching Phase 2, state explicitly:
 
@@ -123,8 +162,10 @@ Give each agent this prompt, substituting the category number, name, and evidenc
 >
 > **Evidence:**
 >
-> - Read `$AUDIT_DIR/common.md` in full — it contains the audit framework, the project's
->   specializations, its manifests, tooling and CI config, and the quality gate output.
+> - Read `$AUDIT_DIR/framework/cat-N.md` — your category's criteria, and the project's
+>   specializations for it. This is the standard you score against; do not score from memory.
+> - Read `$AUDIT_DIR/common.md` in full — the scoring anchors and N/A rules, the project's context,
+>   its manifests, tooling and CI config, and the quality gate output.
 > - Read `$AUDIT_DIR/manifest.md` — an index of the source tree with line counts and inferred roles.
 > - Then read from the project **only the files your category needs**: [focus for category N].
 >   Do not read the whole tree. If the manifest shows more candidates than you need, sample the
@@ -132,12 +173,17 @@ Give each agent this prompt, substituting the category number, name, and evidenc
 >
 > **Scoring:**
 >
-> - Find your category's subcriteria in the framework and score each one 0–10 against the anchors
->   defined there.
+> - Score every subcriteria in your slice, 0–10 against the anchors in `common.md`. If the slice
+>   looks empty or truncated, say so and stop — do not reconstruct the criteria from memory.
 > - Cite specific evidence per subcriteria: `file:line`, or a named observable behaviour.
 > - Derive the category score as a weighted judgement — do not mechanically average subcriteria.
-> - Cat 3: if no domain layer exists, output `N/A — no domain layer detected` and stop.
-> - Cat 5: if no JS/TS files exist, output `N/A — no JS/TS detected` and stop.
+> - **Any category can be N/A**, not only 3 and 5. The rule is the one in `common.md`:
+>   structurally absent, never "hard to evaluate". A project with no application source has no
+>   Category 1 to score; a CLI has no Category 8 HTTP surface; a library has no Category 9 runtime.
+>   Output `N/A — <what is absent>`, for a subcriteria or the whole category, with one sentence of
+>   justification, and do not stretch to find something to score. An invented score is worse than an
+>   honest N/A, because it enters `docs/audits/history.md` as if it meant something.
+> - Cat 3 and Cat 5 are the common cases — no domain layer, no JS/TS. Stop immediately on those.
 >
 > **Output:** write the block below to `$AUDIT_DIR/cat/N.md` and return the same block as your
 > final message. No preamble, no conclusion, nothing else.
@@ -256,8 +302,19 @@ mkdir -p docs/audits
 | 2026-09-03 | full | Established | 8.0 | 7.5 | 8.0 | 6.0 | N/A | 7.0 | 6.5 | 7.0 | 5.5 | 6.5 | 6.9 |
 ```
 
-`Avg` excludes `N/A` categories. Both files are meant to be committed — the history is what turns a
-one-off score into a trend. Tell the user the two paths at the end, and leave committing to them.
+`Avg` excludes `N/A` categories.
+
+**Before recommending a commit, say this out loud.** An audit report names security weaknesses with
+file and line — `8.3 authorisation checked on the route, not the operation, src/Http/Admin.php:42`
+is a map for whoever reads it. In a private repository the history is worth having: it turns a
+one-off score into a trend, and 6.9 and 7.10 rely on it. In a **public** repository it is a
+disclosure.
+
+So: tell the user both paths, state plainly that the report contains security findings and code
+references, and ask whether the repository is public before recommending a commit. If it is, offer
+the alternatives — keep the reports out of version control via `.gitignore`, or keep only
+`history.md` (scores, no evidence) and drop the detailed reports. Leave committing to them either
+way; never commit it yourself.
 
 ### 3.5 — Write the active audit focus
 

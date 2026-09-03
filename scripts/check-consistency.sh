@@ -56,6 +56,8 @@ start "Retired names"
 # `git pull origin main` was the pre-1.0 upgrade path, replaced by pinned tags.
 # It survived in init-project.sh's own output for seven releases.
 RETIRED='CODE_QUALITY_STANDARDS|~/\.claude/standards|git pull origin main'
+# SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split
+# into separate grep arguments; quoting them would pass one giant filename.
 # shellcheck disable=SC2086
 if MATCHES=$(grep -nE "$RETIRED" $DOCS $SCRIPTS 2>/dev/null); then
     fail "a name or command retired by a past migration reappeared — see the RETIRED pattern above for what replaced it"
@@ -71,6 +73,8 @@ fi
 start "Symlink claims"
 
 SYMLINK_CLAIM='(creates?|create|via|using|through) symlinks?'
+# SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split
+# into separate grep arguments; quoting them would pass one giant filename.
 # shellcheck disable=SC2086
 if MATCHES=$(grep -nEi "$SYMLINK_CLAIM" $DOCS $SCRIPTS 2>/dev/null); then
     fail "documentation claims symlinks are used — commands are copied, because Claude Code does not follow symlinks"
@@ -86,6 +90,8 @@ fi
 start "Script portability"
 
 # Comment lines are excluded: explaining why `sed -i` is avoided is not using it.
+# SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split
+# into separate grep arguments; quoting them would pass one giant filename.
 # shellcheck disable=SC2086
 if MATCHES=$(grep -nE '\bsed -i\b' $SCRIPTS 2>/dev/null | grep -vE ':[0-9]+:[[:space:]]*#'); then
     fail "'sed -i' is not portable between BSD and GNU sed — use a temp file + mv"
@@ -100,6 +106,8 @@ fi
 start "Framework path references"
 
 BROKEN=0
+# SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split
+# into separate grep arguments; quoting them would pass one giant filename.
 # shellcheck disable=SC2086
 CITED=$(grep -rhoE '\.claude/framework/[A-Za-z0-9_./*-]+' $DOCS 2>/dev/null |
         sed 's|^\.claude/framework/||' |
@@ -123,6 +131,8 @@ done
 start "Repo-relative path references"
 
 BROKEN=0
+# SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split
+# into separate grep arguments; quoting them would pass one giant filename.
 # shellcheck disable=SC2086
 CITED=$(grep -rhoE '\b(standards|templates|commands|scripts)/[A-Za-z0-9_./*-]+' $DOCS 2>/dev/null |
         sed 's/[.,:;`)]*$//' |

@@ -8,7 +8,7 @@
 #                  checks after every edit. Opt-in: it changes how the harness
 #                  behaves, so it is never installed silently.
 
-set -e
+set -euo pipefail
 
 WITH_HOOKS=0
 for arg in "$@"; do
@@ -18,8 +18,31 @@ for arg in "$@"; do
     esac
 done
 
-PROJECT_ROOT="$(git rev-parse --show-toplevel)"
-FRAMEWORK_DIR="$PROJECT_ROOT/.claude/framework"
+# Locate the project from this script's own path, never from the current git repo.
+# `git rev-parse --show-toplevel` answers about wherever the caller happens to be
+# standing, so run from another checkout this script would install into it — and
+# would execute *that* project's check-install.sh.
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+FRAMEWORK_DIR=$(dirname "$SCRIPT_DIR")
+
+if [ "$(basename "$FRAMEWORK_DIR")" != "framework" ] ||
+   [ "$(basename "$(dirname "$FRAMEWORK_DIR")")" != ".claude" ]; then
+    echo "❌ Not a consumer install."
+    echo "   Run this as <project>/.claude/framework/scripts/init-project.sh"
+    echo "   Found instead: $FRAMEWORK_DIR"
+    exit 2
+fi
+
+PROJECT_ROOT=$(cd "$FRAMEWORK_DIR/../.." && pwd)
+
+if ! git -C "$PROJECT_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
+    echo "❌ $PROJECT_ROOT is not a git repository."
+    echo "   The framework installs as a submodule and excludes itself from deploys via a"
+    echo "   .gitattributes entry, so a git repository is required."
+    echo "   → run this from the project that contains .claude/framework"
+    exit 2
+fi
+
 COMMANDS_DIR="$PROJECT_ROOT/.claude/commands"
 VERSION_MARKER="$PROJECT_ROOT/.claude/.framework-version"
 HOOKS_DIR="$PROJECT_ROOT/.claude/hooks"
@@ -28,26 +51,33 @@ SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
 INCLUDE_LINE="@.claude/framework/INSTRUCTIONS.md"
 LEGACY_INCLUDE_LINE="@.claude/framework/CLAUDE.md"   # pre-1.0 installs
 
-if [ ! -d "$FRAMEWORK_DIR" ]; then
-    echo "❌ Framework not found at .claude/framework/"
-    echo "   Add it first:"
-    echo "   git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework"
+# An uninitialised submodule leaves the directory present but empty, which used to
+# surface as a raw `cp: ... No such file or directory` with no explanation.
+FRAMEWORK_HAS_COMMANDS=0
+for f in "$FRAMEWORK_DIR"/commands/*.md; do
+    [ -e "$f" ] && FRAMEWORK_HAS_COMMANDS=1 && break
+done
+
+if [ "$FRAMEWORK_HAS_COMMANDS" -eq 0 ]; then
+    echo "❌ The framework submodule is not checked out — $FRAMEWORK_DIR has no commands."
+    echo "   Usually a clone without --recurse-submodules."
+    echo "   → git submodule update --init --recursive"
     exit 1
 fi
 
 echo "🔧 Initializing claude-audit-framework..."
 echo ""
 
-# ── Step 1 — Install skills ───────────────────────────────────────────────────
+# ── Step 1 — Install commands ───────────────────────────────────────────────────
 # Commands are copied (not symlinked) — Claude Code does not follow symlinks.
 # Always overwrite: command files belong to the framework, not the project.
 
 mkdir -p "$COMMANDS_DIR"
-for skill in "$FRAMEWORK_DIR"/commands/*.md; do
-    filename=$(basename "$skill")
+for command_file in "$FRAMEWORK_DIR"/commands/*.md; do
+    filename=$(basename "$command_file")
     target="$COMMANDS_DIR/$filename"
-    cp "$skill" "$target"
-    echo "  ✓  Installed skill: /$( basename "$filename" .md )"
+    cp "$command_file" "$target"
+    echo "  ✓  Installed command: /$( basename "$filename" .md )"
 done
 
 echo ""
@@ -60,10 +90,20 @@ if [ -f "$PROJECT_ROOT/CLAUDE.md" ]; then
     elif grep -qF "$LEGACY_INCLUDE_LINE" "$PROJECT_ROOT/CLAUDE.md"; then
         # Pre-1.0 installs point at CLAUDE.md, which is now the framework's own
         # development file. Rewrite the line in place — never add a second one.
+        # The branch is chosen on a substring match while the rewrite is anchored, so a
+        # legacy line with trailing whitespace took this path and matched nothing. The
+        # result is now verified rather than announced.
         TEMP=$(mktemp)
-        sed "s|^@\.claude/framework/CLAUDE\.md$|$INCLUDE_LINE|" "$PROJECT_ROOT/CLAUDE.md" > "$TEMP"
+        sed -E "s|^[[:space:]]*@\.claude/framework/CLAUDE\.md[[:space:]]*$|$INCLUDE_LINE|" \
+            "$PROJECT_ROOT/CLAUDE.md" > "$TEMP"
         mv "$TEMP" "$PROJECT_ROOT/CLAUDE.md"
-        echo "  ✓  Migrated @-include: $LEGACY_INCLUDE_LINE → $INCLUDE_LINE"
+        if grep -qF "$INCLUDE_LINE" "$PROJECT_ROOT/CLAUDE.md"; then
+            echo "  ✓  Migrated @-include: $LEGACY_INCLUDE_LINE → $INCLUDE_LINE"
+        else
+            echo "  ✗  Could not migrate the @-include automatically."
+            echo "     CLAUDE.md mentions $LEGACY_INCLUDE_LINE but not on a line of its own."
+            echo "     Replace it by hand with: $INCLUDE_LINE"
+        fi
     else
         TEMP=$(mktemp)
         printf '%s\n\n' "$INCLUDE_LINE" > "$TEMP"
@@ -173,9 +213,9 @@ echo ""
 
 set +e
 if [ -n "$PREVIOUS_VERSION" ]; then
-    bash "$FRAMEWORK_DIR/scripts/check-install.sh" --compare-from "$PREVIOUS_VERSION"
+    bash "$SCRIPT_DIR/check-install.sh" --compare-from "$PREVIOUS_VERSION"
 else
-    bash "$FRAMEWORK_DIR/scripts/check-install.sh"
+    bash "$SCRIPT_DIR/check-install.sh"
 fi
 CONFORMANCE=$?
 set -e
@@ -259,3 +299,7 @@ echo ""
 echo "  Updating the submodule alone is not enough: the @-include in CLAUDE.md and the"
 echo "  command copies live outside it, and a bump without them loads nothing at all."
 echo ""
+
+# The installer must be able to fail: it sits in the middle of a documented `&&`
+# chain, and printing an error while exiting 0 makes that chain unbreakable.
+exit "$CONFORMANCE"
