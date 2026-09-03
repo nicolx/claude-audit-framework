@@ -306,6 +306,9 @@ if [ "$WITH_HOOKS" -eq 0 ]; then
 fi
 
 echo ""
+echo "To check whether an update exists:"
+echo "  bash .claude/framework/scripts/check-updates.sh"
+echo ""
 echo "To update the framework later:"
 echo "  cd .claude/framework && git pull origin main && cd ../.."
 echo "  bash .claude/framework/scripts/init-project.sh    # refreshes command copies"

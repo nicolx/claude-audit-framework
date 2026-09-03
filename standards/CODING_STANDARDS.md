@@ -403,16 +403,26 @@ code in a codebase: they carry no upstream fixes, no documentation, and no other
 The inverse is equally true. A dependency added for something the standard library does in five
 lines is a supply-chain liability, a version to track, and an upgrade to schedule.
 
+**Check that it is still alive, not just that it fits.** A dependency is a commitment to someone
+else's maintenance, so before adding one, look at when it last released, whether the repository is
+archived, and what it constrains — a package that pins an old runtime version does not just age, it
+freezes everything else. Solving today's problem with a dependency that stopped moving in 2021 buys
+a rewrite later at a worse moment.
+
 **What good looks like:**
 
 - The framework's own abstraction used for cache, queue, HTTP client, validation, serialisation
 - A dependency added when it owns a genuinely hard problem — crypto, parsing, protocol handling
+- A new dependency whose maintenance was checked before adding it: recent releases, not archived,
+  and no constraint that blocks the runtime or another dependency the project needs to move
 - A short note in the ADR or commit when a native mechanism was deliberately *not* used
 
 **Signals of drift:**
 
 - A custom router, container, validator, or ORM alongside a framework that ships all four
 - A dependency whose entire use is one function that the standard library also has
+- A dependency added without looking at its release history, or one whose constraint on the runtime
+  was discovered at the next upgrade rather than at the moment it was chosen
 - Reimplementation because the native mechanism "did not quite fit", with no record of how
 
 ---
@@ -666,7 +676,7 @@ can only be found in an audit, never written correctly the first time.
 | 11 | Refactor in two passes | 4.3, 10.9 |
 | 12 | Start simple, earn complexity | 6.7, 10.9 |
 | 13 | Document decisions with ADRs | 10.15 |
-| 14 | Check what already exists | 6.2, 6.4, 6.8 |
+| 14 | Check what already exists | 6.2, 6.4, 6.8, 6.9 |
 | 15 | Validate at the boundary | 8.1, 8.2, 8.3, 8.4, 8.6, 8.7 |
 | 16 | Observability is part of the feature | 9.1, 9.2, 9.4, 9.6 |
 | 17 | Test doubles at the boundary | 4.4, 4.6 |

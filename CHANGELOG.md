@@ -8,6 +8,45 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.5.0] — 2026-09-03
+
+Dependency updates were covered unevenly: 7.4 scored whether dependencies are *vulnerable*, 6.7
+flagged an end-of-life *framework*, 6.8 mentioned abandoned forks. Nothing asked whether the
+dependencies are current, whether the runtime is supported, or whether an upgrade is still possible
+at all. Submodules appeared nowhere in the document.
+
+### Added
+
+- **6.9 Dependency currency and upgrade path.** The measure is not "how new" but "how far, and is
+  the road still open". Its most valuable question is which single dependency closes the road for
+  all the others — a package pinning `php <8.2` blocks the runtime and through it every other
+  upgrade, and that is a structural constraint rather than a ranking of staleness. Also covers the
+  runtime, base image and database engine as dependencies with support windows, and submodules as
+  dependencies no package manager watches: a pin is fine, a pin nobody can name is a dependency
+  frozen by accident. Scoring weights the blocker and the EOL above ordinary staleness — being
+  behind is a cost, being unable to move is a risk.
+- **Principle 14 extended** to the write-time half: check that a dependency is still alive before
+  adding it, not only that it fits. Release history, archived status, and what it constrains — a
+  package that pins an old runtime does not just age, it freezes everything else.
+- **`scripts/check-updates.sh`** — the real check, closing the framework's own instance of 6.9. The
+  existing session-start check compared the copied commands against the *pinned* submodule, so a
+  project sitting on `v1.0.0` looked perfectly consistent while four releases had shipped. The new
+  script answers both levels, lists the releases in between with their commit subjects, prints the
+  upgrade commands, and warns when the submodule follows a branch, is pinned to an untagged commit,
+  or has uncommitted local edits that an upgrade would discard. Exit codes: 0 nothing to do, 1
+  action recommended, 2 cannot tell.
+- **A local-only session check** in `INSTRUCTIONS.md`: Claude compares the pin against tags already
+  fetched and points at the script. It never runs `git fetch` on its own — a session start is not
+  the place for a network call the developer did not ask for.
+
+### Fixed
+
+- `check-updates.sh` trusted `git -C <framework> rev-parse`, which walks up to a parent repository.
+  With the framework copied rather than added as a submodule, every git query answered from the
+  *project's* repo — so it would have compared the project's tags against the framework's version
+  and produced confident nonsense. It now requires the repository found to be the framework's own.
+  Caught by a new case in `test-install-cycle.sh`, whose sandbox reproduces exactly that layout.
+
 ## [1.4.0] — 2026-09-03
 
 7.9 and 9.8 shipped in 1.3.0 with nothing to read. Configuration records what a project *intends*: a

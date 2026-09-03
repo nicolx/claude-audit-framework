@@ -204,6 +204,31 @@ expect_absent "$PROJ/.claude/hooks"
 expect_grep "$PROJ/.claude/settings.json" "PROJECT_OWNED" "project settings survived uninstall"
 rm -rf "$PROJ"
 
+# ── Case 10 — check-updates degrades instead of crashing ─────────────────────
+
+new_case "check-updates.sh: reports cleanly when the framework is not a git checkout"
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
+# new_project strips the framework's .git, so this exercises the degraded path
+OUT=$(cd "$PROJ" && bash .claude/framework/scripts/check-updates.sh --offline 2>&1)
+CODE=$?
+case "$OUT" in
+    *"Not a git checkout of the framework"*)
+        pass "detects that git resolved to the project, not the framework" ;;
+    *)
+        fail "unexpected output:"; indent "$OUT" ;;
+esac
+if [ "$CODE" -eq 2 ]; then
+    pass "exits 2 (cannot tell)"
+else
+    fail "expected exit 2, got $CODE"
+fi
+case "$OUT" in
+    *"Commands are from"*) pass "still answers the local-drift half" ;;
+    *) fail "local drift section missing from output" ;;
+esac
+rm -rf "$PROJ"
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

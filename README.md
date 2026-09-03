@@ -14,7 +14,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 ```bash
 # Add the submodule — pin a released version rather than tracking main
 git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-git -C .claude/framework checkout v1.4.0
+git -C .claude/framework checkout v1.5.0
 
 # Bootstrap: installs the commands, scaffolds the project files, records the version
 bash .claude/framework/scripts/init-project.sh
@@ -47,9 +47,9 @@ This creates a personal profile at `~/.claude/context/user_profile.md`. It stays
 ## Keeping the framework up to date
 
 ```bash
-cd .claude/framework && git fetch --tags && git checkout v1.4.0 && cd ../..
+cd .claude/framework && git fetch --tags && git checkout v1.5.0 && cd ../..
 bash .claude/framework/scripts/init-project.sh     # required — refreshes the command copies
-git add .claude/ && git commit -m "chore: update claude-audit-framework to v1.4.0"
+git add .claude/ && git commit -m "chore: update claude-audit-framework to v1.5.0"
 ```
 
 **Re-running `init-project.sh` is not optional.** The commands are *copied* into
@@ -57,6 +57,17 @@ git add .claude/ && git commit -m "chore: update claude-audit-framework to v1.4.
 submodule alone leaves the old copies in place. The installed version is recorded in
 `.claude/.framework-version`, and Claude flags the mismatch at the start of a session when the
 copies fall behind.
+
+To find out whether an update exists at all:
+
+```bash
+bash .claude/framework/scripts/check-updates.sh
+```
+
+It answers both ways a pinned install goes stale — the copied commands against the pinned submodule,
+and the pinned submodule against upstream — lists the releases in between with what changed, and
+prints the upgrade commands. Exit code 0 means nothing to do. A session start only ever uses local
+information and points you here; it never fetches on its own.
 
 ## Two halves: writing and measuring
 

@@ -165,7 +165,7 @@ recorded in the manifest.
 | 3 | Domain-Driven Design | Layer directories, entities, value objects, repository interfaces, domain events, and whatever enforces the boundaries |
 | 4 | Testing | The whole test tree, the test runner config, plus enough source to judge whether the critical paths are the ones covered |
 | 5 | JS / Frontend | JS/TS files only, plus their build and lint config |
-| 6 | Framework & Dependencies | Manifests, framework config and bootstrap, the entry points, and any place the framework is bypassed |
+| 6 | Framework & Dependencies | Manifests, framework config and bootstrap, the entry points, and any place the framework is bypassed. For 6.9, the lockfile, `.gitmodules` and submodule pins, the declared runtime version, and any Renovate/Dependabot config — then ask the resolver which constraint blocks an upgrade rather than eyeballing version numbers |
 | 7 | Tooling & Quality Standards | Tooling config and the quality gate output in `common.md` — plus grep for suppression markers (`@ts-ignore`, `ignoreErrors`, `phpcs:disable`, `noqa`, `filterwarnings`). For 7.9, grep the test suite for query-count assertions and the bootstrap for a lazy-load guard |
 | 8 | Application Security | Input boundaries (controllers, request handling, deserialization), auth and authorisation, templates and output encoding, headers, and anywhere secrets are read |
 | 9 | Observability & Operability | Logger setup and call sites, error handling and reporting, health endpoints, metrics, log rotation and retention config. For 9.8, the database and ORM config (slow query threshold, statement logging) and whether anything reads it |

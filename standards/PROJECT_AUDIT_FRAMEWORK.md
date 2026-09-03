@@ -1002,6 +1002,68 @@ Conversely, adding Doctrine to a project with 3 tables and 5 queries imports ~12
 - Any dependency flagged by `composer audit` / `npm audit` with a known CVE that has not been addressed
 - Any dependency that is a fork of an abandoned project with no clear ownership
 
+#### 6.9 Dependency currency and upgrade path
+
+7.4 asks whether dependencies are *vulnerable*. This asks whether they are *current*, and — the
+question that matters more — whether they still **can** be upgraded.
+
+Currency is not a virtue in itself. Chasing every release is churn, and a stable dependency two minor
+versions behind is nobody's problem. What is a problem is distance that compounds: an upgrade
+deferred is an upgrade that gets more expensive every month, until the day a CVE makes it urgent and
+it is a three-week project instead of an afternoon. The measure is not "how new" but **"how far, and
+is the road still open"**.
+
+**One dependency can close the road for all of them.** A single package pinning `php <8.2` or
+`react ^17` blocks the runtime, and through it every other upgrade. That is not a ranking of
+staleness, it is a structural constraint, and finding it is the most valuable thing this criterion
+does. Ask the resolver: `composer why-not php 8.3`, `npm ls <pkg>`, `pip install --dry-run`.
+
+**The runtime counts as a dependency.** 6.7 covers whether the *framework* is end-of-life; the
+interpreter, the JDK, the database engine and the base image have support windows too, and a
+codebase on an unsupported PHP or Node receives no security patches regardless of how current its
+libraries are.
+
+**Submodules are dependencies that no tool watches.** A package manager reports an outdated package;
+nothing reports a submodule pinned three years ago. If the project uses submodules, a pin is
+acceptable — pinning is the point — but only if someone knows what it is pinned to and why, and
+something tells them when upstream moves.
+
+**Good:**
+
+- Direct dependencies within one major of current, or a recorded reason for staying behind
+- Runtime, base image and database engine inside their support windows, with the EOL date known
+  before it arrives rather than discovered by a scanner
+- An answerable upgrade path: the project can say which dependency is the current blocker, or that
+  there is none
+- Automated update PRs (Renovate, Dependabot) with grouping and a schedule, so upgrades arrive as a
+  routine trickle rather than a quarterly cliff
+- Submodules pinned to a tag rather than a loose commit, and a way to learn that upstream has
+  released since
+- `composer outdated --direct` / `npm outdated` / `pip list --outdated` visible in the quality gate
+  or a scheduled job — reported, not necessarily failing the build
+
+**Bad:**
+
+- No idea how far behind anything is: the first measurement happens when an audit asks
+- A dependency whose last release predates the project's current major version, still a direct
+  dependency
+- An upgrade blocker nobody has identified — "we cannot move to PHP 8.3" with no name attached to
+  the reason
+- A runtime past EOL, or within months of it with no plan
+- Automated update PRs opened and left to accumulate: the bot is configured, and the queue is the
+  finding
+- Submodules pinned to a commit with no tag, no note, and no upstream tracking — a dependency
+  frozen by accident rather than by decision
+- Upgrades taken only in response to a CVE, each one a large and risky change, which is the
+  predictable consequence of deferring all the small ones
+
+**How to score.** Read the manifests and the lockfile, then ask the resolver about the upgrade path
+rather than eyeballing version numbers — a list of outdated packages is far less informative than
+the one constraint that pins them. Weight the blocker and the runtime EOL above ordinary staleness:
+being behind is a cost, being unable to move is a risk. A project deliberately behind, with the
+reason recorded, scores well; a project behind without knowing it does not, at the same version
+numbers.
+
 ---
 
 ## Category 7 — Tooling & Quality Standards

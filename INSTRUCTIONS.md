@@ -23,6 +23,27 @@ cat .claude/.framework-version 2>/dev/null | grep '^version='; cat .claude/frame
 Never refresh the copies yourself: `init-project.sh` is the only thing that should write into
 `.claude/commands/`, and running it is the developer's call.
 
+### Upstream drift
+
+The check above compares the copied commands against the **pinned** submodule. It cannot tell you
+that upstream has released since — a project pinned at `v1.0.0` looks perfectly consistent while
+four releases have shipped. That is subcriteria 6.9 applied to this framework itself.
+
+**Use only local information.** Never run `git fetch` to find out; a session start is not the place
+for a network call, and the developer did not ask for one. From refs already present:
+
+```bash
+git -C .claude/framework describe --tags --exact-match HEAD 2>/dev/null; git -C .claude/framework tag -l 'v*' | sort -V | tail -1
+```
+
+- **Pinned at the newest tag you can see, or no tags fetched** — say nothing.
+- **A newer tag is present locally, or HEAD is not at any tag** — flag once:
+  > ℹ Framework pinned at `<current>`, and `<newer>` exists locally. Run `bash .claude/framework/scripts/check-updates.sh` to see what changed.
+
+`check-updates.sh` is the deliberate version of this check: it fetches, reports both kinds of drift,
+lists the releases in between with their commit subjects, and prints the upgrade commands. Suggest
+it; do not run it unprompted, because it contacts the remote.
+
 ---
 
 ## Developer profile
