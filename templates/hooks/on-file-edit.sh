@@ -146,6 +146,9 @@ fi
 #   NOT BLOCKED  a hardlink to a file outside the project. Same inode, regular
 #                file, dirname inside — indistinguishable without inode
 #                bookkeeping this hook will not do.
+#   REFUSED  a symlinked `.claude/hooks` — it would re-root the project boundary
+#            two levels above the link target and widen confinement silently.
+#
 #   NOT BLOCKED  a swap between this check and the tool's use of the path. These
 #                are check-then-use tests against a path string; a concurrent
 #                writer flipping a component wins the race a measurable share of
@@ -166,6 +169,17 @@ fi
 # Installed at <project>/.claude/hooks/on-file-edit.sh, so the project is two up.
 # Physical on both sides: for containment, "is this inode inside the tree" is the
 # right question, and both sides must be in the same form to compare.
+#
+# But resolving physically means a symlinked `.claude/hooks` would re-root the
+# project two levels above the link *target*, widening confinement for every
+# subsequent edit — the same root-relocation risk closed above for GIT_WORK_TREE.
+# So refuse it: a hook reached through a symlinked directory is unusual enough
+# that stopping is better than guessing which tree it belongs to.
+if [ -L "$(dirname "$0")" ]; then
+    report "on-file-edit.sh: .claude/hooks is a symlink, so the project boundary cannot be established reliably. No checks ran. Install the hook as a real file under <project>/.claude/hooks/."
+    exit 0
+fi
+
 HOOK_DIR=$(cd -P "$(dirname "$0")" 2>/dev/null && pwd -P) || exit 0
 PROJECT_ROOT=$(cd -P "$HOOK_DIR/../.." 2>/dev/null && pwd -P) || exit 0
 FILE_DIR=$(cd -P "$(dirname "$FILE")" 2>/dev/null && pwd -P) || exit 0

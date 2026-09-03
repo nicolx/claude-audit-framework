@@ -61,6 +61,42 @@ framework_paths_init() {
     # so asking git whether the framework is its own checkout requires both sides
     # in the same form.
     FRAMEWORK_DIR_PHYS=$(cd -P "$FRAMEWORK_DIR" 2>/dev/null && pwd -P) || FRAMEWORK_DIR_PHYS="$FRAMEWORK_DIR"
+
+    # ── The directory that actually gets mutated ─────────────────────────────
+    #
+    # Validating the *shape* of the invocation path is not enough. Every write and
+    # every delete is issued as the string "$PROJECT_ROOT/.claude/…", and the
+    # filesystem follows a symlink in the middle of it. An earlier version secured
+    # a symlinked `.claude/framework` and never dereferenced `.claude` itself, so
+    #
+    #     ln -s ../victim/.claude .claude
+    #
+    # let the guard pass, PROJECT_ROOT point at the operator's own project, and the
+    # deletions land in the victim's `.claude/` — while the announcement below
+    # printed the reassuring, wrong answer.
+    #
+    # So check the target, not the route: `.claude` must be a real directory whose
+    # physical parent is the physical project root.
+    CLAUDE_DIR="$PROJECT_ROOT/.claude"
+    PROJECT_ROOT_PHYS=$(cd -P "$PROJECT_ROOT" 2>/dev/null && pwd -P) || PROJECT_ROOT_PHYS="$PROJECT_ROOT"
+
+    if [ -L "$CLAUDE_DIR" ]; then
+        echo "❌ $CLAUDE_DIR is a symlink."
+        echo "   Everything this script writes or deletes goes under .claude/, so a symlink"
+        echo "   there would redirect it into whatever the link points at — another project,"
+        echo "   possibly one you did not mean to touch."
+        echo "   → replace the symlink with a real directory, or run this from the project"
+        echo "     that owns the .claude/ you intend to change"
+        exit 2
+    fi
+
+    CLAUDE_DIR_PHYS=$(cd -P "$CLAUDE_DIR" 2>/dev/null && pwd -P) || CLAUDE_DIR_PHYS=""
+    if [ -n "$CLAUDE_DIR_PHYS" ] && [ "$(dirname "$CLAUDE_DIR_PHYS")" != "$PROJECT_ROOT_PHYS" ]; then
+        echo "❌ $CLAUDE_DIR does not physically live in $PROJECT_ROOT."
+        echo "   It resolves to $CLAUDE_DIR_PHYS, so writes would land outside the project"
+        echo "   this command was invoked from."
+        exit 2
+    fi
 }
 
 # require_git_repo — the project must be a git repository, with a reason given.
@@ -78,6 +114,18 @@ require_git_repo() {
 # one terminal while the writes land somewhere else.
 announce_target() {
     echo "   Project:   $PROJECT_ROOT"
+    if [ "$PROJECT_ROOT_PHYS" != "$PROJECT_ROOT" ]; then
+        echo "              → $PROJECT_ROOT_PHYS (resolved)"
+    fi
+    # The row that matters: this is the directory being written to. Printing the
+    # logical project alone was the false assurance an adversarial pass found —
+    # it named the benign project while the writes escaped through a symlinked
+    # `.claude`. That route is refused outright now, and this line is the check
+    # the operator can make with their own eyes.
+    echo "   Writing:   $CLAUDE_DIR"
+    if [ -n "$CLAUDE_DIR_PHYS" ] && [ "$CLAUDE_DIR_PHYS" != "$CLAUDE_DIR" ]; then
+        echo "              → $CLAUDE_DIR_PHYS (resolved)"
+    fi
     echo "   Framework: $FRAMEWORK_DIR"
     if [ "$FRAMEWORK_DIR_PHYS" != "$FRAMEWORK_DIR" ]; then
         echo "              → $FRAMEWORK_DIR_PHYS (symlinked)"
@@ -85,16 +133,28 @@ announce_target() {
     echo ""
 }
 
-# sanitize_display <string> — strip control characters before echoing anything
-# that came from a remote: a tag name, a commit subject, a VERSION file, a branch.
+# sanitize_display <string> — make a remote-derived string safe to print.
 #
-# Terminal escapes are the gap the release-tag allowlist did not cover. A commit
-# subject carrying \033[1A\033[2K moves the cursor up and erases the line the
-# script just printed, so an attacker can forge a line directly above the block
-# of commands the operator is told to paste. ESC is not in [:space:], so trimming
-# whitespace does not remove it.
+# Anything that came from outside: a tag name, a commit subject, the VERSION file,
+# a branch name, the install marker. \033[1A\033[2K moves the cursor up and erases
+# the line the script just printed, so an attacker can forge a line directly above
+# the block of commands the operator is told to paste.
+#
+# This is an ALLOW-list, and deliberately so. The previous version removed a
+# curated set of control bytes and an adversarial pass walked straight through it:
+# the range `\000-\010\013\014\016-\037` skips 0x0D, so CR survived and could
+# overwrite the start of its own line; and every byte >= 0x80 survived, which
+# carries C1 controls encoded as UTF-8 (U+009B is the CSI introducer) and the
+# bidirectional overrides (U+202E reverses the text an operator reads). Enumerating
+# what is dangerous is a game you lose one codepoint at a time.
+#
+# So: keep tab and printable ASCII, drop everything else. The cost is real and
+# accepted — a commit subject in Italian or Japanese prints with those characters
+# missing. The authoritative text is CHANGELOG.md, which is read as a file rather
+# than echoed into a terminal, and a mangled subject is a far smaller problem than
+# a forged one.
 sanitize_display() {
-    printf '%s' "$1" | LC_ALL=C tr -d '\000-\010\013\014\016-\037\177'
+    printf '%s' "$1" | LC_ALL=C tr -cd '\011\040-\176'
 }
 
 # read_framework_version — the VERSION the framework ships, sanitised.
@@ -113,7 +173,11 @@ read_framework_version() {
 read_marker_version() {
     local marker="$PROJECT_ROOT/.claude/.framework-version"
     [ -f "$marker" ] || return 0
-    grep '^version=' "$marker" | head -1 | cut -d= -f2
+    # Sanitised, like read_framework_version. This one was not, and it sat next to
+    # the one that was: a committed .framework-version carrying ESC injected a
+    # forged "✓ Install verified" line straight into the operator's terminal. The
+    # marker is repository content, so it is as remote as a commit subject.
+    sanitize_display "$(grep '^version=' "$marker" | head -1 | cut -d= -f2)"
 }
 
 # is_release_tag <string> — a well-formed release tag, and nothing else.

@@ -8,6 +8,74 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.9.1] — 2026-09-03
+
+The adversarial pass was re-run against the 1.9.0 redesign. It broke two of the three targets again.
+Both findings were mine: one was the same class one level up, the other a construction bug in the
+helper 1.9.0 introduced.
+
+### Fixed — the guard validated the route, not the target
+
+1.9.0 secured a symlinked `.claude/framework` and never dereferenced **`.claude` itself**. Every
+write and delete is issued as the string `"$PROJECT_ROOT/.claude/…"`, and the filesystem follows a
+symlink in the middle of it, so
+
+```text
+ln -s ../victim/.claude .claude
+```
+
+let the guard pass, `PROJECT_ROOT` point at the operator's own project, and `uninstall.sh` delete
+the victim's commands and marker — while `announce_target` printed the *reassuring, wrong* answer.
+The safety net added in 1.9.0 misreported in precisely the scenario it existed for.
+
+Now the target is checked rather than the route: `.claude` must be a real directory whose physical
+parent is the physical project root, and both mutating scripts refuse otherwise with exit 2.
+`announce_target` gained a **`Writing:`** row naming the directory actually being written to, with
+its resolved form when they differ — the line an operator can verify by eye.
+
+### Fixed — sanitize_display was a deny-list, and an incomplete one
+
+The 1.9.0 filter removed a curated set of control bytes. Two holes, both demonstrated end to end:
+
+- The range `\000-\010\013\014\016-\037` **skips 0x0D**, so CR survived and could return the
+  cursor to column 0 and overwrite the start of its own line.
+- Every byte ≥ 0x80 survived, which carries C1 controls encoded as UTF-8 — U+009B is the CSI
+  introducer — and the bidirectional overrides, where U+202E reverses the text an operator reads.
+
+Enumerating what is dangerous is a game lost one codepoint at a time, so it is now an **allow-list**:
+tab and printable ASCII, everything else dropped. The cost is stated rather than hidden — a commit
+subject in Italian or Japanese prints with those characters missing, which is a far smaller problem
+than a forged line, and `CHANGELOG.md` remains the authoritative text because it is read as a file
+rather than echoed into a terminal.
+
+- **`read_marker_version` was not sanitised**, sitting directly beside `read_framework_version`,
+  which was. A committed `.framework-version` carrying ESC injected a forged green
+  "✓ Install verified by vendor" line into the operator's terminal. The marker is repository
+  content, so it is exactly as remote as a commit subject.
+
+### Fixed — one more hook re-rooting
+
+A symlinked `.claude/hooks` moved the project boundary two levels above the link target, widening
+confinement for every later edit — the same root-relocation risk closed for `GIT_WORK_TREE` in
+1.9.0, through a different door. Refused, and added to the enumerated list rather than left implicit.
+
+### Held under attack
+
+The tag allowlist held at its core: the `case` form rejects the multi-line value that defeated
+`grep -qE`. Hook confinement held against every payload-driven attack — absolute paths, `..`
+traversal, mid-path and final-component symlinks, disagreeing payload fields, a directory or a
+trailing slash as the path. `CDPATH`, `PWD`/`OLDPWD` spoofing, crafted `$0` and `..` in the
+invocation path were all tried against the new guard and all failed. The hardlink and
+check-then-use cases behave exactly as documented — the adversarial pass confirmed the comment does
+not overclaim.
+
+### A note on where the defects live
+
+Every serious finding across four adversarial rounds has been in the same place: a shell script
+computing a filesystem path and then mutating it. `uninstall.sh` is the only destructive component
+in the framework, and it has produced the two data-loss findings. That is an observation about the
+design, not about any one bug, and it is recorded here rather than acted on.
+
 ## [1.9.0] — 2026-09-03
 
 An adversarial pass — one agent told to break three fixes rather than score them — broke all three,

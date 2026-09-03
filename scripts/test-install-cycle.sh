@@ -713,6 +713,84 @@ else
 fi
 rm -rf "$(dirname "$PROJ")"
 
+# ── Cases 33–35 — the second adversarial pass ────────────────────────────────
+
+new_case "A symlinked .claude is refused, and the link target is untouched"
+ROOT=$(mktemp -d)
+mkdir -p "$ROOT/victim/.claude/commands"
+echo "victim's own" > "$ROOT/victim/.claude/commands/project-audit.md"
+printf 'version=9.9.9\n' > "$ROOT/victim/.claude/.framework-version"
+cp -R "$FRAMEWORK_SRC" "$ROOT/victim/.claude/framework"
+rm -rf "$ROOT/victim/.claude/framework/.git"
+git init -q "$ROOT/myproj"
+git -C "$ROOT/myproj" config user.email test@example.com
+git -C "$ROOT/myproj" config user.name Test
+(cd "$ROOT/myproj" && ln -s ../victim/.claude .claude)
+for script in uninstall init-project; do
+    OUT=$(cd "$ROOT/myproj" && bash ".claude/framework/scripts/$script.sh" 2>&1)
+    CODE=$?
+    case "$OUT" in
+        *"is a symlink"*)
+            if [ "$CODE" -eq 2 ]; then
+                pass "$script.sh refuses it and exits 2"
+            else
+                fail "$script.sh refused but exited $CODE"
+            fi ;;
+        *) fail "$script.sh did not refuse a symlinked .claude:"; indent "$OUT" ;;
+    esac
+done
+expect_file "$ROOT/victim/.claude/commands/project-audit.md"
+expect_file "$ROOT/victim/.claude/.framework-version"
+expect_grep "$ROOT/victim/.claude/commands/project-audit.md" "victim's own" "its content is intact"
+rm -rf "$ROOT"
+
+new_case "sanitize_display keeps printable ASCII and drops every control byte"
+# The previous deny-list skipped 0x0D and let every byte >= 0x80 through, which
+# carries C1 controls as UTF-8 and the bidirectional overrides.
+#
+# The property is "no byte outside tab + printable ASCII survives" — not "the
+# whole escape sequence vanishes". In \033[1A only the ESC is a control byte;
+# `[1A` is printable text and correctly stays.
+# shellcheck source=scripts/lib/framework-paths.sh
+. "$FRAMEWORK_SRC/scripts/lib/framework-paths.sh"
+
+# probe_control <label> <printf-escape> — the byte must not survive sanitisation
+probe_control() {
+    local label="$1" seq="$2" out
+    out=$(sanitize_display "$(printf 'a%bb' "$seq")" | od -An -tx1 | tr -d ' \n')
+    case "$out" in
+        *1b*|*0d*|*c29b*|*e280ae*|*c285*)
+            fail "$label survived sanitisation: $out" ;;
+        *)  pass "$label stripped" ;;
+    esac
+}
+probe_control "ESC (0x1b)"        '\033[1A'
+probe_control "CR (0x0d)"         '\r'
+probe_control "C1 CSI (U+009B)"   '\xc2\x9b'
+probe_control "RLO (U+202E)"      '\xe2\x80\xae'
+probe_control "NEL (U+0085)"      '\xc2\x85'
+
+if [ "$(sanitize_display 'v1.2.3 fix: a normal subject')" = "v1.2.3 fix: a normal subject" ]; then
+    pass "ordinary text passes through unchanged"
+else
+    fail "ordinary text was mangled"
+fi
+
+new_case "A hostile install marker cannot forge a line in the operator's terminal"
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
+printf 'version=1.0.0\033[1A\033[2K\033[32m  OK  Install verified by vendor\033[0m\n' \
+    > "$PROJ/.claude/.framework-version"
+OUTFILE=$(mktemp)
+(cd "$PROJ" && bash .claude/framework/scripts/check-install.sh) > "$OUTFILE" 2>&1
+if [ "$(grep -c $'\033' "$OUTFILE")" -gt 0 ]; then
+    fail "ESC from the marker reached the terminal — the forgery vector is open"
+else
+    pass "no ESC bytes from the marker"
+fi
+rm -f "$OUTFILE"
+rm -rf "$PROJ"
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""
