@@ -8,6 +8,51 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.7.0] — 2026-09-03
+
+Updating the submodule was never sufficient, and nothing said so. Two things live outside it — the
+`@`-include in the project's `CLAUDE.md` and the command copies in `.claude/commands/` — so a
+project could pull v1.6.0, commit the bump, and run a framework that loads nothing at all. The
+1.0.0 `@`-include split made that failure mode concrete, and it was recoverable only by re-running
+the installer, which mutates and therefore cannot be used to *check*.
+
+### Added
+
+- **`scripts/check-install.sh`** — read-only conformance of an install against the version it has
+  checked out. Safe in CI, safe to run any time. It verifies the `@`-include is present and is not
+  the pre-1.0 one, that the command copies are **byte-identical** to the version (a marker can be
+  accurate while a file was hand-edited), the version marker, the specialization files, that a wired
+  hook still has its script, `.claudeignore`, and the `git archive` exclusion. Every failure prints
+  the command that fixes it. Exit 0 conformant, 1 errors, 2 cannot tell.
+- **Breaking-change reporting.** When the recorded install version differs from the current one,
+  `check-install.sh` names the releases in between whose changelog entry has a `### Breaking`
+  section — so the entries that need reading are identified rather than hunted for.
+- An "Upgrading an existing install" section in the README with the four-step sequence and a table
+  of which script answers which question.
+
+### Changed
+
+- `init-project.sh` no longer carries its own verification block: it calls `check-install.sh` and
+  reports its exit code. The conformance rules now exist in exactly one place, which is also the
+  place a developer can run without changing anything.
+- `check-updates.sh` recommends `check-install.sh` after an upgrade, closing the loop between
+  "a newer version exists" and "the upgrade actually took".
+
+### Why not a version-by-version upgrade path
+
+`init-project.sh` is idempotent and migrates from any earlier state, so a stepped path would be
+machinery for a problem that does not exist — you can go from any older version straight to the
+newest. And the conformance rules ship *inside* each version rather than in a separate migration
+matrix: checking out `v1.7.0` gets you `v1.7.0`'s checks, with no lookup table that could itself go
+stale. Release notes were never the missing piece either; the CHANGELOG already had them. What was
+missing was a way to verify, and a way to be told which entries apply to you.
+
+### Why this is a script and not a slash command
+
+The commands are copies in `.claude/commands/`. A `/framework-doctor` command would be one of the
+stale copies it is meant to diagnose — it cannot be relied on to report that it is itself out of
+date. Invoked by path from the submodule, the checker is always the version the submodule holds.
+
 ## [1.6.0] — 2026-09-03
 
 Documentation currency was almost entirely uncovered: 10.15 scored ADRs, 2.5 scored self-documenting

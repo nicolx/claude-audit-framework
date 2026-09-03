@@ -229,6 +229,68 @@ case "$OUT" in
 esac
 rm -rf "$PROJ"
 
+# ── Cases 11–14 — check-install.sh conformance ───────────────────────────────
+
+# run_check <project> — echoes "<exit-code>\n<output>"
+check_out=""
+check_code=0
+run_check() {
+    check_out=$(cd "$1" && bash .claude/framework/scripts/check-install.sh 2>&1)
+    check_code=$?
+}
+
+new_case "check-install.sh: a fresh install is conformant"
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
+run_check "$PROJ"
+if [ "$check_code" -eq 0 ]; then
+    pass "exits 0 on a fresh install"
+else
+    fail "expected exit 0, got $check_code:"; indent "$check_out"
+fi
+case "$check_out" in
+    *"commands installed and identical"*) pass "verifies the command copies byte-for-byte" ;;
+    *) fail "command comparison missing from output" ;;
+esac
+
+new_case "check-install.sh: a missing @-include is an error, not a warning"
+# The exact failure that prompted this script: submodule updated, include never added
+grep -v '@.claude/framework/INSTRUCTIONS.md' "$PROJ/CLAUDE.md" > "$PROJ/CLAUDE.tmp"
+mv "$PROJ/CLAUDE.tmp" "$PROJ/CLAUDE.md"
+run_check "$PROJ"
+if [ "$check_code" -eq 1 ]; then
+    pass "exits 1"
+else
+    fail "expected exit 1, got $check_code"
+fi
+case "$check_out" in
+    *"nothing loads it into a session"*) pass "names the consequence, not just the missing line" ;;
+    *) fail "expected the 'nothing loads it' diagnosis:"; indent "$check_out" ;;
+esac
+
+new_case "check-install.sh: a pre-1.0 @-include is diagnosed as such"
+printf '@.claude/framework/CLAUDE.md\n\n# P\n' > "$PROJ/CLAUDE.md"
+run_check "$PROJ"
+case "$check_out" in
+    *"still includes the pre-1.0 line"*) pass "identifies the legacy include specifically" ;;
+    *) fail "expected the pre-1.0 diagnosis:"; indent "$check_out" ;;
+esac
+
+new_case "check-install.sh: a hand-edited command copy is detected"
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
+echo "# edited by hand" >> "$PROJ/.claude/commands/project-audit.md"
+run_check "$PROJ"
+case "$check_out" in
+    *"differs: /project-audit"*) pass "content comparison catches what the version marker cannot" ;;
+    *) fail "expected a 'differs' line:"; indent "$check_out" ;;
+esac
+if [ "$check_code" -eq 1 ]; then
+    pass "exits 1"
+else
+    fail "expected exit 1, got $check_code"
+fi
+rm -rf "$PROJ"
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

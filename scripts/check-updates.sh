@@ -143,7 +143,8 @@ else
         head -15
     echo ""
     echo "     → git -C .claude/framework checkout $LATEST_TAG"
-    echo "       bash .claude/framework/scripts/init-project.sh    # refreshes the copies"
+    echo "       bash .claude/framework/scripts/init-project.sh     # refreshes the copies"
+    echo "       bash .claude/framework/scripts/check-install.sh    # verify it took"
     echo "       git add .claude/ && git commit -m 'chore: update claude-audit-framework to $LATEST_TAG'"
     ACTION=1
 fi

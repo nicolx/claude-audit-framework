@@ -34,7 +34,10 @@ A portable quality framework distributed to other projects as a git submodule at
 | `standards/CODING_STANDARDS.md` | Consumer projects | The 22 principles applied to every code proposal — *what good looks like*. |
 | `commands/*.md` | Consumer projects | Slash commands, **copied** into `.claude/commands/` by `init-project.sh`. |
 | `templates/*.md` | Consumer projects | Scaffolding for the project-level specialization files. |
-| `scripts/*.sh` | Operators | Install, uninstall, and the framework's own quality gate. |
+| `scripts/init-project.sh` | Operators | Installs and migrates a consumer project. The only mutating script. |
+| `scripts/check-install.sh` | Operators | Read-only conformance of an install against the version it has. Also used by `init-project.sh` for its verification step — the rules live here only. |
+| `scripts/check-updates.sh` | Operators | Whether a newer release exists, at both drift levels. |
+| `scripts/check-consistency.sh`, `scripts/test-install-cycle.sh` | This repo | The framework's own quality gate. |
 
 ---
 

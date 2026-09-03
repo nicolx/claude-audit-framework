@@ -14,7 +14,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 ```bash
 # Add the submodule — pin a released version rather than tracking main
 git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-git -C .claude/framework checkout v1.6.0
+git -C .claude/framework checkout v1.7.0
 
 # Bootstrap: installs the commands, scaffolds the project files, records the version
 bash .claude/framework/scripts/init-project.sh
@@ -44,30 +44,50 @@ This creates a personal profile at `~/.claude/context/user_profile.md`. It stays
 | `/project-audit` | Full 10-category quality evaluation with 10 parallel agents; writes a dated report and score history to `docs/audits/` |
 | `/competency-review` | Quarterly review and update of your developer profile |
 
-## Keeping the framework up to date
+## Upgrading an existing install
+
+Updating the submodule is **not** enough on its own. Two things live outside it: the `@`-include in
+your `CLAUDE.md`, and the command copies in `.claude/commands/`. A submodule bumped without them is
+a framework that is present and doing nothing.
 
 ```bash
-cd .claude/framework && git fetch --tags && git checkout v1.6.0 && cd ../..
-bash .claude/framework/scripts/init-project.sh     # required — refreshes the command copies
-git add .claude/ && git commit -m "chore: update claude-audit-framework to v1.6.0"
-```
-
-**Re-running `init-project.sh` is not optional.** The commands are *copied* into
-`.claude/commands/`, not symlinked — Claude Code does not follow symlinks — so updating the
-submodule alone leaves the old copies in place. The installed version is recorded in
-`.claude/.framework-version`, and Claude flags the mismatch at the start of a session when the
-copies fall behind.
-
-To find out whether an update exists at all:
-
-```bash
+# 1. Is there anything newer?
 bash .claude/framework/scripts/check-updates.sh
+
+# 2. Move to it
+cd .claude/framework && git fetch --tags && git checkout v1.7.0 && cd ../..
+
+# 3. Make the install conformant with the new version — migrations included
+bash .claude/framework/scripts/init-project.sh
+
+# 4. Verify, and read what it says
+bash .claude/framework/scripts/check-install.sh
+
+git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.7.0"
 ```
 
-It answers both ways a pinned install goes stale — the copied commands against the pinned submodule,
-and the pinned submodule against upstream — lists the releases in between with what changed, and
-prints the upgrade commands. Exit code 0 means nothing to do. A session start only ever uses local
-information and points you here; it never fetches on its own.
+Three scripts, three questions, no overlap:
+
+| Script | Answers | Touches anything? |
+|---|---|---|
+| `check-updates.sh` | Is a **newer version** available? | No — contacts the remote |
+| `check-install.sh` | Is my install **conformant** with the version I have? | No — read-only |
+| `init-project.sh` | Make it conformant. | Yes |
+
+**`check-install.sh` is the one to trust after an upgrade.** It is read-only, safe in CI, and checks
+what actually breaks: the `@`-include present and not the pre-1.0 one, the command copies
+*byte-identical* to the version checked out (a marker can be right while a file was hand-edited), the
+version marker, the specialization files, a wired hook whose script still exists, `.claudeignore`,
+and the `git archive` exclusion. Every failure prints the command that fixes it. Exit 0 conformant,
+1 errors, 2 cannot tell.
+
+It also reports **which releases since your last install had breaking changes**, so the changelog
+entries you need are named rather than hunted for. `init-project.sh` migrates everything it can
+automatically and is idempotent, so there is no version-by-version upgrade path to follow: you can
+go from any older version straight to the newest one.
+
+The conformance rules ship *inside* each version, so checking out `v1.7.0` gets you `v1.7.0`'s
+checks with no lookup table to keep in sync.
 
 ## Two halves: writing and measuring
 

@@ -161,106 +161,33 @@ echo "  ✓  Recorded installed version: $FRAMEWORK_VERSION ($FRAMEWORK_SHA)"
 echo ""
 
 # ── Step 5 — Verification ─────────────────────────────────────────────────────
+# Delegated to check-install.sh, which is also what a developer runs on its own
+# after an upgrade. One set of conformance rules, one place they live.
 
-echo "────────────────────────────────────────────────"
-echo "🔍 Verification"
-echo "────────────────────────────────────────────────"
-echo ""
+set +e
+bash "$FRAMEWORK_DIR/scripts/check-install.sh"
+CONFORMANCE=$?
+set -e
 
-ERRORS=0
-WARNINGS=0
-
-# Skills
-for skill in "$FRAMEWORK_DIR"/commands/*.md; do
-    filename=$(basename "$skill")
-    target="$COMMANDS_DIR/$filename"
-    skillname="/$( basename "$filename" .md )"
-    if [ -f "$target" ]; then
-        echo "  ✓  Skill available: $skillname"
-    else
-        echo "  ✗  Skill missing: $skillname"
-        ERRORS=$((ERRORS + 1))
-    fi
-done
-
-echo ""
-
-# CLAUDE.md @-include
-if grep -qF "$INCLUDE_LINE" "$PROJECT_ROOT/CLAUDE.md" 2>/dev/null; then
-    echo "  ✓  CLAUDE.md includes $INCLUDE_LINE"
-else
-    echo "  ✗  CLAUDE.md does NOT include '$INCLUDE_LINE'"
-    echo "     Add it as the first line of CLAUDE.md"
-    ERRORS=$((ERRORS + 1))
-fi
-
-# Project specialization files
-if [ -f "$PROJECT_ROOT/.claude/PROJECT_AUDIT_FRAMEWORK.md" ]; then
-    echo "  ✓  .claude/PROJECT_AUDIT_FRAMEWORK.md present"
-else
-    echo "  ⚠  .claude/PROJECT_AUDIT_FRAMEWORK.md missing — /project-audit will use global framework only"
-    WARNINGS=$((WARNINGS + 1))
-fi
-
-if [ -f "$PROJECT_ROOT/.claude/CODING_STANDARDS.md" ]; then
-    echo "  ✓  .claude/CODING_STANDARDS.md present"
-else
-    echo "  ⚠  .claude/CODING_STANDARDS.md missing — global coding standards apply without stack grounding"
-    WARNINGS=$((WARNINGS + 1))
-fi
-
-# Per-file check hook
-if [ -f "$HOOKS_DIR/on-file-edit.sh" ] && grep -qF "on-file-edit.sh" "$SETTINGS_FILE" 2>/dev/null; then
-    if grep -qE '^\s*(vendor/bin|node_modules/\.bin|ruff|npx|php|python)' "$HOOKS_DIR/on-file-edit.sh"; then
-        echo "  ✓  Per-file check hook installed and configured"
-    else
-        echo "  ⚠  Per-file check hook installed but no checks enabled — edit .claude/hooks/on-file-edit.sh"
-        WARNINGS=$((WARNINGS + 1))
-    fi
-fi
-
-# .claudeignore
-if [ -f "$PROJECT_ROOT/.claudeignore" ]; then
-    echo "  ✓  .claudeignore present"
-else
-    echo "  ⚠  .claudeignore missing — create it before running /project-audit"
-    WARNINGS=$((WARNINGS + 1))
-fi
-
-# .gitattributes export-ignore
-if grep -qF ".claude/ export-ignore" "$PROJECT_ROOT/.gitattributes" 2>/dev/null; then
-    echo "  ✓  .claude/ excluded from git archive (.gitattributes)"
-else
-    echo "  ✗  .claude/ NOT excluded from git archive — deploy tools may include it"
-    ERRORS=$((ERRORS + 1))
-fi
-
-echo ""
-
-# Developer profile
-if [ -f "$HOME/.claude/context/user_profile.md" ]; then
-    echo "  ✓  Developer profile found (~/.claude/context/user_profile.md)"
-    PROFILE_MISSING=0
-else
+# Advice rather than conformance, so it stays here.
+PROFILE_MISSING=0
+if [ ! -f "$HOME/.claude/context/user_profile.md" ]; then
+    PROFILE_MISSING=1
+    echo ""
     echo "  ⚠  Developer profile NOT found (~/.claude/context/user_profile.md)"
     echo "     Run /init-profile in Claude Code to calibrate recommendations to your skill level."
-    WARNINGS=$((WARNINGS + 1))
-    PROFILE_MISSING=1
 fi
 
-echo ""
-echo "────────────────────────────────────────────────"
 echo ""
 
 # ── Step 6 — Summary and next steps ──────────────────────────────────────────
 
-if [ "$ERRORS" -eq 0 ] && [ "$WARNINGS" -eq 0 ]; then
-    echo "✅ claude-audit-framework ready — no issues found."
-elif [ "$ERRORS" -eq 0 ]; then
-    echo "✅ claude-audit-framework initialized with $WARNINGS warning(s)."
+if [ "$CONFORMANCE" -eq 0 ]; then
+    echo "✅ claude-audit-framework installed."
 else
-    echo "❌ Setup completed with $ERRORS error(s) and $WARNINGS warning(s)."
-    echo "   Fix the errors above before opening Claude Code."
+    echo "❌ Install is not conformant — fix the errors above before opening Claude Code."
+    echo "   Re-check any time with:"
+    echo "     bash .claude/framework/scripts/check-install.sh"
 fi
 
 echo ""

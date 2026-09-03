@@ -23,6 +23,12 @@ cat .claude/.framework-version 2>/dev/null | grep '^version='; cat .claude/frame
 Never refresh the copies yourself: `init-project.sh` is the only thing that should write into
 `.claude/commands/`, and running it is the developer's call.
 
+The version marker is one signal among several. `bash .claude/framework/scripts/check-install.sh` is
+the full read-only answer — the `@`-include, the command copies compared byte for byte, the
+specialization files, hook coherence — and it names the fix for each failure. Suggest it whenever an
+install looks wrong, and after any framework upgrade: an updated submodule whose `@`-include was
+never added is a framework that loads nothing at all.
+
 ### Upstream drift
 
 The check above compares the copied commands against the **pinned** submodule. It cannot tell you
