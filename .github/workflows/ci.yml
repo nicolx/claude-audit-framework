@@ -14,7 +14,7 @@ jobs:
     name: Consistency
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: false
       - name: Check framework consistency
@@ -24,7 +24,7 @@ jobs:
     name: ShellCheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install shellcheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: Lint scripts
@@ -34,10 +34,10 @@ jobs:
     name: Markdown
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Install markdownlint-cli
         run: npm install -g markdownlint-cli@0.42.0
       - name: Lint documents
@@ -47,7 +47,7 @@ jobs:
     name: Install / uninstall cycle
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: framework
       - name: Install into a fresh project, twice, then uninstall
