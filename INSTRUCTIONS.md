@@ -137,18 +137,33 @@ same way you apply naming and SRP — waiting for an audit to reveal a missing l
 
 ### Naming across languages
 
-Before naming anything in a codebase that is not uniformly English, read the **Domain language**
-section of `.claude/CODING_STANDARDS.md`. It declares which terms stay in the local language and
-why; everything else is English.
+Code is English. Domain terms the English word would not name correctly stay in their original
+language, and the **Domain language** section of `.claude/CODING_STANDARDS.md` declares which, in
+which context. Read it before naming anything in a codebase that is not uniformly English.
 
-Two rules for the cases the section does not settle:
+**Establish which context you are in first.** The declaration is scoped, so the same concept can
+correctly carry two names in one repository — `Invoice` in a generic payments core,
+`FatturaElettronica` in an Italian billing module. Which one is right depends on where the file
+lives, not on the word.
 
-- **A term you need is not declared.** If translating it loses nothing, use English. If translating
-  it would lose legal or business precision, say so and propose adding it to the section — do not
-  use an undeclared term silently, and do not translate a term that should not be translated.
-- **Existing code disagrees with the section.** Match the section for new code, and mention the
-  inconsistency rather than propagating it. Renaming existing identifiers is a separate change,
-  and the developer's call.
+Then:
+
+- **Declared for this context** → use it, in the exact spelling declared.
+- **Declared for a different context** → you are at a boundary. Use this context's vocabulary and
+  translate explicitly through a named mapper. Never import the other context's term across the
+  seam; that is a boundary leak, and a worse problem than a naming slip.
+- **Not declared, and translating loses nothing** → use English.
+- **Not declared, and translating would lose legal or business precision** → say so and propose
+  adding it to the section, with its context and the reason. Never use an undeclared term silently,
+  and never translate a term that should not be translated.
+- **Existing code disagrees with the section** → match the section for new code and mention the
+  inconsistency rather than propagating it. Renaming existing identifiers is a separate change, and
+  the developer's call.
+
+Two failure modes to avoid actively, because both look like tidying: do not "harmonise" two names
+that belong to two contexts, and do not invent a compound the domain does not use
+(*FatturaElettronica* is the document, *FatturazioneElettronica* is the process — a module may be
+named for the process, an entity may not).
 
 ### Active audit focus
 

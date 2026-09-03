@@ -8,6 +8,38 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.2.1] — 2026-09-03
+
+### Fixed
+
+- **2.8's declaration was repository-global, which authorised the leak it should catch.** The same
+  concept legitimately carries different names in different bounded contexts: `Invoice` in a generic
+  payments core, `FatturaElettronica` in a module implementing Italian e-invoicing law — there the
+  English word names a superset. With a flat glossary, `FatturaElettronica` appearing in the payments
+  core read as a declared exception rather than as a concept that crossed a boundary without being
+  translated. The Domain language table now carries a **Context** column, a term is correct only
+  inside its context, and 2.8 weights a boundary leak above a local naming slip: the first says the
+  architecture is eroding, the second says someone was in a hurry.
+
+### Changed
+
+- **The test is now stated explicitly and scoped:** *in this context, does the English word name the
+  same thing?* Yes → English; broader, narrower or different → keep the original term. It replaces
+  the unfalsifiable "is this domain jargon", and being context-local is what makes two names for one
+  concept correct rather than an inconsistency to unify.
+- **Seams are named as where this actually breaks.** Half-translated identifiers
+  (`getFatturaList()`, `ElectronicInvoiceFattura`) appear almost exclusively at context boundaries,
+  where the translation was spread across renamed fields instead of living in a named mapper.
+- **Not translating means keeping the domain's grammar.** *FatturaElettronica* is the document,
+  *FatturazioneElettronica* the process: a module may be named for the process, an entity may not.
+  A compound the domain does not use loses exactly what a translation would have lost.
+- One term, one spelling: declaring `FatturaElettronica` rules out `fattura_elettronica` and
+  `FattElettr` elsewhere. A glossary row with a meaning but no reason is called out as declaring
+  nothing.
+- `INSTRUCTIONS.md` now has Claude establish which context a file belongs to *before* consulting the
+  glossary, and names the two failure modes that look like tidying: harmonising two names that belong
+  to two contexts, and inventing a compound the domain does not use.
+
 ## [1.2.0] — 2026-09-03
 
 Adds the language dimension the framework had no opinion on: code in English, domain terms in their

@@ -539,34 +539,62 @@ Write code in English: identifiers, comments, test names, developer-facing messa
 documentation. English is the language of the standard library, the framework, the error messages,
 and of whoever joins the project next.
 
-Keep a domain term in its original language when translating it would lose meaning. A *Codice
-Fiscale* is not a tax code, a *Cedolino* is not a payslip, a *Fattura Elettronica* is not an
-invoice — these are legally defined artefacts, and the translation quietly discards the precision
-the domain depends on. That is the ubiquitous language doing its job, and it outranks uniformity.
+Keep a domain term in its original language when the English word would not name the same thing.
+Apply this test, and note that it is asked **inside one bounded context**, not of the repository as
+a whole:
 
-The two rules coexist only if the exceptions are **declared**. Each term kept in its original
-language belongs in the **Domain language** section of the project's `.claude/CODING_STANDARDS.md`,
-with the reason it is not translated. Before inventing a non-English identifier, check that section;
-if the term is not there and translating it loses nothing, use English. If it is not there and
-translating it *would* lose something, propose adding it — do not just use it and move on.
+> In this context, does the English word name the same thing?
+>
+> Yes → use English. It names something broader, narrower, or different → keep the original term.
 
-User-facing text is a different question entirely. Labels, emails and messages shown to end users
-belong to the product's language; that is internationalisation, not naming.
+Because the test is context-local, one concept can correctly carry two names. In a generic payments
+core, `Invoice` is right — there the thing really is a generic accounting record. In a module
+implementing Italian e-invoicing law, `FatturaElettronica` is right — there the thing is the
+document the law defines, and `Invoice` would name a superset. Do not "unify" the two: that
+distinction is why the contexts are separate.
+
+**Declare before you use.** Every term kept in its original language belongs in the **Domain
+language** section of the project's `.claude/CODING_STANDARDS.md`, with its context and the reason
+it is not translated. Before inventing a non-English identifier, read that section:
+
+- The term is declared for the context you are working in → use it.
+- The term is declared for a *different* context → you are at a boundary. Use this context's own
+  vocabulary and translate explicitly; do not import the other context's term.
+- The term is not declared and translating it loses nothing → use English.
+- The term is not declared and translating it *would* lose legal or business precision → say so and
+  propose adding it. Never use an undeclared term silently, and never translate a term that should
+  not be translated.
+
+**Translate at the seam, explicitly.** Where two contexts meet, the translation is an object with a
+name — a mapper that takes an `Invoice` and returns a `FatturaElettronica`. Half-translated
+identifiers are the symptom of a seam where that object is missing.
+
+**Keep the domain's grammar.** The point of not translating is precision, and precision includes the
+domain's own word forms: *FatturaElettronica* is the document, *FatturazioneElettronica* is the
+process. A module may be named for the process, an entity may not. A compound the domain does not
+use loses exactly what a translation would have lost.
+
+User-facing text is a different question. Labels, emails and messages shown to end users belong to
+the product's language — that is internationalisation, not naming.
 
 **What good looks like:**
 
-- `final class Fattura` next to `final class OrderRepository`, with `Fattura` in the declared list
-- A domain term kept whole: `FatturaElettronica`, never `ElectronicFattura`
-- Comments and test names in English even about domain terms: `it_rejects_a_fattura_without_a_partita_iva()`
-- ASCII-only identifiers — accented characters break greps, tooling, and other people's keyboards
+- `final class Fattura` next to `final class OrderRepository`, `Fattura` declared and scoped
+- `Invoice` in the payments core, `FatturaElettronica` in the Italian module, a named mapper between
+- A declared row that reads like a decision, not a dictionary entry: the reason is what makes it one
+- Domain terms whole and in the domain's own grammar; ASCII-only identifiers
+- Comments and test names in English even about domain terms:
+  `it_rejects_a_fattura_without_a_partita_iva()`
 
 **Signals of drift:**
 
-- General vocabulary in the local language where English would be understood: `getUtenti()`, `$elencoProdotti`
-- Half-translated names: `UserFattura`, `getFatturaList()`, `IsPagato`
-- Comments in the local language inside otherwise English code — above all the ones explaining *why*
-- A declared list that has grown to cover every local word in the codebase: that is an amnesty for
-  not renaming, not a glossary
+- General vocabulary in the local language where English names the same thing: `getUtenti()`, `$elencoProdotti`
+- Half-translated names, especially at a boundary: `UserFattura`, `getFatturaList()`, `IsPagato`
+- A declared term used outside its context — the concept crossed a boundary that should have
+  translated it
+- One term spelled several ways: declaring a term commits you to one spelling
+- Comments in the local language inside otherwise English code
+- A declared list that has grown to cover every local word: an amnesty for not renaming, not a glossary
 
 ---
 

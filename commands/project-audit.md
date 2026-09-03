@@ -139,7 +139,7 @@ recorded in the manifest.
 | # | Category | Evidence focus |
 |---|---|---|
 | 1 | OOP & Design Patterns | Domain and application classes, interfaces, factories, the largest classes in the manifest |
-| 2 | Clean Code | A sample across the tree, weighted to the longest files — that is where naming, size and duplication problems concentrate. For 2.8, read the **Domain language** section of `.claude/CODING_STANDARDS.md` *before* judging any non-English identifier: a declared term is correct, an undeclared one is drift |
+| 2 | Clean Code | A sample across the tree, weighted to the longest files — that is where naming, size and duplication problems concentrate. For 2.8, read the **Domain language** section of `.claude/CODING_STANDARDS.md` *first*, note which context each sampled file belongs to, then sample deliberately across the context boundaries: a declared term inside its context is correct, the same term outside it is a boundary leak, and an undeclared non-English term is drift |
 | 3 | Domain-Driven Design | Layer directories, entities, value objects, repository interfaces, domain events, and whatever enforces the boundaries |
 | 4 | Testing | The whole test tree, the test runner config, plus enough source to judge whether the critical paths are the ones covered |
 | 5 | JS / Frontend | JS/TS files only, plus their build and lint config |

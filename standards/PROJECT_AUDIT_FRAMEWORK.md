@@ -281,31 +281,102 @@ Technical debt is the accumulated cost of deliberate shortcuts taken to ship fas
 
 #### 2.8 Language of identifiers
 
-Code is written in English. Domain terms that carry meaning the language of the codebase cannot express are kept in their original language — and every one of them is declared, not improvised.
+Code is written in English. A domain term is kept in its original language when the English word
+would not name the same thing — and every such term is declared together with **the context it
+belongs to**.
 
-This is not a stylistic preference. English is the language of the platform, the standard library, the framework, and every developer who might join later; a codebase that mixes `getUtenti()` with `findOrders()` forces every reader to guess which convention applies where. But translating a domain term for the sake of uniformity is worse: a `TaxCode` is not a *Codice Fiscale*, an `Invoice` is not a *Fattura Elettronica*, and a developer who translates the term loses the legal and business precision the domain depends on. Category 3 calls this the ubiquitous language; this criterion is where it is measured.
+Both halves are load-bearing. English is the language of the platform, the standard library, the
+framework, and of whoever joins the project later; a codebase where `getUtenti()` sits beside
+`findOrders()` makes every reader guess which convention applies where. But translating a domain
+term for the sake of uniformity destroys precision: a *Codice Fiscale* is not a tax code and a
+*Fattura Elettronica* is not an invoice — these are artefacts defined by law, and the English word
+names something broader. Category 3 calls this the ubiquitous language; this criterion is where it
+is measured.
 
-The mechanism that makes both possible is a declared list. The project's `.claude/CODING_STANDARDS.md` carries a **Domain language** section naming each term kept in its original language, with the reason it is not translated. An identifier in that list is correct. An identifier not in that list, in any language other than English, is drift.
+**The test, and why it is scoped to a context:**
 
-**Scope.** This criterion covers identifiers (classes, methods, variables, files, database columns), comments, developer-facing messages, test names, and technical documentation. It does **not** cover user-facing text: labels, emails and error messages shown to end users belong to the product's language and are an internationalisation concern, not a naming one.
+> In this bounded context, does the English word name the same thing?
+>
+> Yes → use English. It names something broader, narrower, or different → keep the original term.
+
+The test is context-local, which means **the same concept legitimately carries different names in
+different contexts**. In a generic payments core, `Invoice` is correct: there the concept genuinely
+is a generic accounting record. Inside a module implementing Italian e-invoicing law,
+`FatturaElettronica` is correct: there the concept is the legally defined document, and `Invoice`
+would name a superset of it.
+
+Those two names are not an inconsistency to be unified. They are a context map doing its job, and a
+reviewer who "harmonises" them deletes the distinction the code was built to hold.
+
+**The declaration:**
+
+The project's `.claude/CODING_STANDARDS.md` carries a **Domain language** section: one row per term,
+naming the term, the context it belongs to, its meaning, and why it is not translated. A term used
+**inside** its declared context is correct. The same term appearing **outside** it is not an
+exception — it is a boundary leak, and a worse finding than a naming slip, because it means a
+context has learned a concept that should have reached it through a translation.
+
+Single-context projects declare the context as the whole codebase and the column costs nothing.
+
+**Seams are where this actually breaks:**
+
+Between two contexts something must translate, and half-translated identifiers appear almost
+exclusively there: `getFatturaList()`, `ElectronicInvoiceFattura`, `IsPagato`. The translation has to
+be an explicit, named thing — a mapper or adapter that takes an `Invoice` and produces a
+`FatturaElettronica` — not an implication spread across renamed fields.
+
+**Not translating means keeping the domain's grammar:**
+
+The precision being protected is the domain's own. *FatturaElettronica* is the document;
+*FatturazioneElettronica* is the process — so a module or service may carry the second name, an
+entity may not. Inventing a compound the domain does not use loses exactly what translating would
+have lost.
+
+**Scope.** Identifiers (classes, methods, variables, files, database columns), comments,
+developer-facing messages, test names, technical documentation. **Not** user-facing text: labels,
+emails and messages shown to end users belong to the product's language and are an
+internationalisation concern, not a naming one.
 
 **Good:**
 
-- `class Fattura` with `Fattura` declared in the domain language section, alongside `final class OrderRepository` and `private function calculateTotal()`
-- A domain term kept whole rather than half-translated: `FatturaElettronica`, not `ElectronicFattura`
-- The declared list carries a reason per term — "*Cedolino*: Italian payslip, legally distinct from a generic payslip; no faithful English equivalent"
-- Comments and test names in English even where the subject is a domain term: `it_rejects_a_fattura_without_a_partita_iva()`
+- `final class Fattura` next to `final class OrderRepository`, with `Fattura` declared and scoped to
+  the billing context
+- The same concept named `Invoice` in the payments core and `FatturaElettronica` in the Italian
+  compliance module, with an explicit `FatturaElettronicaMapper` at the seam
+- A declared row that reads like a decision: "*Cedolino* — payroll context — Italian statutory
+  payslip; the English `Payslip` names a broader document with no legally defined format"
+- Domain terms kept whole and grammatically as the domain uses them: `FatturaElettronica` the
+  document, `FatturazioneElettronica` the process
+- Comments and test names in English even about domain terms:
+  `it_rejects_a_fattura_without_a_partita_iva()`
 
 **Bad:**
 
-- `getUtenti()`, `$elencoProdotti`, `salvaOrdine()` — general vocabulary in the local language, where an English name exists and would be understood by anyone
-- Half-translated identifiers: `UserFattura`, `getFatturaList()`, `IsPagato`
-- Comments in the local language inside otherwise English code, especially the ones explaining *why* — the reader who most needs them is the one least likely to read that language
-- Non-ASCII characters in identifiers (`città`, `prezzoUnitàrio`): they break tooling, greps, and keyboards
-- A domain language section that has grown to include every local word in the codebase. That is not a glossary, it is an amnesty — exceptions granted retroactively to avoid renaming. A term earns a place only when translating it would lose meaning
-- No declared list at all, in a codebase that plainly contains domain terms in another language: the convention exists only in the heads of whoever is still on the team
+- General vocabulary in the local language where English names the same thing: `getUtenti()`,
+  `$elencoProdotti`, `salvaOrdine()`
+- Half-translated identifiers, especially at a context boundary: `UserFattura`, `getFatturaList()`
+- A declared term used outside its context — `FatturaElettronica` reaching the generic payments
+  core, which should only know `Invoice`
+- A glossary with no context column, in a codebase that has more than one context: it cannot
+  distinguish a correct use from a leak, so it authorises both
+- Rows with a meaning but no reason. "*Fattura*: invoice" declares nothing — if that is the whole
+  entry, the term should have been translated
+- A glossary that has grown to cover every local word in the codebase. That is not a glossary, it is
+  an amnesty: exceptions granted retroactively to avoid renaming
+- Comments in the local language inside otherwise English code — above all the ones explaining
+  *why*, whose reader is the one least likely to read that language
+- Non-ASCII characters in identifiers (`città`, `prezzoUnitàrio`): they break greps, tooling and
+  other people's keyboards
+- One declared term spelled three ways across the codebase (`Fattura`, `fattura_elettronica`,
+  `FattElettr`): declaring a term is also committing to one spelling of it
 
-**How to score:** sample identifiers across the layers, and read the domain language section first. Full marks require both halves: English as the default *and* the exceptions declared with reasons. A codebase that is uniformly English with no domain terms to declare scores full marks with no section — the criterion is about consistency and intent, not about having a glossary.
+**How to score.** Read the Domain language section before judging any identifier, then sample across
+the layers *and across the context boundaries*. Full marks require three things: English as the
+default, the exceptions declared with contexts and reasons, and the declared terms staying inside
+their contexts. A uniformly English codebase with nothing to declare scores full marks with no
+section — the criterion measures consistency and intent, not the existence of a glossary. Weight a
+boundary leak above a local naming slip: the first says the architecture is eroding, the second says
+someone was in a hurry.
 
 ---
 

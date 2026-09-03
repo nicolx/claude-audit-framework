@@ -33,20 +33,34 @@ Example:
 ## Domain language
 
 > Required by principle 20 and scored as subcriteria 2.8. Code is written in English; the terms
-> below are the declared exceptions — domain vocabulary whose meaning translation would destroy.
+> below are the declared exceptions — domain vocabulary the English word would not name correctly.
 >
-> A term earns a place here only if translating it loses legal, regulatory or business precision.
-> General vocabulary does not qualify: if `utenti` would be understood as `users`, use `users`.
-> Adding a term is a decision to make deliberately, not a way to avoid a rename.
+> **The test:** *in this context, does the English word name the same thing?* Yes → use English.
+> It names something broader, narrower, or different → the term belongs here.
 >
-> **Delete this section entirely if the codebase is uniformly English.** An empty glossary is
-> better than a table of habits, and 2.8 scores full marks with no section when there is nothing
-> to declare.
+> A term earns a place only if translating it loses legal, regulatory or business precision.
+> General vocabulary does not qualify: if `utenti` means `users`, use `users`. Adding a row is a
+> deliberate decision, never a way to avoid a rename.
+>
+> **Delete this section entirely if the codebase is uniformly English.** 2.8 scores full marks with
+> no section when there is nothing to declare, and an empty table beats a table of habits.
 
-| Term | Meaning | Why it is not translated |
-|---|---|---|
-| [Fattura] | [Italian invoice under fiscal law] | [Legally distinct from a generic invoice; "Invoice" would not name the same artefact] |
-| [Cedolino] | [Italian payslip] | [Statutory document with a defined format; no faithful English equivalent] |
+| Term | Context | Meaning | Why it is not translated |
+|---|---|---|---|
+| [FatturaElettronica] | [billing] | [Italian e-invoice as defined by fiscal law] | [`Invoice` names a superset: a generic accounting record with no statutory format] |
+| [Cedolino] | [payroll] | [Italian statutory payslip] | [`Payslip` names a broader document with no legally defined format] |
+| [PartitaIva] | [all] | [Italian VAT registration number] | [`VatNumber` is close but not equivalent — format and validation are defined nationally] |
+
+**The Context column is the rule, not decoration.** A term is correct **inside** its context and a
+boundary leak **outside** it. Where a concept crosses contexts it gets each context's own name —
+`Invoice` in a generic payments core, `FatturaElettronica` in the Italian billing module — with an
+explicit mapper at the seam. Those are not duplicates to unify: the distinction is why the contexts
+are separate. Use `all` only when the codebase genuinely has one context, or when the term really
+does apply everywhere.
+
+**Keep the domain's grammar.** *FatturaElettronica* is the document, *FatturazioneElettronica* is the
+process: a module may be named for the process, an entity may not. And one term, one spelling —
+declaring `FatturaElettronica` rules out `fattura_elettronica` and `FattElettr` elsewhere.
 
 Applies to identifiers, comments, test names, and developer-facing messages. It does **not** apply
 to user-facing text — labels, emails and end-user messages belong to the product's language and are
