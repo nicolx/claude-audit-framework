@@ -8,6 +8,33 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.7.1] — 2026-09-03
+
+### Fixed
+
+- **`init-project.sh` still told people to upgrade with `git pull origin main`** — the pre-1.0 path,
+  replaced by pinned tags in 1.0.0, and omitting `check-install.sh` entirely. It survived seven
+  releases in the installer's own closing output: the one place every new install reads. This is
+  principle 22 failing inside the release that introduced 7.10 — the model changed and the text
+  describing it did not.
+- `git pull origin main` is now in `check-consistency.sh`'s retired-pattern list, so the
+  contradiction cannot reappear. Its failure message no longer assumes the only retired things are
+  the two old filenames.
+
+### Added
+
+- **The upgrade procedure now reaches Claude, not only human readers.** The README carried the four
+  steps from 1.7.0, but the framework's README is never `@`-included — a consumer session loads only
+  `INSTRUCTIONS.md`, where the three scripts were mentioned in three separate places with no ordered
+  sequence. Asked to upgrade, Claude would have had to reconstruct the order and could plausibly
+  have skipped the verification step. `INSTRUCTIONS.md` now carries the four commands in order, the
+  invariant that makes them matter, and the instruction to report what the check said rather than
+  declare success.
+
+The split between the two documents is deliberate: `INSTRUCTIONS.md` gets the commands and the
+order, the README keeps the rationale and the comparison table. Duplicating the reasoning in both
+would be a second copy to drift — which is the defect this release exists to fix.
+
 ## [1.7.0] — 2026-09-03
 
 Updating the submodule was never sufficient, and nothing said so. Two things live outside it — the

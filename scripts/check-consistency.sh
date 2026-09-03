@@ -53,10 +53,12 @@ echo "────────────────────────�
 
 start "Retired names"
 
-RETIRED='CODE_QUALITY_STANDARDS|~/\.claude/standards'
+# `git pull origin main` was the pre-1.0 upgrade path, replaced by pinned tags.
+# It survived in init-project.sh's own output for seven releases.
+RETIRED='CODE_QUALITY_STANDARDS|~/\.claude/standards|git pull origin main'
 # shellcheck disable=SC2086
 if MATCHES=$(grep -nE "$RETIRED" $DOCS $SCRIPTS 2>/dev/null); then
-    fail "retired name found — the current names are PROJECT_AUDIT_FRAMEWORK.md and CODING_STANDARDS.md under standards/"
+    fail "a name or command retired by a past migration reappeared — see the RETIRED pattern above for what replaced it"
     indent "$MATCHES"
 else
     pass "no retired names"

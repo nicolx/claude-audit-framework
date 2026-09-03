@@ -26,8 +26,31 @@ Never refresh the copies yourself: `init-project.sh` is the only thing that shou
 The version marker is one signal among several. `bash .claude/framework/scripts/check-install.sh` is
 the full read-only answer — the `@`-include, the command copies compared byte for byte, the
 specialization files, hook coherence — and it names the fix for each failure. Suggest it whenever an
-install looks wrong, and after any framework upgrade: an updated submodule whose `@`-include was
-never added is a framework that loads nothing at all.
+install looks wrong.
+
+### Upgrading the framework in this project
+
+**Updating the submodule is not enough.** The `@`-include in `CLAUDE.md` and the command copies in
+`.claude/commands/` live outside it; a submodule bumped without them is a framework that is present
+and loads nothing at all. If asked to upgrade, run all four steps in this order:
+
+```bash
+bash .claude/framework/scripts/check-updates.sh    # what is new, and which releases broke things
+cd .claude/framework && git fetch --tags && git checkout <tag> && cd ../..
+bash .claude/framework/scripts/init-project.sh     # migrates the @-include, refreshes the copies
+bash .claude/framework/scripts/check-install.sh    # verify — do not skip, this is the whole point
+```
+
+Then report what `check-install.sh` said, including its warnings, and leave the commit to the
+developer. There is no version-by-version path to walk: `init-project.sh` is idempotent and migrates
+from any earlier state, so any old version goes straight to the newest.
+
+If `check-install.sh` reports breaking changes between the recorded install and the new version,
+read those `CHANGELOG.md` entries and say what they require — `init-project.sh` handles what can be
+automated, and what it names is what cannot.
+
+The rationale for all of this is in `.claude/framework/README.md` § *Upgrading an existing install*;
+these four lines are the part you need to get right.
 
 ### Upstream drift
 
