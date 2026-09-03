@@ -53,6 +53,8 @@ small and every agent reads all of it:
 - Tooling config: `phpstan.neon`, `.eslintrc*`, `tsconfig.json`, `deptrac.yaml`, `.php-cs-fixer*`,
   `phpunit.xml`, `pytest.ini`, `ruff.toml` — whichever exist
 - CI/CD config: everything under `.github/workflows/`, plus `Makefile`, `Jenkinsfile`, `.gitlab-ci.yml`
+- Database and ORM config: `doctrine.yaml`, `database.php`, `settings.py` DATABASES, `schema.prisma`,
+  plus any slow-query or statement-logging setting — small files, and the only evidence for 7.9 and 9.8
 - Quality gate output: `composer qa 2>&1` / `make qa` / `npm run qa` — whichever the project defines.
   Capture the output verbatim, including failures. If no gate exists, record that as the finding it is.
 - `git log --oneline -20`, `git branch -a`, and `git log -1 --format=%cd` (last commit date)
@@ -144,9 +146,9 @@ recorded in the manifest.
 | 4 | Testing | The whole test tree, the test runner config, plus enough source to judge whether the critical paths are the ones covered |
 | 5 | JS / Frontend | JS/TS files only, plus their build and lint config |
 | 6 | Framework & Dependencies | Manifests, framework config and bootstrap, the entry points, and any place the framework is bypassed |
-| 7 | Tooling & Quality Standards | Tooling config and the quality gate output in `common.md` — plus grep for suppression markers (`@ts-ignore`, `ignoreErrors`, `phpcs:disable`, `noqa`, `filterwarnings`) |
+| 7 | Tooling & Quality Standards | Tooling config and the quality gate output in `common.md` — plus grep for suppression markers (`@ts-ignore`, `ignoreErrors`, `phpcs:disable`, `noqa`, `filterwarnings`). For 7.9, grep the test suite for query-count assertions and the bootstrap for a lazy-load guard |
 | 8 | Application Security | Input boundaries (controllers, request handling, deserialization), auth and authorisation, templates and output encoding, headers, and anywhere secrets are read |
-| 9 | Observability & Operability | Logger setup and call sites, error handling and reporting, health endpoints, metrics, log rotation and retention config |
+| 9 | Observability & Operability | Logger setup and call sites, error handling and reporting, health endpoints, metrics, log rotation and retention config. For 9.8, the database and ORM config (slow query threshold, statement logging) and whether anything reads it |
 | 10 | CI/CD & Version Control | CI config, migrations, deploy and rollback scripts, plus the git log and branch list in `common.md` |
 
 ---

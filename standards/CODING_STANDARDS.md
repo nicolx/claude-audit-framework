@@ -598,6 +598,50 @@ the product's language — that is internationalisation, not naming.
 
 ---
 
+## 21. Know the cost of your data access
+
+Every read from a database has a cost that scales with something. Know what that something is
+before the code ships, because the query you cannot see costing anything is the one you will pay for
+at volume — and the bill arrives in production, on the day the table gets big.
+
+The rule is not "optimise early". It is: **be able to say how this query behaves at a hundred times
+the current row count.** If the answer is "it issues one query per row" or "it loads the whole
+table", that is not a performance concern to revisit later, it is a defect now.
+
+**Never issue a query inside a loop.** If you are iterating a collection and each element needs
+related data, fetch it before the loop, in one query, and index it in memory. This is the N+1, and
+it is written by accident every time: the loop is in one file and the lazily loaded association is
+declared in another, and each is correct on its own.
+
+**Every collection read is bounded.** Pagination, or an explicit limit. `findAll()` against a table
+that grows is a latency and memory incident scheduled for whenever the data arrives.
+
+**Aggregate where the data is.** `COUNT(*)` in SQL, not `count($repository->findAll())`. Sum, filter,
+and group in the query — moving a million rows into the application to reduce them to one number
+pays the transfer cost for nothing.
+
+**An index is part of the change that needs it.** A new `WHERE` or `ORDER BY` on a growing table
+ships with its index, in the same change, not in a later performance ticket. And check the plan at
+realistic volume: `EXPLAIN` at two hundred rows will happily tell you a sequential scan is fine.
+
+**What good looks like:**
+
+- One query before the loop, indexed by id, and the loop reads from memory
+- Repository methods that cannot return an unbounded set — the limit is in the signature
+- A migration that adds both the query path and the index it depends on
+- A test asserting the query *count* for a route, so a later refactor cannot quietly reintroduce an N+1
+
+**Signals of drift:**
+
+- An ORM call or query inside `foreach` / `for` / `map`
+- `findAll()`, `all()`, `.objects.all()` with no limit, on anything that grows
+- An entity loaded in full to read one column, or to check whether it exists
+- Counting, summing or filtering in application code over a set that came from the database
+- "We will add the index when it becomes a problem" — it is already a problem, just not yet a
+  noticeable one
+
+---
+
 ## Traceability — where each principle is measured
 
 These principles are the write-time half of the framework; `PROJECT_AUDIT_FRAMEWORK.md` is the
@@ -629,6 +673,7 @@ can only be found in an audit, never written correctly the first time.
 | 18 | A deprecation is a deadline | 7.8 |
 | 19 | History is part of the deliverable | 10.11, 10.14 |
 | 20 | Code speaks English, the domain speaks its own language | 2.8 |
+| 21 | Know the cost of your data access | 7.9, 9.8 |
 
 ### Criteria with no write-time principle, and why
 

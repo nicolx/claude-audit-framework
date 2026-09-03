@@ -1156,6 +1156,49 @@ Run static analysis tools before reading source files. Pass their output to the 
 | Go | `staticcheck ./... 2>&1 \| grep SA1019` |
 | Kotlin / Java | `./gradlew compileKotlin 2>&1 \| grep -i deprecated` |
 
+#### 7.9 Query analysis in the quality gate
+
+Data-access defects are the one class of quality problem that reading code does not reliably find,
+because the defect is not in any single line. An N+1 is a loop in one file and a lazily loaded
+association declared in another; both are correct on their own. What finds it is **counting queries**,
+and that is a mechanical check the gate can own.
+
+This criterion asks whether the project detects data-access defects before production, not whether
+it is fast. Speed is an outcome; this is about the instrument.
+
+**Good:**
+
+- Integration tests assert a query count on the endpoints and jobs that matter — a route that should
+  issue 3 queries fails the build at 40, whatever the wall-clock time on a laptop with 20 test rows
+- Lazy loading raises in development and test, so an N+1 is a failure at the moment it is written
+  (`Model::preventLazyLoading()` in Laravel, `fetch: EAGER` audits or a `SQLLogger` assertion in
+  Doctrine, `nplusone` in Django, `bullet` in Rails)
+- A migration that adds a query path also adds the index it needs, and the review says so
+- `EXPLAIN` run against production-like volume for new queries on tables that grow — a plan checked
+  at 200 rows tells you nothing
+- The static analyser's ORM extension is enabled where one exists (`phpstan-doctrine`,
+  `mypy` plugins), so wrong field and relation names fail before runtime
+
+**Bad:**
+
+- No query counting anywhere: the first measurement of a query's cost happens in production
+- `preventLazyLoading` / `nplusone` / `bullet` available for the stack and not enabled — the tooling
+  exists, the project declined it
+- Performance tests that assert *duration* on a developer machine, which measures the laptop, not the
+  query plan. Assert query counts and row counts; those are stable
+- Indexes added in a separate "performance" ticket weeks after the query shipped
+- An N+1 fixed reactively, with no test added — so the next refactor reintroduces it silently
+
+**Language equivalents:**
+
+| Stack | Query counting | Lazy-load guard |
+|---|---|---|
+| PHP / Doctrine | `DebugStack` / `SQLLogger` assertion in a functional test | `phpstan-doctrine`, explicit `fetch` review |
+| PHP / Laravel | `DB::listen` counter, `assertDatabaseQueryCount` | `Model::preventLazyLoading()` in a non-prod service provider |
+| Python / Django | `assertNumQueries` | `django-nplusone` |
+| Ruby / Rails | `assert_queries` | `bullet` gem |
+| TypeScript / Prisma | `$on('query')` counter | `include` / `select` review, no implicit relation loads |
+
 ---
 
 ## Category 8 — Application Security
@@ -1414,6 +1457,42 @@ Logs are not the only thing that grows without limit. Append-only *data* — aud
 - A high-volume log table with no timestamp column, purgeable only by id
 - A temporary diagnostic tracker, added during an incident, still growing indefinitely
 - Retention "handled" by a job nobody has verified since it was written
+
+#### 9.8 Slow query visibility
+
+A query that was fast at ten thousand rows and takes four seconds at two million did not break
+suddenly — it degraded, in public, while nobody was measuring. This criterion asks whether the
+project would know.
+
+Visibility has three parts, and a project usually has one of them: the threshold log exists, the
+attribution is missing, and nobody reads it.
+
+**Good:**
+
+- Slow query logging on with a threshold chosen for this application — a value tuned to what "slow"
+  means here, not the engine's 10-second default, which catches only queries that were already
+  disasters
+- Each slow query attributable to what caused it: the request path, job name, or correlation id
+  travels with it, so the entry names a code path rather than only SQL text
+- Queries aggregated by shape, not logged as unique strings: one fingerprint at 4,000 executions is
+  the finding, and per-execution log lines hide it (`pt-query-digest`, `pg_stat_statements`,
+  APM statement aggregation)
+- **p95 and p99** tracked, not the mean. The mean of a fast path and a pathological tail is a
+  reassuring number describing nobody's experience
+- Row counts recorded alongside duration, so an unbounded fetch is visible before it becomes an
+  out-of-memory incident
+- Someone actually looks: the data reaches a dashboard or an alert threshold, not a file on a server
+
+**Bad:**
+
+- `slow_query_log` off, or on at the default threshold so nothing has ever been written to it
+- A slow query log that exists and has never been opened — which is the same as not having one, at
+  the cost of the disk it fills (see 9.6)
+- Only average latency on the dashboard
+- Slow queries visible in the database but not attributable to a request, so the investigation starts
+  by guessing which endpoint issued them
+- Query duration logged per execution into the application log, drowning the entries that need reading
+- A degradation discovered because a user reported that a page "feels slow"
 
 ---
 

@@ -8,6 +8,46 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.3.0] — 2026-09-03
+
+Covers data-access cost, which the framework measured nowhere. A project could score 8/10 across all
+ten categories while running an N+1 that issues 400 queries for one list, an unindexed `WHERE` on a
+two-million-row table, and an unpaginated `findAll()` — with no slow query log to notice any of it.
+The only prior mentions were incidental: N+1 as an argument *for* using a mature ORM (6.8), a
+`latency_ms` field in a health-check example (9.3), and a 200ms fitness function named in passing
+(10.9). None of them produced a finding.
+
+### Added
+
+- **7.9 Query analysis in the quality gate** — data-access defects are the one class that reading
+  code does not reliably find, because the defect is not in any single line: an N+1 is a loop in one
+  file and a lazily loaded association declared in another, each correct alone. What finds it is
+  counting queries. The criterion asks for query-count assertions on the routes that matter, a
+  lazy-load guard that raises in dev and test (`preventLazyLoading`, `nplusone`, `bullet`), indexes
+  shipped in the change that needs them, and `EXPLAIN` run at realistic volume. It also rejects
+  duration assertions on a developer machine: those measure the laptop, not the query plan.
+- **9.8 Slow query visibility** — a query that was fast at ten thousand rows and takes four seconds
+  at two million degraded in public while nobody measured. Requires a threshold tuned to the
+  application rather than the engine's 10-second default, attribution to the request or job that
+  issued the query, aggregation by query shape (one fingerprint at 4,000 executions is the finding,
+  per-execution lines hide it), **p95 and p99 rather than the mean**, row counts alongside duration,
+  and somebody actually reading it.
+- **Principle 21 — Know the cost of your data access.** The write-time counterpart, mapped to 7.9
+  and 9.8. Its rule is not "optimise early" but "be able to say how this query behaves at a hundred
+  times the current row count": no query inside a loop, every collection read bounded, aggregation
+  where the data is, and an index shipped in the change that introduces the query path.
+- The audit's shared evidence bundle now includes database and ORM configuration — small files, and
+  the only evidence 7.9 and 9.8 have.
+
+### Note on shape
+
+Performance is arguably a quality dimension in its own right, and this release deliberately does not
+give it a category. Data-access defects are design defects, detectable by reading code and counting
+queries, so they sit where the framework already puts detection (Cat 7) and visibility (Cat 9), with
+a principle for the code shape — the same three-part structure used for security and observability.
+The ten categories stay ten. Broader performance work (load behaviour, latency budgets, caching
+strategy) remains uncovered, and would need its own category.
+
 ## [1.2.1] — 2026-09-03
 
 ### Fixed
