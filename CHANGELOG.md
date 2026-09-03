@@ -8,6 +8,48 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.6.0] — 2026-09-03
+
+Documentation currency was almost entirely uncovered: 10.15 scored ADRs, 2.5 scored self-documenting
+*code*, and two incidental lines mentioned `CONTRIBUTING.md` and a hand-written CHANGELOG. Nothing
+asked whether the README still works, whether an API contract matches the routes, or whether
+*anything* notices when a document stops being true. `OpenAPI` did not appear in the document at all.
+
+### Added
+
+- **7.10 Documentation currency and drift detection.** Not how much is written — whether anything
+  keeps it true. It sits in Category 7 because the criterion is about a mechanism, and a quality that
+  relies only on remembering is the gap 7.7 already names. What counts is making the documentation's
+  factual claims executable: paths that resolve, a README setup path that runs in CI, an API contract
+  generated from the routes or held by a contract test, generated docs whose stale diff fails the
+  build. Scoring anchor: **thin but true documentation with a check that keeps it true scores above
+  extensive documentation with no mechanism.**
+- **Principle 22 — Documentation is part of the change that invalidated it.** Narrower than "write
+  documentation": you renamed the make target, so rename it in the README, in that commit. The only
+  moment anyone reliably knows which documents a change has falsified is the moment they make it. It
+  also asks for claims a machine can check — name the command rather than describing it.
+- **Session behaviour for the AI-facing half** (`INSTRUCTIONS.md`): update an instruction file in the
+  same change that invalidates it and say so; and when a file contradicts the code, stop rather than
+  guess.
+
+### Why the AI-facing half is called out separately
+
+The two audiences fail differently, and the quieter one fails worse. A stale README is read by a
+person who runs the wrong command, notices, and goes to look at the code — expensive, but
+self-revealing. `CLAUDE.md` and `.claude/*` are loaded into every session and applied as fact by a
+reader who never questions them and never reads them end to end. A `.claude/CODING_STANDARDS.md`
+naming an analyser level the project has left, or a layer rule its config no longer enforces, shapes
+every future proposal with nobody disagreeing. 7.10 therefore weights that half at least as heavily
+as the human one.
+
+### The ambiguity that must not be resolved silently
+
+An instruction file contradicting the config has two readings with opposite fixes: the document is
+**stale** (the code moved, fix the document) or **aspirational** (the project decided to reach this,
+fix the config). `.claude/CODING_STANDARDS.md` naming PHPStan level 8 while `phpstan.neon` says 6 is
+exactly that. Claude is now told to name the contradiction and both readings and ask — because
+picking one would quietly undo a decision — while following the code for what is currently true.
+
 ## [1.5.0] — 2026-09-03
 
 Dependency updates were covered unevenly: 7.4 scored whether dependencies are *vulnerable*, 6.7

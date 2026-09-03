@@ -147,7 +147,7 @@ If `.claude/CODING_STANDARDS.md` or `.claude/PROJECT_AUDIT_FRAMEWORK.md` exist, 
 
 ### Every criterion has a write-time counterpart
 
-The 21 principles in `CODING_STANDARDS.md` are the write-time half of the framework; the 10
+The 22 principles in `CODING_STANDARDS.md` are the write-time half of the framework; the 10
 categories in `PROJECT_AUDIT_FRAMEWORK.md` are the measurement half. The traceability table at the
 end of `CODING_STANDARDS.md` maps one to the other.
 
@@ -155,6 +155,32 @@ This matters when writing code that reaches a category the developer is not thin
 Security and observability are the usual cases: nobody asks for input validation or a structured log
 line, and both are written, not discovered. Apply principles 15 and 16 to new code by default, the
 same way you apply naming and SRP — waiting for an audit to reveal a missing log is waiting too long.
+
+### Keeping the instruction files true
+
+`CLAUDE.md` and the files in `.claude/` are loaded into every session and applied as fact. Nobody
+reads them end to end, so when they stop describing the system, nothing surfaces it — the drift just
+shapes every later proposal. Principle 22 puts the fix in the change that caused it; these are the
+two situations where that lands on you.
+
+**A change you make invalidates an instruction file.** Update it in the same change. If you raise
+the analyser level, move a directory, rename the quality gate command, or add a layer rule, the file
+that names the old one names the new one before you are done. Say what you updated — do not do it
+silently, because the developer needs to know their instructions moved.
+
+**You find an instruction file contradicting the code.** Say so; it is a finding. Then stop, because
+a contradiction has two readings and they lead to opposite actions:
+
+- The document is **stale** — the code moved, the file was not updated. The fix is in the document.
+- The document is **aspirational** — it records what the project has decided to reach, and the
+  config has not caught up. The fix is in the config.
+
+`.claude/CODING_STANDARDS.md` naming PHPStan level 8 while `phpstan.neon` says 6 is exactly this
+ambiguity. Do not pick a reading and act on it: the two fixes change different files and one of them
+would quietly undo a decision. Name the contradiction, name both readings, and ask which it is.
+
+Meanwhile, follow the code for what *is* true. Never apply a stale instruction just because it is
+written down.
 
 ### Naming across languages
 

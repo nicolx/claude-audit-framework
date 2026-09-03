@@ -31,7 +31,7 @@ A portable quality framework distributed to other projects as a git submodule at
 | `INSTRUCTIONS.md` | Consumer projects | The file `@`-included into a project's `CLAUDE.md`. Loaded into every session of every consuming project. |
 | `CLAUDE.md` | This repo | This file. Never travels into a consumer session. |
 | `standards/PROJECT_AUDIT_FRAMEWORK.md` | Consumer projects | The 10-category evaluation standard — *what good is measured against*. |
-| `standards/CODING_STANDARDS.md` | Consumer projects | The 21 principles applied to every code proposal — *what good looks like*. |
+| `standards/CODING_STANDARDS.md` | Consumer projects | The 22 principles applied to every code proposal — *what good looks like*. |
 | `commands/*.md` | Consumer projects | Slash commands, **copied** into `.claude/commands/` by `init-project.sh`. |
 | `templates/*.md` | Consumer projects | Scaffolding for the project-level specialization files. |
 | `scripts/*.sh` | Operators | Install, uninstall, and the framework's own quality gate. |

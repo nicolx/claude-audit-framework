@@ -652,6 +652,43 @@ realistic volume: `EXPLAIN` at two hundred rows will happily tell you a sequenti
 
 ---
 
+## 22. Documentation is part of the change that invalidated it
+
+When a change makes a written statement false, correcting the statement belongs to that change — not
+to a follow-up ticket, not to a documentation sprint. The only moment anyone reliably knows which
+documents a change has just falsified is the moment they are making it.
+
+This is narrower than "write documentation", and that is the point. You renamed the make target, so
+rename it in the README. You raised the analyser level, so the file that names the old level names
+the new one. You moved a directory, so the documents citing the old path cite the new one. Nothing
+here asks for prose that did not exist before.
+
+**Two audiences, and the quieter one matters more.** A stale README is read by a person who hits the
+wrong command, notices, and goes to look at the code. A stale `CLAUDE.md` or `.claude/*` file is
+loaded into every session and applied as fact, by a reader who never questions it and never reads it
+end to end. Drift there does not surface; it compounds.
+
+**Prefer a claim something can check.** When you write a factual statement in a document, choose the
+form a machine could verify: name the command (`composer qa`) rather than describing it ("run the
+quality suite"), cite the path rather than the concept. A checkable claim is one a CI job can keep
+honest; an unverifiable one relies on someone remembering, which is how it got stale the first time.
+
+**What good looks like:**
+
+- The commit that renames a thing renames it everywhere it is named
+- A documentation change that is a *correction*, sitting in the same commit as the cause
+- Factual claims written as paths and commands, so a checker can resolve them
+- An instruction file for the AI whose statements about tooling can be compared to the tooling
+
+**Signals of drift:**
+
+- A doc fix as a separate follow-up commit, days later, by whoever noticed
+- "Update the docs" as a recurring backlog item — the backlog is the symptom
+- A document describing a directory layout, command or tool version that no longer exists
+- Prose where a path or command would have done, so nothing can check it
+
+---
+
 ## Traceability — where each principle is measured
 
 These principles are the write-time half of the framework; `PROJECT_AUDIT_FRAMEWORK.md` is the
@@ -684,6 +721,7 @@ can only be found in an audit, never written correctly the first time.
 | 19 | History is part of the deliverable | 10.11, 10.14 |
 | 20 | Code speaks English, the domain speaks its own language | 2.8 |
 | 21 | Know the cost of your data access | 7.9, 9.8 |
+| 22 | Documentation is part of the change that invalidated it | 7.10, 10.15 |
 
 ### Criteria with no write-time principle, and why
 
