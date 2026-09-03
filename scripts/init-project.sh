@@ -289,6 +289,7 @@ fi
 
 if [ "$WITH_HOOKS" -eq 1 ]; then
     echo "  $STEP. Edit .claude/hooks/on-file-edit.sh — enable the per-file checks for this stack"
+    echo "         Verify the plumbing first: bash .claude/hooks/on-file-edit.sh --selftest"
     STEP=$((STEP + 1))
 fi
 

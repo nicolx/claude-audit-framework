@@ -179,6 +179,14 @@ if [ -z "$OUT" ]; then
 else
     fail "unconfigured hook wrote output: $OUT"
 fi
+# --selftest must emit the JSON envelope Claude Code reads context back from.
+OUT=$(bash "$PROJ/.claude/hooks/on-file-edit.sh" --selftest 2>&1)
+case "$OUT" in
+    *'"hookEventName": "PostToolUse"'* | *'"hookEventName":"PostToolUse"'*)
+        pass "--selftest emits a valid PostToolUse context envelope" ;;
+    *)
+        fail "--selftest output is not a PostToolUse envelope: $OUT" ;;
+esac
 
 # ── Case 8 — --with-hooks must never clobber an existing settings.json ───────
 

@@ -14,7 +14,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 ```bash
 # Add the submodule — pin a released version rather than tracking main
 git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-git -C .claude/framework checkout v1.1.0
+git -C .claude/framework checkout v1.1.1
 
 # Bootstrap: installs the commands, scaffolds the project files, records the version
 bash .claude/framework/scripts/init-project.sh
@@ -47,9 +47,9 @@ This creates a personal profile at `~/.claude/context/user_profile.md`. It stays
 ## Keeping the framework up to date
 
 ```bash
-cd .claude/framework && git fetch --tags && git checkout v1.1.0 && cd ../..
+cd .claude/framework && git fetch --tags && git checkout v1.1.1 && cd ../..
 bash .claude/framework/scripts/init-project.sh     # required — refreshes the command copies
-git add .claude/ && git commit -m "chore: update claude-audit-framework to v1.1.0"
+git add .claude/ && git commit -m "chore: update claude-audit-framework to v1.1.1"
 ```
 
 **Re-running `init-project.sh` is not optional.** The commands are *copied* into
@@ -95,9 +95,10 @@ adds the one mechanical check: a `PostToolUse` hook that runs the formatter and 
 the same turn, so Claude fixes it immediately instead of leaving it for CI.
 
 The script arrives as a stub at `.claude/hooks/on-file-edit.sh` with no checks enabled: fill in the
-commands for your stack. It is opt-in because it changes how the harness behaves, and
-`init-project.sh` never modifies an existing `.claude/settings.json` — it prints the snippet to
-merge instead.
+commands for your stack, after confirming the plumbing with
+`bash .claude/hooks/on-file-edit.sh --selftest`. It is opt-in because it changes how the harness
+behaves, and `init-project.sh` never modifies an existing `.claude/settings.json` — it prints the
+snippet to merge instead.
 
 ## Versioning
 

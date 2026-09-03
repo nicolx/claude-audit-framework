@@ -8,6 +8,22 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.1.1] — 2026-09-03
+
+### Fixed
+
+- The hook stub's `report()` helper tripped an unreachable-code warning, because every call site
+  ships commented out. Rather than suppress it, the stub now exposes
+  `bash .claude/hooks/on-file-edit.sh --selftest`, which exercises the reporting path and prints the
+  envelope Claude Code reads context back from — so a developer can confirm the plumbing before
+  wiring any real check, and the helper is genuinely reachable.
+- CI installed shellcheck from apt, whose version drifts. Different versions report *different codes
+  for the same finding* (0.11.0 says SC2329, older ones SC2317), so a run went red on findings that
+  were green locally. The version is now pinned to 0.11.0, matching what the quality gate documents.
+- `shellcheck` now also covers `templates/hooks/*.sh`; the shipped hook is shell code like any other.
+- `check-consistency.sh` fails when the version the README tells people to pin is not the current
+  one — the staleness this release had to fix by hand.
+
 ## [1.1.0] — 2026-09-03
 
 Closes the gap between measuring quality and writing it. Before this release the framework had a

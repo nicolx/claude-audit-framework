@@ -25,8 +25,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Install shellcheck
-        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      # Pinned: apt's shellcheck drifts, and different versions report different
+      # codes for the same code — which is how a run went red on findings that
+      # were green locally.
+      - name: Install shellcheck 0.11.0
+        run: |
+          curl -fsSL "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz" \
+            | tar -xJ --strip-components=1 -C /usr/local/bin shellcheck-v0.11.0/shellcheck
+          shellcheck --version
       - name: Lint scripts
         run: shellcheck scripts/*.sh templates/hooks/*.sh
 

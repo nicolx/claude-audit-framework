@@ -24,6 +24,34 @@
 
 set -uo pipefail
 
+# ── report <message> — send text back into Claude's context ──────────────────
+
+report() {
+    local msg="$1" json=""
+    if command -v jq >/dev/null 2>&1; then
+        json=$(jq -nc --arg m "$msg" \
+            '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $m}}')
+    elif command -v python3 >/dev/null 2>&1; then
+        json=$(MSG="$msg" python3 -c '
+import json, os
+print(json.dumps({"hookSpecificOutput": {
+    "hookEventName": "PostToolUse",
+    "additionalContext": os.environ["MSG"],
+}}))
+')
+    fi
+    [ -n "$json" ] && printf '%s\n' "$json"
+}
+
+# ── Self-test ────────────────────────────────────────────────────────────────
+# `bash .claude/hooks/on-file-edit.sh --selftest` proves the reporting path
+# works before you enable any real check.
+
+if [ "${1:-}" = "--selftest" ]; then
+    report "on-file-edit.sh self-test: this text reached Claude, so reporting works."
+    exit 0
+fi
+
 # ── Extract the edited file path from the hook payload ───────────────────────
 
 PAYLOAD=$(cat)
@@ -46,26 +74,6 @@ fi
 
 # No path, no file, or a path outside the project: nothing to do.
 [ -n "$FILE" ] && [ -f "$FILE" ] || exit 0
-
-# ── report <message> — send text back into Claude's context ──────────────────
-
-# shellcheck disable=SC2329  # every call site ships commented out — see the cases below
-report() {
-    local msg="$1" json=""
-    if command -v jq >/dev/null 2>&1; then
-        json=$(jq -nc --arg m "$msg" \
-            '{hookSpecificOutput: {hookEventName: "PostToolUse", additionalContext: $m}}')
-    elif command -v python3 >/dev/null 2>&1; then
-        json=$(MSG="$msg" python3 -c '
-import json, os
-print(json.dumps({"hookSpecificOutput": {
-    "hookEventName": "PostToolUse",
-    "additionalContext": os.environ["MSG"],
-}}))
-')
-    fi
-    [ -n "$json" ] && printf '%s\n' "$json"
-}
 
 # ── Checks by file type ──────────────────────────────────────────────────────
 # Replace the examples with the commands this project actually uses. Prefer the
