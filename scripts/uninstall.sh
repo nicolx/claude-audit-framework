@@ -115,19 +115,28 @@ for spec in PROJECT_AUDIT_FRAMEWORK.md CODING_STANDARDS.md audit-focus.md; do
 done
 
 # ── Per-file check hook ───────────────────────────────────────────────────────
-# The script goes; the settings.json entry is left alone, because that file may
-# hold settings the project owns. A leftover entry is harmless: its command ends
-# in `|| true`, so a missing script is a silent no-op rather than an error.
+# The scripts go; the settings.json entries are left alone, because that file may
+# hold settings the project owns. A leftover entry is harmless either way, but for
+# two different reasons: the PostToolUse command ends in `|| true`, and the Stop
+# command is guarded by `if [ -f ... ]` — it cannot use `|| true`, because that
+# would swallow the exit 2 the gate depends on.
 
-if [ -f "$PROJECT_ROOT/.claude/hooks/on-file-edit.sh" ]; then
-    rm "$PROJECT_ROOT/.claude/hooks/on-file-edit.sh"
-    echo "  ✓  Removed .claude/hooks/on-file-edit.sh"
+REMOVED_A_HOOK=0
+for hook in on-file-edit.sh on-stop.sh; do
+    if [ -f "$PROJECT_ROOT/.claude/hooks/$hook" ]; then
+        rm "$PROJECT_ROOT/.claude/hooks/$hook"
+        echo "  ✓  Removed .claude/hooks/$hook"
+        REMOVED_A_HOOK=1
+    fi
+done
+
+if [ "$REMOVED_A_HOOK" -eq 1 ]; then
     if rmdir "$PROJECT_ROOT/.claude/hooks" 2>/dev/null; then
         echo "  ✓  Removed empty .claude/hooks/"
     fi
-    if grep -qF "on-file-edit.sh" "$PROJECT_ROOT/.claude/settings.json" 2>/dev/null; then
-        echo "  ℹ  .claude/settings.json still references the hook — harmless, but you can"
-        echo "     drop the PostToolUse entry (or run /hooks in Claude Code) to tidy up"
+    if grep -qE "on-file-edit\.sh|on-stop\.sh" "$PROJECT_ROOT/.claude/settings.json" 2>/dev/null; then
+        echo "  ℹ  .claude/settings.json still references a hook — harmless, but you can"
+        echo "     drop the entry (or run /hooks in Claude Code) to tidy up"
     fi
 fi
 

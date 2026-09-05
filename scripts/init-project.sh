@@ -145,27 +145,34 @@ fi
 
 echo ""
 
-# ── Step 3b — Install the per-file check hook (opt-in) ───────────────────────
+# ── Step 3b ─ Install the check hooks (opt-in) ─────────────────────────
 # The coding standards are instructions Claude can overlook. A checker cannot.
 # This is the only mechanical enforcement the framework offers, which is also
 # why it is never installed without being asked for.
+#
+# Two hooks, one pair: on-file-edit.sh checks the file just written and is always
+# advisory; on-stop.sh runs the project gate once at the end of a turn that touched
+# source, and is the one allowed to block. Installed together because on-stop.sh
+# reads a marker that on-file-edit.sh writes — neither is useful alone.
 
 if [ "$WITH_HOOKS" -eq 1 ]; then
     mkdir -p "$HOOKS_DIR"
 
-    if [ -f "$HOOKS_DIR/on-file-edit.sh" ]; then
-        echo "  ↩  .claude/hooks/on-file-edit.sh already exists (skipped — your edits are kept)"
-    else
-        cp "$FRAMEWORK_DIR/templates/hooks/on-file-edit.sh" "$HOOKS_DIR/on-file-edit.sh"
-        chmod +x "$HOOKS_DIR/on-file-edit.sh"
-        echo "  ✓  Created .claude/hooks/on-file-edit.sh (no checks enabled yet — edit it)"
-    fi
+    for hook in on-file-edit.sh on-stop.sh; do
+        if [ -f "$HOOKS_DIR/$hook" ]; then
+            echo "  ↩  .claude/hooks/$hook already exists (skipped — your edits are kept)"
+        else
+            cp "$FRAMEWORK_DIR/templates/hooks/$hook" "$HOOKS_DIR/$hook"
+            chmod +x "$HOOKS_DIR/$hook"
+            echo "  ✓  Created .claude/hooks/$hook (nothing enabled yet — edit it)"
+        fi
+    done
 
     if [ ! -f "$SETTINGS_FILE" ]; then
         cp "$FRAMEWORK_DIR/templates/settings.hooks.json" "$SETTINGS_FILE"
-        echo "  ✓  Created .claude/settings.json with the PostToolUse hook"
-    elif grep -qF "on-file-edit.sh" "$SETTINGS_FILE"; then
-        echo "  ↩  .claude/settings.json already wires the hook (skipped)"
+        echo "  ✓  Created .claude/settings.json with the PostToolUse and Stop hooks"
+    elif grep -qF "on-file-edit.sh" "$SETTINGS_FILE" && grep -qF "on-stop.sh" "$SETTINGS_FILE"; then
+        echo "  ↩  .claude/settings.json already wires both hooks (skipped)"
     else
         echo "  ⚠  .claude/settings.json exists — not modified, to avoid clobbering your settings."
         echo "     Merge this into its \"hooks\" key (or run /hooks in Claude Code):"

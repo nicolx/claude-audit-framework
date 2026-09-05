@@ -12,6 +12,18 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -f .claude/hooks/on-stop.sh ]; then bash .claude/hooks/on-stop.sh; fi",
+            "timeout": 600,
+            "statusMessage": "Running the quality gate..."
+          }
+        ]
+      }
     ]
   }
 }

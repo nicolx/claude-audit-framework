@@ -791,6 +791,59 @@ fi
 rm -f "$OUTFILE"
 rm -rf "$PROJ"
 
+# ── The Stop gate hook ───────────────────────────────────────────────────────
+# The pair is installed together because on-stop.sh consumes a marker that
+# on-file-edit.sh writes. Installing one without the other yields a gate that
+# never fires, which looks exactly like a gate that always passes.
+
+new_case "--with-hooks installs both hooks and wires the Stop event"
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh --with-hooks >/dev/null 2>&1)
+expect_file "$PROJ/.claude/hooks/on-file-edit.sh"
+expect_file "$PROJ/.claude/hooks/on-stop.sh"
+expect_grep "$PROJ/.claude/settings.json" "on-stop.sh" "settings.json wires the Stop hook"
+
+# The PostToolUse command ends in `|| true` and must stay advisory; the Stop
+# command must NOT, because `|| true` would swallow the exit 2 the gate needs.
+# This asserts the asymmetry rather than trusting it to survive an edit.
+if grep -F "on-stop.sh" "$PROJ/.claude/settings.json" | grep -qF "|| true"; then
+    fail "the Stop command is wrapped in '|| true' — it can never block"
+else
+    pass "the Stop command is not neutralised by '|| true'"
+fi
+rm -rf "$PROJ"
+
+new_case "on-stop.sh ships disabled, and its self-test says so"
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh --with-hooks >/dev/null 2>&1)
+# expect_grep matches fixed strings, so no anchor here — the assignment is the
+# only place this exact text appears.
+expect_grep "$PROJ/.claude/hooks/on-stop.sh" 'GATE=""' "no gate configured out of the box"
+OUT=$(cd "$PROJ" && bash .claude/hooks/on-stop.sh --selftest 2>&1)
+case "$OUT" in
+    *"plumbing works"*) pass "self-test reports working plumbing" ;;
+    *) fail "self-test did not confirm the plumbing: $OUT" ;;
+esac
+case "$OUT" in
+    *"No gate is configured"*) pass "self-test says the gate is not enabled yet" ;;
+    *) fail "self-test did not report the missing gate" ;;
+esac
+
+# With no gate set the hook must be inert, not merely quiet.
+if printf '{"stop_hook_active":false}' | (cd "$PROJ" && bash .claude/hooks/on-stop.sh) >/dev/null 2>&1; then
+    pass "an unconfigured gate exits 0"
+else
+    fail "an unconfigured gate did not exit 0 — it would block every turn"
+fi
+rm -rf "$PROJ"
+
+new_case "Uninstall removes both hooks, not just the per-file one"
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh --with-hooks >/dev/null 2>&1)
+(cd "$PROJ" && bash .claude/framework/scripts/uninstall.sh >/dev/null 2>&1)
+expect_absent "$PROJ/.claude/hooks"
+rm -rf "$PROJ"
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

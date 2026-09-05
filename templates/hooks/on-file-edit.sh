@@ -188,6 +188,34 @@ case "$FILE_DIR/" in
     *) exit 0 ;;
 esac
 
+# ── Mark the turn as needing the gate ────────────────────────────────────────
+# Consumed by on-stop.sh, which runs the project's full gate once at the end of a
+# turn that touched source. Without a marker a conversational turn would pay for
+# the whole suite, which is what makes an end-of-turn gate affordable at all.
+#
+# The path derivation is duplicated in on-stop.sh on purpose: a hook is copied into
+# a project as a single self-contained file, so a shared library would be one more
+# thing that can be missing. It lives in the temp directory rather than the project
+# so no consumer needs a .gitignore entry for it.
+#
+# Extensions only, deliberately: this runs before the per-language checks below and
+# must stay cheap. Widen it if your gate covers more, empty it to disable the pair.
+
+GATE_EXTENSIONS="php ts tsx js jsx py rb go rs java kt cs sql"
+
+case "${FILE##*.}" in
+    "$FILE") ;;   # no extension at all
+    *)
+        for _ext in $GATE_EXTENSIONS; do
+            if [ "${FILE##*.}" = "$_ext" ]; then
+                _key=$(printf '%s' "$PROJECT_ROOT" | cksum | cut -d' ' -f1)
+                : > "${TMPDIR:-/tmp}/claude-gate-${_key}" 2>/dev/null || true
+                break
+            fi
+        done
+        ;;
+esac
+
 # ── Checks by file type ──────────────────────────────────────────────────────
 # Replace the examples with the commands this project actually uses. Prefer the
 # project's own binaries (vendor/bin, node_modules/.bin) over global installs.
@@ -198,8 +226,26 @@ esac
 case "$FILE" in
 
     *.php)
+        # Syntax first: it is the cheapest check there is, and a parse error makes
+        # every other tool's output noise about a file that cannot load.
+        # if ! OUT=$(php -l -- "$FILE" 2>&1); then
+        #     report "PHP syntax error in $FILE:"$'\n'"$OUT"
+        # fi
+        #
         # vendor/bin/php-cs-fixer fix --quiet -- "$FILE" 2>/dev/null
         #
+        # phpcs reports rather than fixes; phpcbf is the fixing half. Run it over the
+        # whole file only if the project is already clean — otherwise every edit
+        # reports pre-existing findings the developer did not cause, and the hook
+        # trains them to ignore it.
+        # if ! OUT=$(vendor/bin/phpcs --report=emacs -- "$FILE" 2>&1); then
+        #     report "phpcs on $FILE:"$'\n'"$OUT"
+        # fi
+        #
+        # PHPStan is the one to think twice about here. Measured on a real Symfony
+        # project it costs ~3s for a single file, because it reloads its config and
+        # container each time — so a turn touching ten files pays 30s for an
+        # analysis that on-stop.sh runs once over the whole diff. Prefer it there.
         # if ! OUT=$(vendor/bin/phpstan analyse --no-progress --error-format=raw -- "$FILE" 2>&1); then
         #     report "PHPStan on $FILE:"$'\n'"$OUT"
         # fi

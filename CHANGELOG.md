@@ -8,6 +8,41 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [Unreleased]
+
+### Added — a Stop hook, so the quality gate runs itself
+
+`on-file-edit.sh` checks one file at a time and must stay under two seconds, which leaves the
+expensive half of every project's gate — the type checker over the whole diff, the test suite —
+running only when someone remembers to run it. `templates/hooks/on-stop.sh` closes that: it runs
+the project's own gate command once, at the point Claude is about to hand the work back.
+
+Three decisions are worth stating, because each is a departure:
+
+- **It is allowed to be fatal.** `on-file-edit.sh` states the rule — never fatal, always exit 0 —
+  and it is right for an advisory per-file check. A Stop hook is a different event: if the gate is
+  red there, "done" is false, and reporting that as context would be filed away while the turn
+  ended anyway. It exits 2 on a red gate, and only there; its own defects still exit 0.
+- **It costs nothing on a conversational turn.** `on-file-edit.sh` now leaves a marker when it sees
+  a source file, and the gate runs only if that marker is there. Without it every answered question
+  would pay for the whole suite. The marker lives in the temp directory, keyed by project path, so
+  no consumer needs a `.gitignore` entry and no `git add -A` can commit it.
+- **One block per turn.** Blocking a Stop can loop. The payload's `stop_hook_active` marks the
+  second pass, and on that pass the turn is allowed to end — but the marker is kept, so the gate
+  returns at the end of the next turn instead of being silently dropped.
+
+`init-project.sh --with-hooks` installs both hooks, `uninstall.sh` removes both, and the Stop entry
+in `settings.hooks.json` is guarded by `if [ -f ... ]` rather than `|| true`: the PostToolUse form
+would swallow the exit 2 the gate depends on. A test asserts that asymmetry, so an edit cannot
+quietly neutralise the gate.
+
+### Added — the PHP examples name what to run, and what not to
+
+`php -l` and `phpcs` joined the commented block in `on-file-edit.sh`, and PHPStan gained a warning
+measured on a real Symfony project: ~3s for a single file, because it reloads its config and
+container each time. A turn touching ten files pays 30s for an analysis `on-stop.sh` runs once over
+the whole diff. The note says to prefer it there.
+
 ## [1.9.1] — 2026-09-03
 
 The adversarial pass was re-run against the 1.9.0 redesign. It broke two of the three targets again.
