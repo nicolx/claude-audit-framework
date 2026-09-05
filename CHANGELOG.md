@@ -8,6 +8,42 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.11.0] — 2026-09-05
+
+`/project-audit` had one output shape: every subcriteria, every category, every time. That is the
+right depth at a decision point and far too much for the check you run before a sprint, so the
+command was answering one question well and two questions badly.
+
+### Added
+
+- **A detail level on `/project-audit`** — `--summary`, `--standard` (the default, unchanged
+  behaviour) and `--deep`, in any order alongside the existing directory scope. `--summary` prints
+  the snapshot, the score movement and the summary table, then stops. `--deep` adds a remediation
+  section covering *every* subcriteria the agents recorded a gap against, worst score first, each
+  expanded into where it is, why it matters in this project, what to change and the effort.
+- **An argument grammar and its validation.** `$ARGUMENTS` used to be passed straight to `find` as
+  a scope; it is now parsed against an allow-list — three level literals, one directory that must
+  exist inside the project root and contain no `..`. An unrecognised `--flag`, a second level or a
+  second scope stops the audit and says which token was not understood, rather than quietly running
+  a different audit than the one requested.
+
+### Changed
+
+- **The summary table now precedes the per-category detail** in the report. The verdict is what a
+  reader wants first, and it is what makes stopping at `--summary` a whole report rather than one
+  with its conclusion cut off.
+
+### Notes
+
+- **The level never changes a score.** Phases 1 and 2 are identical at all three: the same evidence
+  bundle, the same ten agents, the same anchors. Making `--summary` cheaper by scoring less would
+  have put incomparable numbers into `docs/audits/history.md` and reported the difference as
+  progress. Scope remains the only lever on what an audit costs.
+- **The written report never shrinks.** At `--summary` the full standard report still goes to
+  `docs/audits/`, and only the printing is short — the agents' evidence has already been paid for.
+  `history.md` is unchanged and needs no migration; `.claude/audit-focus.md` is still regenerated at
+  every level.
+
 ## [1.10.0] — 2026-09-05
 
 Adds the other half of the language question. Since 1.2.0 the framework has had an opinion about the

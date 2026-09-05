@@ -1,12 +1,36 @@
 ---
-description: Full 10-category scored quality audit with 10 parallel scoring agents; writes a dated report and score history to docs/audits/
+description: Full 10-category scored quality audit with 10 parallel scoring agents; writes a dated report and score history to docs/audits/. --summary and --deep change how much of it is printed.
 allowed-tools: [Read, Grep, Glob, Bash, Write, Edit, Task, Agent]
 ---
 
 Run a complete, scored quality evaluation using **10 parallel scoring agents** — one per category.
 
-Optional scope: `$ARGUMENTS` — a directory to confine the audit to (e.g. `/project-audit src/Billing`).
-Empty means the whole project.
+## Arguments
+
+```text
+/project-audit [--summary | --standard | --deep] [<directory>]
+```
+
+Both are optional and order-independent.
+
+**Scope** — a directory to confine the audit to (`/project-audit src/Billing`). Empty means the
+whole project. A scoped audit is only ever compared against prior audits of the same scope.
+
+**Detail level** — how much of the result is *printed*:
+
+| Level | What reaches the conversation |
+|---|---|
+| `--summary` | The snapshot, the score movement, the summary table. Results only — no per-subcriteria evidence, no actions. |
+| `--standard` | Default. The above, plus the ten category blocks, the ranked top actions, and the maturity target check. |
+| `--deep` | The above, plus **every** gap the agents recorded — worst score first, each expanded into where it is, why it matters, and what to change. |
+
+**The level is a rendering choice and nothing else.** Phases 1 and 2 run identically at all three:
+the same evidence, the same ten agents, the same subcriteria against the same anchors. A category
+scores what it scores whether or not you asked to read about it — otherwise `docs/audits/history.md`
+would be comparing a `--summary` run against a `--deep` one and reporting the difference as
+progress. For the same reason the written report is never thinner than `--standard` (§ 3.4): the
+agents' evidence has already been paid for, and dropping it to keep a terminal short loses it for
+good.
 
 **Execution model:** Phase 1 (gather evidence, sequential) → Phase 2 (10 parallel subagents, one
 per category) → Phase 3 (aggregate, persist, report). Scoring is pure reasoning and fully
@@ -19,18 +43,37 @@ project source into agent prompts: with 10 agents that costs the whole codebase 
 
 > ⚠ **Cost:** still a heavy command — ten agents reading real code. On a large project, scope it
 > (`/project-audit src/Billing`) rather than sweeping the tree, and run it at decision points, not
-> as a routine check.
+> as a routine check. `--summary` is not the cheap option: it prints less, it does not measure less.
+> Scope is the only lever on what an audit costs.
 
 ---
 
 ## Phase 1 — Gather evidence (orchestrator, sequential)
 
-### 1.1 — Workspace
+### 1.1 — Parse the arguments, then open a workspace
+
+`$ARGUMENTS` holds whatever followed the command name. Split it on whitespace and classify each
+token — one that begins with `--` is a level, anything else is the scope:
+
+- `--summary`, `--standard`, `--deep` → the level, matched against those three literals exactly.
+  **Any other token beginning with `--` is an error**: say which token was not understood and stop.
+  Do not guess at a near miss, and do not fall through to treating it as a directory.
+- Any other token → the scope. It must resolve to an existing directory **inside** the project root:
+  reject an absolute path, a path containing `..`, and a path that does not exist, naming which of
+  the three it failed.
+- Two levels, or two scopes → stop and say so. Silently keeping the last one runs a different audit
+  than the one that was asked for.
+
+Neither value is ever interpolated into a command string. The scope is passed to `find` as a quoted
+argument; the level selects between branches written out in this file.
+
+Defaults: level `--standard`, scope the whole project. Below, they are *the level* and *the scope*.
 
 ```bash
 AUDIT_DIR=$(mktemp -d "${TMPDIR:-/tmp}/audit-XXXXXX")
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 FRAMEWORK_DIR="$PROJECT_ROOT/.claude/framework"
+SCOPE="."   # ← the validated directory from the parse above, or "." for the whole project
 mkdir -p "$AUDIT_DIR/cat"
 echo "$AUDIT_DIR"
 ```
@@ -112,10 +155,11 @@ If it is declared, append to `common.md`:
 ### 1.6 — Write the source manifest
 
 `$AUDIT_DIR/manifest.md` — an **index**, not the contents. One line per file: path, line count,
-and inferred role. Confine to `$ARGUMENTS` when a scope was given.
+and inferred role. Confine it to the scope from 1.1 — `SCOPE` below is that validated directory,
+and nothing else may be substituted for it.
 
 ```bash
-find "${ARGUMENTS:-.}" -type f \( -name '*.php' -o -name '*.js' -o -name '*.ts' -o -name '*.jsx' \
+find "${SCOPE:-.}" -type f \( -name '*.php' -o -name '*.js' -o -name '*.ts' -o -name '*.jsx' \
      -o -name '*.tsx' -o -name '*.py' -o -name '*.go' -o -name '*.kt' -o -name '*.swift' \
      -o -name '*.rb' -o -name '*.java' -o -name '*.cs' -o -name '*.rs' -o -name '*.sh' \
      -o -name '*.vue' -o -name '*.svelte' \) \
@@ -140,7 +184,8 @@ Before launching Phase 2, state explicitly:
 
 - Technology stack and primary language(s)
 - Architectural pattern and layer structure
-- Scope: full project, or the directory given in `$ARGUMENTS`
+- Scope: full project, or the directory from 1.1 — and the level in effect, so the user learns
+  before the ten agents launch that they asked for `--summary` when they wanted `--deep`
 - Quality gate result: ✓ green / ✗ red / ⚠ partial
 - Maturity: Prototype / Early production / Established / Enterprise — one sentence of reasoning
 - Which conditional categories apply: Cat 3 (DDD) if a domain layer exists; Cat 5 (JS/Frontend) if
@@ -248,21 +293,34 @@ prior entry, state `baseline — first audit at this scope`.
 
 ### 3.3 — Compose the report
 
-In this order:
+Seven sections, in this order. **The level decides where it stops** — each level prints everything
+the ones before it print, so the order below is also the order of increasing detail:
 
-**Project snapshot** — stack, maturity with reasoning, scope, quality gate result (with the failing
-lines if not green), and any of these warnings that apply:
+| | Section | `--summary` | `--standard` | `--deep` |
+|---|---|---|---|---|
+| 1 | Project snapshot | ✓ | ✓ | ✓ |
+| 2 | Score movement | ✓ | ✓ | ✓ |
+| 3 | Summary table | ✓ | ✓ | ✓ |
+| 4 | Detailed subcriteria scores | | ✓ | ✓ |
+| 5 | Top actions | | ✓ | ✓ |
+| 6 | Maturity target check | | ✓ | ✓ |
+| 7 | Remediation detail | | | ✓ |
+
+The summary table comes before the per-category evidence rather than after it, which is where it
+used to sit: the verdict is what a reader wants first, and it is what makes truncating at section 3
+a coherent report rather than a report with its conclusion cut off.
+
+**1. Project snapshot** — stack, maturity with reasoning, scope, quality gate result (with the
+failing lines if not green), and any of these warnings that apply:
 
 - ⚠ No project-level `.claude/PROJECT_AUDIT_FRAMEWORK.md` — audit uses the global framework only
 - ⚠ No project-level `.claude/CODING_STANDARDS.md`
 - ⚠ No `.claudeignore` — dependency trees excluded manually
 - ⚠ No database declared for query analysis — 7.9 and 9.8 scored from configuration only, capped at 8
 
-**Score movement** — the comparison from 3.2, or the baseline note.
+**2. Score movement** — the comparison from 3.2, or the baseline note.
 
-**Detailed subcriteria scores** — the 10 category blocks in order.
-
-**Summary table** — one row per category, in this shape:
+**3. Summary table** — one row per category, in this shape:
 
 ```text
 ┌─────┬─────────────────────────────┬─────────────┬─────────┐
@@ -281,17 +339,62 @@ lines if not green), and any of these warnings that apply:
 └─────┴─────────────────────────────┴─────────────┴─────────┘
 ```
 
-**Top actions** — ranked by impact/effort. For each: what to fix, where (`file:line`), why it
+At `--summary` the report ends here, with two closing lines and nothing else:
+
+```text
+Below the Established target (7/10): Cat 4 (5.0) · Cat 7 (6.5) · Cat 9 (4.0)
+Full report: docs/audits/2026-09-05-audit.md — 23 recorded gaps. Re-run with --deep to read them.
+```
+
+**4. Detailed subcriteria scores** — the 10 category blocks in order, verbatim from the agents.
+
+**5. Top actions** — ranked by impact/effort. For each: what to fix, where (`file:line`), why it
 matters, estimated effort (small / medium / large).
 
-**Maturity target check** — the assessed maturity, the framework's minimum per category for that
+**6. Maturity target check** — the assessed maturity, the framework's minimum per category for that
 level, and every category below it with its actual score.
+
+**7. Remediation detail** — `--deep` only. **Every** subcriteria whose `Gap` column is not `—`,
+worst score first, across all categories. The cut is the presence of a recorded gap, not a threshold:
+a 7/10 with a named gap is still a named gap, and "everything worth improving" is what this level
+was asked for. One entry each:
+
+```markdown
+##### 9.2 Structured logging — 4/10 · Category 9 · Principle 16
+
+- **Where:** `src/Infrastructure/Mailer.php:88`, `src/Console/SyncCommand.php:31`
+- **The gap:** what is there now, in one sentence
+- **Why it matters:** the failure this makes likely, or makes invisible — concrete to this project,
+  not the criterion restated
+- **What to change:** the smallest change that closes it
+- **Effort:** small / medium / large
+```
+
+- **Expand from evidence already in hand.** The agents cited `file:line` for every subcriteria they
+  scored; this section rewrites those citations into instructions. Do not re-read the tree, and
+  never invent a location. Where an agent recorded a gap with no citation, write
+  `**Where:** not cited by the Category N agent` and leave it at that — an admitted hole costs a
+  reader one line, a fabricated line number costs them the trip.
+- **Principle** comes from the traceability table at the end of
+  `.claude/framework/standards/CODING_STANDARDS.md`. A criterion with no principle behind it is
+  project work rather than write-time work: write `Principle: — (project work)`. That is the same
+  distinction 3.5 makes when it decides what may enter the audit focus.
+- **Top actions stays as it is.** `--deep` is the long tail underneath the ranking, not a
+  replacement for it. Do not re-rank, and do not drop an entry because it already appears above.
+- On a full-project audit this section runs long — eighty entries is normal for a codebase scoring
+  in the sixes. That is what the level means. If it is more than is useful, the lever is scope:
+  `/project-audit --deep src/Billing`.
 
 ### 3.4 — Persist
 
 ```bash
 mkdir -p docs/audits
 ```
+
+**What is written does not shrink with the level.** At `--summary` compose the whole report through
+section 6 and write *that* to disk, then print only sections 1–3. At `--deep` the remediation detail
+goes into the file too. The level is not recorded in the report or in `history.md` — the scores in
+both are identical either way, and a field nothing reads is a field that goes stale.
 
 - Write the full report to `docs/audits/YYYY-MM-DD-audit.md`. For a scoped audit, append the scope
   as a slug: `2026-09-03-audit-src-billing.md`. If the file already exists (a second audit the same
@@ -324,6 +427,10 @@ way; never commit it yourself.
 
 An audit that only produces a report changes nothing about the code written after it. Turn the
 findings into instructions that apply while writing, in `.claude/audit-focus.md`.
+
+This step runs at **every** level, `--summary` included. It is derived from the scores rather than
+from the prose the level selected, and skipping it would leave the project writing code against a
+stale focus while the report on disk says otherwise.
 
 **What goes in it:** the 3–5 weakest criteria **that have a write-time principle behind them** —
 look them up in the traceability table at the end of
