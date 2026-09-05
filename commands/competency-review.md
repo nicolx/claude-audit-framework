@@ -16,6 +16,8 @@ Read `~/.claude/context/user_profile.md` in full. Note:
 - All `Base *` competencies (priority targets)
 - All `Operativo` competencies (candidates for promotion)
 - The current `next_review_date`
+- The **User-facing language** block — not a competency, so it is not promoted or demoted; it is
+  confirmed or corrected
 
 ## Step 2 — Conduct the assessment
 
@@ -111,6 +113,14 @@ Then ask the user: "Do you want to add any of these to your profile?"
 
 Do not add anything without explicit confirmation. This section is advisory, not automatic.
 
+### Section F — User-facing language
+
+Ask: "Still working primarily in [language from the profile]? And are there other natural languages
+you read fluently now?"
+
+One question, no levels. Skip the section if the profile has no such block yet — offer to add it
+instead, explaining that it only seeds the locale set a project is expected to serve.
+
 ## Step 3 — Propose updates
 
 Present a summary of proposed changes:
@@ -118,6 +128,8 @@ Present a summary of proposed changes:
 - Promotions: Base * → Operativo, Operativo → Fluente
 - Regressions: Fluente → Operativo (if any)
 - New entries
+- User-facing language, if it changed — listed separately, because it has no level and is not a
+  promotion
 
 Ask the user to confirm before writing.
 

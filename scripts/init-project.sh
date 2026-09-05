@@ -218,7 +218,8 @@ if [ ! -f "$HOME/.claude/context/user_profile.md" ]; then
     PROFILE_MISSING=1
     echo ""
     echo "  ⚠  Developer profile NOT found (~/.claude/context/user_profile.md)"
-    echo "     Run /init-profile in Claude Code to calibrate recommendations to your skill level."
+    echo "     Run /init-profile in Claude Code to calibrate recommendations to your skill level"
+    echo "     and record the natural language you work in."
 fi
 
 echo ""

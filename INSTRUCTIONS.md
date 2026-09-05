@@ -96,7 +96,9 @@ it; do not run it unprompted, because it contacts the remote.
 
 ## Developer profile
 
-If `~/.claude/context/user_profile.md` exists, read it in full before proposing any technical solution, architectural choice, or implementation strategy. Calibrate every response to the competency levels defined inside:
+If `~/.claude/context/user_profile.md` exists, read it in full before proposing any technical solution, architectural choice, or implementation strategy. Most of it is competency levels, which calibrate how a proposal is delivered; one section — **User-facing language** — is not a level at all, and is covered separately below.
+
+Calibrate every response to the competency levels defined inside:
 
 - **Fluente** — propose advanced patterns freely; skip basic explanations; use domain terms without glossing
 - **Operativo** — use in proposals but explain non-obvious choices; avoid advanced patterns without rationale
@@ -133,6 +135,12 @@ here" is not a reason to ship a lower standard — it is the reason to explain w
 At the start of each session, check the `next_review_date` field. If today's date is on or past that date, flag it once:
 > 📋 Competency review due — run `/competency-review` when ready.
 
+### The one field that is not a competency level
+
+The profile's **User-facing language** section records the developer's primary natural language. It has exactly one use: seeding the required locale set a project declares for subcriteria 2.10. Its own disclaimer, written into the profile, is the authority — this file only points at it, because the profile is global and is read in projects where this framework is not installed.
+
+It does **not** change the language of anything you write. Code, identifiers, comments, commit messages, documents and replies are unaffected — those follow principle 20 and the conversation. It is not a conversation-language preference.
+
 **If the file does NOT exist:** mention it once at the start of the session — `> 💡 No developer profile found. Run /init-profile to enable skill-level calibration.` — then proceed normally without repeating it.
 
 ---
@@ -150,7 +158,7 @@ Read it before conducting any quality evaluation or scoring. Do not score from m
 | # | Category | Always evaluated? |
 |---|---|---|
 | 1 | OOP & Design Patterns | Yes |
-| 2 | Clean Code | Yes |
+| 2 | Clean Code | Yes (2.9–2.10 unless the project writes no text for anyone using it) |
 | 3 | Domain-Driven Design (DDD) | If domain layer is present |
 | 4 | Testing | Yes |
 | 5 | JavaScript / Frontend Quality | If JS/TS is present |
@@ -259,6 +267,19 @@ Two failure modes to avoid actively, because both look like tidying: do not "har
 that belong to two contexts, and do not invent a compound the domain does not use
 (*FatturaElettronica* is the document, *FatturazioneElettronica* is the process — a module may be
 named for the process, an entity may not).
+
+### User-facing text
+
+Naming is one half of the language question; the text the product shows its users is the other, and it has its own rule. Before writing a string a person will read — a label, a PDF heading, an email body, a line of CLI output, a validation message that reaches a screen — find the project's translation catalog and put the string there, in the same change. Never inline it, not even provisionally.
+
+The **User-facing text** section of `.claude/CODING_STANDARDS.md` names the mechanism, where the catalogs live, and which locales the project has committed to serving. Then:
+
+- **The project declares a locale set** → the change is not finished until the new keys exist in every catalog in it, not only the English one.
+- **No such section exists** → say so once, propose it, and use the mechanism the framework already provides rather than inventing one. Subcriteria 2.9 and 2.10 both start from that section.
+- **The declared set omits your own working language** → say so once and propose adding it, with the reason. Never add a locale to the set yourself, and never treat an undeclared locale as required.
+- **Existing code hardcodes its strings** → put new text through the catalog and mention the inconsistency. Retrofitting the existing strings is a separate change, and the developer's call.
+
+Author the text in English: it is the source and the fallback, so a locale missing a key still renders something readable. Terms declared in the **Domain language** section stay whole inside the text — the English catalog says `FatturaElettronica`.
 
 ### Database access
 

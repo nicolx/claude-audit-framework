@@ -56,6 +56,9 @@ Ask:
 
 1. "What is your primary role? (e.g., backend developer, fullstack, frontend, DevOps, architect, tech lead)"
 2. "What language or stack do you spend most of your time in?"
+3. "This one isn't a level: what natural language do you work in day to day? I record it so that when a project declares which languages its users are served in, I can tell you if yours is missing. It never changes the language I write code, comments or documents in — that stays English."
+
+Question 3 is not about skill — say so as you ask it, so it is not answered on the three-level scale. Accept a second answer if they name other natural languages they read fluently.
 
 ### Section B — Languages
 
@@ -218,12 +221,27 @@ Proceed freely through the Fluente and Operativo parts of a task without interru
 
 ---
 
+## User-facing language
+
+| Field | Value |
+|---|---|
+| Primary natural language | [Italiano (it)] |
+| Also reads | [English, Español] |
+
+> This is not a competency level and not a conversation preference. It seeds the required locale set
+> of subcriteria 2.10: when a project declares which languages its users are served in, a primary
+> language missing from that set is a gap worth raising. It does **not** change the language of code,
+> identifiers, comments, commit messages, documents, or replies — those stay English under
+> principle 20.
+
+---
+
 ## Review schedule
 
 | Field | Value |
 |---|---|
 | Cadence | Quarterly |
-| Next review | [today + 3 months] |
+| next_review_date | [today + 3 months] |
 | Command | `/competency-review` |
 ```
 

@@ -543,7 +543,7 @@ will be undone by accident.
 
 ---
 
-## 20. Code speaks English, the domain speaks its own language
+## 20. Code speaks English, the domain speaks its own language, the product speaks the user's
 
 Write code in English: identifiers, comments, test names, developer-facing messages, technical
 documentation. English is the language of the standard library, the framework, the error messages,
@@ -584,8 +584,21 @@ domain's own word forms: *FatturaElettronica* is the document, *FatturazioneElet
 process. A module may be named for the process, an entity may not. A compound the domain does not
 use loses exactly what a translation would have lost.
 
-User-facing text is a different question. Labels, emails and messages shown to end users belong to
-the product's language — that is internationalisation, not naming.
+**User-facing text is a different question, and it has its own rule: wrap it when you write it.**
+Every string a person will read — a label, a PDF heading, an email body, a line of CLI output, a
+validation message that reaches a screen — goes into the project's translation catalog in the same
+change that introduces it. Not "for now", not "until we need a second language": a hardcoded string
+is cheap to add and expensive to find later, and the ones never found are what make a product
+untranslatable.
+
+Author the text in English. English is the source and the fallback, so a locale missing a key still
+renders something a reader can act on. Terms declared in the **Domain language** section stay whole
+inside the text — the English catalog says `FatturaElettronica`, because that is the name of the
+thing, not a word awaiting translation.
+
+Where the project declares more than one locale, a feature is not done until its keys exist in every
+declared catalog. And keep the catalog out of the domain: the domain names the fact, the layer that
+speaks to a person chooses the sentence.
 
 **What good looks like:**
 
@@ -595,6 +608,8 @@ the product's language — that is internationalisation, not naming.
 - Domain terms whole and in the domain's own grammar; ASCII-only identifiers
 - Comments and test names in English even about domain terms:
   `it_rejects_a_fattura_without_a_partita_iva()`
+- Every user-facing string added to the catalog in the change that introduced it, in every declared
+  locale, with named placeholders rather than concatenated fragments
 
 **Signals of drift:**
 
@@ -605,6 +620,10 @@ the product's language — that is internationalisation, not naming.
 - One term spelled several ways: declaring a term commits you to one spelling
 - Comments in the local language inside otherwise English code
 - A declared list that has grown to cover every local word: an amnesty for not renaming, not a glossary
+- A user-facing string written straight into a template, a PDF builder or a mail body
+- One surface translated and the rest — emails, PDFs, CLI output — left hardcoded
+- A feature merged with its English keys only, the other declared locales left to a later ticket
+- A translation key stored on a domain object: the domain has learned how it will be displayed
 
 ---
 
@@ -719,7 +738,7 @@ can only be found in an audit, never written correctly the first time.
 | 17 | Test doubles at the boundary | 4.4, 4.6 |
 | 18 | A deprecation is a deadline | 7.8 |
 | 19 | History is part of the deliverable | 10.11, 10.14 |
-| 20 | Code speaks English, the domain speaks its own language | 2.8 |
+| 20 | Code speaks English, the domain speaks its own language, the product speaks the user's | 2.8, 2.9, 2.10 |
 | 21 | Know the cost of your data access | 7.9, 9.8 |
 | 22 | Documentation is part of the change that invalidated it | 7.10, 10.15 |
 

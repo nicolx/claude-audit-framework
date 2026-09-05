@@ -62,9 +62,36 @@ does apply everywhere.
 process: a module may be named for the process, an entity may not. And one term, one spelling —
 declaring `FatturaElettronica` rules out `fattura_elettronica` and `FattElettr` elsewhere.
 
-Applies to identifiers, comments, test names, and developer-facing messages. It does **not** apply
-to user-facing text — labels, emails and end-user messages belong to the product's language and are
-an internationalisation concern.
+Applies to identifiers, comments, test names, and developer-facing messages. User-facing text is the
+next section: a different rule, measured separately.
+
+## User-facing text
+
+> Required by principle 20 and scored as subcriteria 2.9 and 2.10. Every string a person reads goes
+> through the mechanism below, in the change that introduces it. Text is authored in English, which
+> is also the fallback; declared domain terms above stay whole inside it.
+>
+> **Delete this section entirely if the project writes no text for anyone using it** — a pure
+> library, a machine-only pipeline, or a tool read only by its own developers and operators. A
+> product CLI, an API with displayable error messages, or a job that emails a report does write it.
+
+| Field | Value |
+|---|---|
+| Mechanism | [symfony/translation] |
+| Catalogs | [`translations/messages.<locale>.xlf`] |
+| Source locale | `en` — fixed |
+| Completeness check | [`bin/console debug:translation --only-missing <locale>`, run in CI] |
+
+**Required locale set.** One row per locale the project has committed to serving. A locale is here
+because someone needs it, and the reason says who.
+
+| Locale | Why it is required | Catalog |
+|---|---|---|
+| `en` | [Source text and the fallback for every other locale] | [`messages.en.xlf`] |
+| [`it`] | [The domain is Italian e-invoicing: the people who file a FatturaElettronica work in Italian] | [`messages.it.xlf`] |
+
+**Surfaces covered.** [List every place the system writes text for a person, so a gap is visible.
+Example: web templates, invoice PDF, transactional email, `bin/console` output.]
 
 ## Naming conventions
 

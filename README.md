@@ -6,7 +6,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 
 - **10-category quality framework** for code review and architecture evaluation (`/project-audit`)
 - **22 coding principles** applied automatically to every code proposal, traced to the audit criteria that measure them
-- **Developer profile system** — calibrates Claude's recommendations to each developer's skill level
+- **Developer profile system** — calibrates Claude's recommendations to each developer's skill level, and records the natural language they work in
 - **Skill commands**: `/project-audit`, `/competency-review`, `/init-profile`
 
 ## Add to a project
@@ -14,7 +14,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 ```bash
 # Add the submodule — pin a released version rather than tracking main
 git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-git -C .claude/framework checkout v1.9.1
+git -C .claude/framework checkout v1.10.0
 
 # Bootstrap: installs the commands, scaffolds the project files, records the version
 bash .claude/framework/scripts/init-project.sh
@@ -36,6 +36,8 @@ The first time you open Claude Code in a project with this framework, run:
 
 This creates a personal profile at `~/.claude/context/user_profile.md`. It stays on your machine — it is never tracked in the project repo. Every developer on the team creates their own.
 
+Most of it is competency levels. One block is not: the natural language you work in, which lets Claude tell you when a project's declared locale set leaves your language out (subcriteria 2.10). It never changes the language anything is written in — code, comments and documents stay English.
+
 ## Available commands
 
 | Command | What it does |
@@ -55,7 +57,7 @@ a framework that is present and doing nothing.
 bash .claude/framework/scripts/check-updates.sh
 
 # 2. Move to it
-cd .claude/framework && git fetch --tags && git checkout v1.9.1 && cd ../..
+cd .claude/framework && git fetch --tags && git checkout v1.10.0 && cd ../..
 
 # 3. Make the install conformant with the new version — migrations included
 bash .claude/framework/scripts/init-project.sh
@@ -63,7 +65,7 @@ bash .claude/framework/scripts/init-project.sh
 # 4. Verify, and read what it says
 bash .claude/framework/scripts/check-install.sh
 
-git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.9.1"
+git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.10.0"
 ```
 
 Three scripts, three questions, no overlap:
@@ -86,7 +88,7 @@ entries you need are named rather than hunted for. `init-project.sh` migrates ev
 automatically and is idempotent, so there is no version-by-version upgrade path to follow: you can
 go from any older version straight to the newest one.
 
-The conformance rules ship *inside* each version, so checking out `v1.9.1` gets you `v1.9.1`'s
+The conformance rules ship *inside* each version, so checking out `v1.10.0` gets you `v1.10.0`'s
 checks with no lookup table to keep in sync.
 
 ## Two halves: writing and measuring
@@ -114,7 +116,8 @@ rather than generic ones. It is regenerated at every audit.
 
 A developer profile calibrates *how* work is delivered — how much is explained, whether a gap is
 addressed jointly, which of several compliant options is chosen. It never lowers a quality
-criterion. Code written for someone whose profile says `Observability | Base *` still gets
+criterion, and the one non-competency field in it — the developer's natural language — changes
+nothing about what gets written either. Code written for someone whose profile says `Observability | Base *` still gets
 structured logging; the difference is that Claude says so and walks through it instead of handing
 over a finished Monolog config.
 

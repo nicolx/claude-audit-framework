@@ -8,6 +8,61 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.10.0] — 2026-09-05
+
+Adds the other half of the language question. Since 1.2.0 the framework has had an opinion about the
+language of *code* and said, in three separate files, that the language of *output* was somebody
+else's problem. That gap let a project score 10/10 on 2.8 with every label, PDF heading and email
+body typed straight into a template — untranslatable, and expensive to discover late.
+
+### Added
+
+- **Subcriteria 2.9 — Translatability of user-facing text.** Every string a person reads goes
+  through a translation mechanism, and the mechanism reaches every surface: templates, PDFs, mail,
+  CLI, and validation messages that reach a screen. English is the source text and the fallback that
+  never fails. The failure mode it is built to catch is the pocket — a translated web UI whose emails
+  and CLI output are hardcoded — so it is scored by visiting every surface, not by sampling.
+- **Subcriteria 2.10 — Locale coverage.** The project declares which languages it serves and the
+  catalogs are complete for every one of them. A project whose domain is defined by another
+  country's law is serving people who work in that language: a codebase built on
+  `FatturaElettronica` has Italian users, and English-only is a coverage gap rather than a decision.
+- **A `User-facing text` section in the project `CODING_STANDARDS.md` template** — the declaration:
+  the mechanism, the catalogs, the completeness check, and one row per required locale with the
+  reason it is required. Delete it outright if the project produces no human-readable output.
+- **A `User-facing language` block in the developer profile** (`/init-profile`, `/competency-review`).
+  It is the one field in that file which is not a competency level, and its disclaimer lives inside
+  the profile rather than in `INSTRUCTIONS.md`, because the profile is global and gets read in
+  projects where this framework is not installed. It does not change the language of code, comments,
+  documents or replies.
+- **Principle 20 gains its third clause** — *the product speaks the user's* — and now maps to 2.8,
+  2.9 and 2.10. Wrap the string when you write it: a user-facing string enters the catalog in the
+  change that introduces it, in every declared locale, never "for now".
+- **An i18n row in the Appendix and in the mobile notes** — the mechanism and, more importantly, the
+  command that lists the missing keys, per stack. A mechanism with no way to enumerate what is
+  missing cannot be shown to be complete.
+
+### Fixed
+
+- The N/A rule was written about categories only, while three subcriteria already carried their own
+  scope lines and `/project-audit` already said "for a subcriteria or the whole category". Stated
+  once, where the rule lives.
+- Step 1's reading list did not include the translation catalogs, which 2.9 and 2.10 cannot be
+  scored without.
+- `/init-profile` wrote a `Next review` row while `INSTRUCTIONS.md` and `/competency-review` read a
+  `next_review_date` field. Three files named a field the template never created; the template now
+  creates it. Pre-existing, and fixed here because this change edits all four.
+
+### Why the developer's language seeds the score but never moves it
+
+The requirement was that catalogs be populated in the language the developer works in, and the
+obvious implementation — read the language, expect a catalog for it — would have made the score
+depend on which laptop ran the audit. `docs/audits/history.md` records a trend; a number that moves
+because someone else ran the same audit does not just differ, it poisons the delta permanently, in a
+committed file. So the profile acts one step earlier than scoring: a language in real use and missing
+from the declared set is a finding about the *declaration*, and the declaration — which lives in the
+repository, where everyone sees it — is what 2.10 measures. The catalogs still get populated; the
+route runs through the artefact the team shares.
+
 ## [1.9.1] — 2026-09-03
 
 The adversarial pass was re-run against the 1.9.0 redesign. It broke two of the three targets again.

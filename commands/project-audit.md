@@ -145,6 +145,10 @@ Before launching Phase 2, state explicitly:
 - Maturity: Prototype / Early production / Established / Enterprise — one sentence of reasoning
 - Which conditional categories apply: Cat 3 (DDD) if a domain layer exists; Cat 5 (JS/Frontend) if
   JS or TS files are present
+- Whether the project writes text for anyone *using* it, and through which surfaces — templates, PDF
+  or report builders, mail, product CLI. Output read only by the project's own developers and
+  operators does not count. This is what decides 2.9 and 2.10; state it here so the Cat 2 agent does
+  not have to reach the N/A call alone
 - Whether database evidence was captured — and if not, that 7.9 and 9.8 are capped at 8
 
 ---
@@ -207,7 +211,7 @@ recorded in the manifest.
 | # | Category | Evidence focus |
 |---|---|---|
 | 1 | OOP & Design Patterns | Domain and application classes, interfaces, factories, the largest classes in the manifest |
-| 2 | Clean Code | A sample across the tree, weighted to the longest files — that is where naming, size and duplication problems concentrate. For 2.8, read the **Domain language** section of `.claude/CODING_STANDARDS.md` *first*, note which context each sampled file belongs to, then sample deliberately across the context boundaries: a declared term inside its context is correct, the same term outside it is a boundary leak, and an undeclared non-English term is drift |
+| 2 | Clean Code | A sample across the tree, weighted to the longest files — that is where naming, size and duplication problems concentrate. For 2.8, read the **Domain language** section of `.claude/CODING_STANDARDS.md` *first*, note which context each sampled file belongs to, then sample deliberately across the context boundaries: a declared term inside its context is correct, the same term outside it is a boundary leak, and an undeclared non-English term is drift. For 2.9 and 2.10, read the **User-facing text** section of the same file first — it is the only place the required locale set is declared — then visit *every* surface the orchestrator listed, not a sample: a hardcoded PDF or mail template is the finding, and sampling is how it stays hidden. For 2.10, diff the key sets between catalogs rather than trusting their line counts, and score against the declared set only — nothing outside the repository enters the score |
 | 3 | Domain-Driven Design | Layer directories, entities, value objects, repository interfaces, domain events, and whatever enforces the boundaries |
 | 4 | Testing | The whole test tree, the test runner config, plus enough source to judge whether the critical paths are the ones covered |
 | 5 | JS / Frontend | JS/TS files only, plus their build and lint config |
@@ -327,6 +331,10 @@ look them up in the traceability table at the end of
 gate, absent security headers, no health endpoint) cannot be honoured while writing a feature; it
 belongs in the report's Top actions as project work, not here. Ranking is by distance below the
 maturity target, severity breaking ties.
+
+2.10 is the same shape as those: populating a catalog is backlog work, not a rule someone can honour
+while writing a feature, so it belongs in Top actions. 2.9 belongs here — "put the string in the
+catalog" applies to the next line of code written.
 
 Overwrite the file completely — it describes the current audit, not an accumulated history. Use
 this shape:

@@ -92,6 +92,8 @@ Scoring is always evidence-based: assign a score only when you can point to a sp
 
 Mark a category N/A only when the concern is structurally absent from the project (e.g., "Framework Adherence" for a project with no framework). Do not use N/A to avoid a difficult evaluation.
 
+The same rule applies to a single subcriteria: some carry their own scope line saying when they are N/A, and that line states the structural condition, not a difficulty threshold. A subcriteria marked N/A is excluded from the category's score; it is never scored zero.
+
 ---
 
 ## Project-level specializations (optional)
@@ -196,7 +198,9 @@ Intentional use of established patterns where they solve a real problem. Pattern
 
 ## Category 2 — Clean Code
 
-**What it measures:** How well the code communicates its intent to a human reader without requiring external context or comments to decode.
+**What it measures:** How well the code communicates its intent to a human reader without requiring external context or comments to decode — and, in 2.9 and 2.10, whether the text it writes for its users can be read in their own language.
+
+2.1–2.8 are always evaluated. 2.9 and 2.10 are evaluated wherever the system produces text for someone using it: they are N/A only for a codebase that produces none — a pure library, a machine-only pipeline, or a tool whose only readers are its own developers and operators.
 
 ### Subcriteria
 
@@ -358,8 +362,9 @@ have lost.
 
 **Scope.** Identifiers (classes, methods, variables, files, database columns), comments,
 developer-facing messages, test names, technical documentation. **Not** user-facing text: labels,
-emails and messages shown to end users belong to the product's language and are an
-internationalisation concern, not a naming one.
+emails and messages shown to end users are measured by 2.9 and 2.10, which ask a different question —
+not what language the code is written in, but whether the product can be read in a language it was
+not written in.
 
 **Good:**
 
@@ -401,6 +406,122 @@ their contexts. A uniformly English codebase with nothing to declare scores full
 section — the criterion measures consistency and intent, not the existence of a glossary. Weight a
 boundary leak above a local naming slip: the first says the architecture is eroding, the second says
 someone was in a hurry.
+
+#### 2.9 Translatability of user-facing text
+
+*Applies wherever the system produces text for someone **using** it. Mark N/A only for a codebase
+with no such output — a pure library, a machine-only pipeline, or a tool whose only readers are the
+developers and operators of the system itself. A product CLI, an API with displayable error
+messages, or a batch job that emails a report is not N/A.*
+
+Every string a person reads goes through a translation mechanism, and the mechanism reaches every
+surface the system writes to. English is the source text and the last link of the fallback chain.
+
+This is not the question 2.8 asks. That one asks what language the *code* is written in; this one
+asks whether the *product* can speak a language it was not written in. A codebase scores full marks
+on 2.8 and is still untranslatable if every label was typed straight into a template.
+
+**Where it applies:** UI labels and templates, PDFs and generated reports, emails and notifications,
+product CLI output, and validation and error messages that reach a screen. A surface that writes text
+for a person is in scope whether or not the project thinks of it as "the UI".
+
+**The line is the reader, not the surface.** 2.8 already claims developer-facing messages — logs,
+stack traces, assertion text, the output of a build script or an operator command — and keeps them
+in English, untranslated. This subcriteria claims the text written for someone using the product. A
+developer tool whose only readers are its own operators has no user-facing text at all, and both 2.9
+and 2.10 are N/A for it. When the same message reaches both, it is user-facing: the operator can read
+English, and the user may not.
+
+**English is the source, and the fallback that never fails.** Text is authored in English. A locale
+with no entry for a key renders the English text — never a blank, a raw key, or an exception. Terms
+declared under 2.8 are not translated in any locale: the English catalog says `FatturaElettronica`,
+because that is the name of the thing.
+
+**The pocket is the failure mode.** Translation is rarely absent outright; it is almost always
+partial, and the part left behind is the one nobody demos — the PDF, the cron job's email, the CLI's
+error text. One uncovered surface makes the product monolingual for everyone who reaches it.
+
+**Where the catalog must not reach:** the domain. 3.2 keeps display concerns out of domain objects,
+and a translation key inside an entity is that same leak — the domain names the *fact*
+(`OrderRejected`, an error type), and the layer that speaks to a person chooses the sentence.
+
+**Good:**
+
+- Every surface resolving text through one mechanism: web templates, the PDF builder, the mailer and
+  the console command all read from the same catalog
+- The framework's own translation component rather than a hand-rolled `t()` (see 6.2)
+- A missing Italian key rendering the English text, with the miss logged rather than swallowed
+- Declared domain terms left whole in every catalog:
+  `en.billing.fattura_elettronica = "FatturaElettronica"`
+- Text held as data with named placeholders — `orders.shipped_on` taking a date argument — so a
+  language with different word order can reorder it
+
+**Bad:**
+
+- Literal human-readable text inside a template, a PDF builder or a mail body: `<h1>Invoice</h1>`,
+  `$pdf->text('Total due')`
+- A translated web UI whose emails, PDFs and CLI output are hardcoded — the pocket
+- Exception and validation messages written for developers and then shown to users unchanged
+- A missing key rendering `orders.shipped_on` or an empty string on the page
+- Sentences assembled from translated fragments: `t('the order') . ' ' . t('was shipped')`
+- A translation key stored on a domain entity, so the domain now knows how it will be displayed
+- A second language added by duplicating the templates rather than by adding a catalog
+
+**How to score.** Do not sample the surface the project is proud of. List every place the system
+writes text for a person — templates, PDF, mail, CLI, API error payloads that reach a screen — and
+check each one for literal text. Weight one entirely uncovered surface far above a scatter of stray
+strings: the first says the mechanism has a boundary, the second says someone was in a hurry. A
+project with no mechanism at all scores in the 0–2 band however clean its templates are, because
+this subcriteria measures whether a second language is possible, not whether the first one is tidy.
+
+#### 2.10 Locale coverage
+
+*Applies wherever the system produces text for someone using it — same scope as 2.9, and N/A on the
+same grounds.*
+
+The project declares which languages it serves, and the catalogs are complete for every one of them.
+2.9 asks whether the product *can* be translated; this asks whether it *has been*, for the people who
+actually need it.
+
+**The declaration.** The project's `.claude/CODING_STANDARDS.md` carries a **User-facing text**
+section naming the translation mechanism and listing the required locale set: one row per locale with
+the reason it is required. English is always in the set. A project whose domain is defined in another
+language is serving people who work in that language — a codebase built on `FatturaElettronica` has
+Italian users, and English-only is a coverage gap, not a decision.
+
+**Good:**
+
+- A declared locale set with a reason on every row, and a catalog for each that a key-set diff shows
+  is complete
+- `en` and `it` in a project implementing Italian e-invoicing, because the people who file a
+  `FatturaElettronica` work in Italian
+- A CI step that fails when a key exists in one catalog and not in another
+- A feature landing with its keys in every declared locale in the same change, rather than in a
+  "translations" ticket that never comes up
+
+**Bad:**
+
+- One catalog with 900 keys and another with 300, and nobody able to say which 600 are missing
+- Keys present but empty, so the page renders blank instead of falling back to English
+- A declared locale nobody has updated in a year, drifting behind the English text it mirrors
+- A locale set that exists only in someone's head: with no declaration there is nothing to be
+  complete against, so coverage cannot be distinguished from ambition
+- A project whose domain is defined by another country's law shipping English only, with no row
+  explaining why
+
+**How to score.** Read the **User-facing text** section first. Without a declared set there is
+nothing to measure completeness against, and that absence is the finding — 3–4 at best, however many
+catalogs exist. Then diff the key sets across locales and check when each was last touched: a catalog
+that stopped being updated is worse than one never started, because it renders stale text with no
+warning.
+
+**What is scored is the project's declaration, not the evaluator's machine.** The required locale set
+is the one written in the project's file. Two people auditing the same commit must reach the same
+score: a number that moved because a different laptop ran the audit is worse than a low one, because
+it enters `docs/audits/history.md` as a trend. Nothing outside the repository enters this score. A
+language in real use but missing from the declared set enters one step earlier — it is a finding
+about the *declaration*, reported as a gap in that section and never as a deduction against the
+catalogs. Name the locale, not the person.
 
 ---
 
@@ -2004,6 +2125,7 @@ Read at least these files before assigning any score:
 7. The git log (`git log --oneline -20`) — commit message quality is observable immediately
 8. The branch list (`git branch -a`) — stale or unnamed branches signal absent strategy
 9. `CONTRIBUTING.md` or equivalent — is the branching strategy documented?
+10. The translation catalogs and the surfaces that write text for a person (templates, PDF and mail builders, CLI output) — 2.9 and 2.10 cannot be scored from source alone
 
 ### Step 2 — Score each subcategory with evidence
 
@@ -2068,6 +2190,20 @@ The criteria in this document are language-agnostic. This table maps each qualit
 | In-memory fakes | Custom class implementing interface | Same | Same | Same | Same | Same |
 | Integration test group | `#[Group('integration')]` | `describe.skip` / custom config | `@pytest.mark.integration` | `//go:build integration` | `@Tag("integration")` | `XCTSkipIf` / custom scheme |
 
+### Translation of user-facing text (2.9, 2.10)
+
+| Language / platform | Mechanism | Completeness check |
+|---|---|---|
+| PHP (Symfony) | `symfony/translation`, `translations/messages.<locale>.xlf` | `bin/console lint:xliff` + `debug:translation --only-missing <locale>` |
+| PHP (Laravel) | `lang/<locale>/*.php`, `__()` / `@lang` | `php artisan lang:missing` (community package) or a key-set diff in CI |
+| TypeScript / JS | `i18next` / `react-intl`, JSON catalogs per locale | `i18next-parser` extraction, then diff the generated catalogs |
+| Python | `gettext` + Babel, `locale/<locale>/LC_MESSAGES/*.po` | `pybabel extract` + `pybabel update`; `msgfmt --statistics` reports untranslated |
+| Go | `go-i18n` or `golang.org/x/text/message`, `active.<locale>.toml` | `goi18n merge` writes `translate.*.toml` — a non-empty one is the gap |
+| Kotlin / Android | `res/values/strings.xml`, `res/values-<locale>/strings.xml` | Lint `MissingTranslation` (make it an error, not a warning) |
+| Swift / iOS | String Catalogs (`.xcstrings`) or `Localizable.strings` | Xcode reports per-locale completion; `xcodebuild -exportLocalizations` for the diff |
+
+The completeness column is what 2.10 is scored from: a mechanism with no way to list the missing keys cannot be shown to be complete, and the project is credited for coverage it has not demonstrated.
+
 ### Dependency security
 
 | Language | Tool |
@@ -2113,6 +2249,7 @@ These concerns apply to native mobile projects (iOS/Swift, Android/Kotlin, Flutt
 | Dependency security | `swift package audit`, Dependabot | OWASP Dependency-Check Gradle plugin | `dart pub audit` |
 | Architecture fitness | SwiftLint custom rules for layer imports | ArchUnit or detekt rules | `dart analyze` + custom lints |
 | Input validation (deep links, push payloads) | Validate every `URL`, `UNNotificationContent`, and `Decodable` at the boundary | Validate every `Intent`, `Bundle`, and `Parcelable` at the boundary | Validate every route parameter and platform channel message |
+| Translatability (2.9, 2.10 — apply in full) | String Catalogs; a literal in SwiftUI `Text()` is already localizable, one in a formatted string is not | `strings.xml` only; a literal in a layout or Compose call is the finding | `flutter_localizations` + ARB files; `flutter gen-l10n` |
 
 ---
 
