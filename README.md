@@ -4,8 +4,8 @@ A portable quality framework for Claude Code — travels with any project as a g
 
 ## What it includes
 
-- **10-category quality framework** for code review and architecture evaluation (`/project-audit`)
-- **22 coding principles** applied automatically to every code proposal, traced to the audit criteria that measure them
+- **11-category quality framework** for code review and architecture evaluation (`/project-audit`), from product intent (Cat 0) to delivery pipeline (Cat 10)
+- **23 coding principles** applied automatically to every code proposal, traced to the audit criteria that measure them
 - **Developer profile system** — calibrates Claude's recommendations to each developer's skill level, and records the natural language they work in
 - **Skill commands**: `/project-audit`, `/competency-review`, `/init-profile`
 
@@ -14,7 +14,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 ```bash
 # Add the submodule — pin a released version rather than tracking main
 git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-git -C .claude/framework checkout v1.11.0
+git -C .claude/framework checkout v1.12.0
 
 # Bootstrap: installs the commands, scaffolds the project files, records the version
 bash .claude/framework/scripts/init-project.sh
@@ -43,7 +43,7 @@ Most of it is competency levels. One block is not: the natural language you work
 | Command | What it does |
 |---|---|
 | `/init-profile` | First-time developer profile setup (~5 min) |
-| `/project-audit` | Full 10-category quality evaluation with 10 parallel agents; writes a dated report and score history to `docs/audits/`. `--summary` / `--deep` change how much of the result is printed — never what is measured |
+| `/project-audit` | Full 11-category quality evaluation with 11 parallel agents; writes a dated report and score history to `docs/audits/`. `--summary` / `--deep` change how much of the result is printed — never what is measured |
 | `/competency-review` | Quarterly review and update of your developer profile |
 
 ## Upgrading an existing install
@@ -57,7 +57,7 @@ a framework that is present and doing nothing.
 bash .claude/framework/scripts/check-updates.sh
 
 # 2. Move to it
-cd .claude/framework && git fetch --tags && git checkout v1.11.0 && cd ../..
+cd .claude/framework && git fetch --tags && git checkout v1.12.0 && cd ../..
 
 # 3. Make the install conformant with the new version — migrations included
 bash .claude/framework/scripts/init-project.sh
@@ -65,7 +65,7 @@ bash .claude/framework/scripts/init-project.sh
 # 4. Verify, and read what it says
 bash .claude/framework/scripts/check-install.sh
 
-git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.11.0"
+git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.12.0"
 ```
 
 Three scripts, three questions, no overlap:
@@ -88,7 +88,7 @@ entries you need are named rather than hunted for. `init-project.sh` migrates ev
 automatically and is idempotent, so there is no version-by-version upgrade path to follow: you can
 go from any older version straight to the newest one.
 
-The conformance rules ship *inside* each version, so checking out `v1.11.0` gets you `v1.11.0`'s
+The conformance rules ship *inside* each version, so checking out `v1.12.0` gets you `v1.12.0`'s
 checks with no lookup table to keep in sync.
 
 ## Two halves: writing and measuring
@@ -98,7 +98,7 @@ works on both sides of that line.
 
 | | Write-time | Audit-time |
 |---|---|---|
-| **What** | 22 coding principles | 10 scored categories |
+| **What** | 23 coding principles | 11 scored categories |
 | **When** | Every code proposal, automatically | `/project-audit`, on demand |
 | **Where** | `standards/CODING_STANDARDS.md` | `standards/PROJECT_AUDIT_FRAMEWORK.md` |
 

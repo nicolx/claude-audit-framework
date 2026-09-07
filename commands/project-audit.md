@@ -1,9 +1,9 @@
 ---
-description: Full 10-category scored quality audit with 10 parallel scoring agents; writes a dated report and score history to docs/audits/. --summary and --deep change how much of it is printed.
+description: Full 11-category scored quality audit with 11 parallel scoring agents; writes a dated report and score history to docs/audits/. --summary and --deep change how much of it is printed.
 allowed-tools: [Read, Grep, Glob, Bash, Write, Edit, Task, Agent]
 ---
 
-Run a complete, scored quality evaluation using **10 parallel scoring agents** — one per category.
+Run a complete, scored quality evaluation using **11 parallel scoring agents** — one per category.
 
 ## Arguments
 
@@ -32,7 +32,7 @@ progress. For the same reason the written report is never thinner than `--standa
 agents' evidence has already been paid for, and dropping it to keep a terminal short loses it for
 good.
 
-**Execution model:** Phase 1 (gather evidence, sequential) → Phase 2 (10 parallel subagents, one
+**Execution model:** Phase 1 (gather evidence, sequential) → Phase 2 (11 parallel subagents, one
 per category) → Phase 3 (aggregate, persist, report). Scoring is pure reasoning and fully
 independent across categories, so it runs concurrently.
 
@@ -91,8 +91,8 @@ small and every agent reads all of it:
 
 - From `$FRAMEWORK_DIR/standards/PROJECT_AUDIT_FRAMEWORK.md`, **only the shared parts**: the
   preconditions, the score anchors table, and the N/A rules. Not the categories — those are
-  sliced in 1.4, because ten agents reading a 2,000-line standard in full costs the document
-  ten times over for nine tenths they do not need.
+  sliced in 1.4, because eleven agents reading a 2,300-line standard in full costs the document
+  eleven times over for ten elevenths they do not need.
 - `.claude/PROJECT_AUDIT_FRAMEWORK.md` — project specializations (note explicitly if absent)
 - `CLAUDE.md`, `README.md` — project context
 - Dependency manifests: `composer.json`, `package.json`, `pyproject.toml`, `go.mod`, `build.gradle`
@@ -104,16 +104,22 @@ small and every agent reads all of it:
 - Quality gate output: `composer qa 2>&1` / `make qa` / `npm run qa` — whichever the project defines.
   Capture the output verbatim, including failures. If no gate exists, record that as the finding it is.
 - `git log --oneline -20`, `git branch -a`, and `git log -1 --format=%cd` (last commit date)
+- The product documentation index: `ls -R docs/ 2>/dev/null | head -60`, plus every status marker
+  found by `grep -rn '^status:' docs/ 2>/dev/null | head -40`. This is Category 0's primary evidence,
+  and it is in the shared bundle rather than in that agent's slice alone because it changes how the
+  other agents read a gap: a missing check inside a spec marked `todo` is unbuilt work, not a defect.
+  If `docs/` does not exist, record that — the absence is the finding, and every agent needs to know
+  it before treating an omission as intentional
 
 ### 1.4 — Slice the framework by category
 
 Each agent scores one category and needs one category. Write `$AUDIT_DIR/framework/cat-N.md` for
-N in 1–10, each holding just that category's section:
+N in 0–10, each holding just that category's section:
 
 ```bash
 mkdir -p "$AUDIT_DIR/framework"
 STD="$FRAMEWORK_DIR/standards/PROJECT_AUDIT_FRAMEWORK.md"
-for n in $(seq 1 10); do
+for n in $(seq 0 10); do
     next=$((n + 1))
     if [ "$n" -eq 10 ]; then
         awk '/^## Category 10 —/,/^## How to conduct a quality evaluation/' "$STD" > "$AUDIT_DIR/framework/cat-10.md"
@@ -195,13 +201,18 @@ Before launching Phase 2, state explicitly:
   operators does not count. This is what decides 2.9 and 2.10; state it here so the Cat 2 agent does
   not have to reach the N/A call alone
 - Whether database evidence was captured — and if not, that 7.9 and 9.8 are capped at 8
+- Whether the project has a product documentation home, and what it contains. State it here, before
+  the agents launch, because it decides how all eleven read an omission — an unimplemented spec and
+  an unfinished feature look identical in the code and score very differently
 
 ---
 
 ## Phase 2 — Parallel category scoring
 
-Launch **all 10 agents in a single message** (ten tool calls in one block) so they run concurrently.
-One agent per category, `subagent_type: general-purpose`.
+Launch **all 11 agents in a single message** (eleven tool calls in one block) so they run
+concurrently. One agent per category, `subagent_type: general-purpose`. Category 0 is scored by an
+agent like the rest — it is read first by the *reader* of the report, not scored first in time, and
+serialising it would cost the whole audit its parallelism for one slice.
 
 Give each agent this prompt, substituting the category number, name, and evidence focus:
 
@@ -255,6 +266,7 @@ recorded in the manifest.
 
 | # | Category | Evidence focus |
 |---|---|---|
+| 0 | Product Strategy & Delivery Documentation | The documentation tree and status-marker listing captured in `common.md`, then the documents themselves — the context document, the specs, the ADR index, the design artifacts. For 0.4, read the markers, not the prose: the question is whether a fixed field from a closed vocabulary exists, which `grep` answers and reading does not. For 0.5, take the specs marked `implemented` and check the code they name actually exists; take the ones marked `todo` and check they are not already built — a spec silently delivered is the same defect as one silently abandoned. For 0.6, follow the design links: a link to a tool's current canvas and a link pinned to a frame are different scores. Apply the adoption provision in the slice: find the commit that created the documentation home, and score 0.3–0.5 against the units of delivery since that date rather than against the whole history — an inherited project cannot be scored on documents it was never going to have |
 | 1 | OOP & Design Patterns | Domain and application classes, interfaces, factories, the largest classes in the manifest |
 | 2 | Clean Code | A sample across the tree, weighted to the longest files — that is where naming, size and duplication problems concentrate. For 2.8, read the **Domain language** section of `.claude/CODING_STANDARDS.md` *first*, note which context each sampled file belongs to, then sample deliberately across the context boundaries: a declared term inside its context is correct, the same term outside it is a boundary leak, and an undeclared non-English term is drift. For 2.9 and 2.10, read the **User-facing text** section of the same file first — it is the only place the required locale set is declared — then visit *every* surface the orchestrator listed, not a sample: a hardcoded PDF or mail template is the finding, and sampling is how it stays hidden. For 2.10, diff the key sets between catalogs rather than trusting their line counts, and score against the declared set only — nothing outside the repository enters the score |
 | 3 | Domain-Driven Design | Layer directories, entities, value objects, repository interfaces, domain events, and whatever enforces the boundaries |
@@ -273,7 +285,7 @@ recorded in the manifest.
 ### 3.1 — Collect
 
 ```bash
-for i in $(seq 1 10); do cat "$AUDIT_DIR/cat/$i.md" 2>/dev/null || echo "⚠ Category $i produced no output"; done
+for i in $(seq 0 10); do cat "$AUDIT_DIR/cat/$i.md" 2>/dev/null || echo "⚠ Category $i produced no output"; done
 ```
 
 Use each agent's output **verbatim**. Do not re-score. If an agent's file is missing, use the block
@@ -326,6 +338,7 @@ failing lines if not green), and any of these warnings that apply:
 ┌─────┬─────────────────────────────┬─────────────┬─────────┐
 │  #  │          Category           │    Score    │ Top gap │
 ├─────┼─────────────────────────────┼─────────────┼─────────┤
+│ 0   │ Product & Delivery Docs     │ X/10        │ …       │
 │ 1   │ OOP & Design Patterns       │ X/10        │ …       │
 │ 2   │ Clean Code                  │ X/10        │ …       │
 │ 3   │ Domain-Driven Design        │ X/10 or N/A │ …       │
@@ -346,7 +359,7 @@ Below the Established target (7/10): Cat 4 (5.0) · Cat 7 (6.5) · Cat 9 (4.0)
 Full report: docs/audits/2026-09-05-audit.md — 23 recorded gaps. Re-run with --deep to read them.
 ```
 
-**4. Detailed subcriteria scores** — the 10 category blocks in order, verbatim from the agents.
+**4. Detailed subcriteria scores** — the 11 category blocks in order, verbatim from the agents.
 
 **5. Top actions** — ranked by impact/effort. For each: what to fix, where (`file:line`), why it
 matters, estimated effort (small / medium / large).
@@ -404,12 +417,18 @@ both are identical either way, and a field nothing reads is a field that goes st
 ```markdown
 # Audit score history
 
-| Date | Scope | Maturity | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | C9 | C10 | Avg |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 2026-09-03 | full | Established | 8.0 | 7.5 | 8.0 | 6.0 | N/A | 7.0 | 6.5 | 7.0 | 5.5 | 6.5 | 6.9 |
+| Date | Scope | Maturity | C0 | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | C9 | C10 | Avg |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-09-03 | full | Established | 5.0 | 8.0 | 7.5 | 8.0 | 6.0 | N/A | 7.0 | 6.5 | 7.0 | 5.5 | 6.5 | 6.7 |
 ```
 
 `Avg` excludes `N/A` categories.
+
+**If `history.md` exists without a `C0` column**, it predates Category 0. Add the column to the header
+and to the separator row, and fill every existing row with `—` — those audits did not measure it, and
+a blank that reads as a score would put a fiction into the trend. Do not recompute their `Avg`: it was
+correct for what was scored at the time, and rewriting history to look consistent is how a trend stops
+being evidence. Say in the report that the column was added.
 
 **Before recommending a commit, say this out loud.** An audit report names security weaknesses with
 file and line — `8.3 authorisation checked on the route, not the operation, src/Http/Admin.php:42`

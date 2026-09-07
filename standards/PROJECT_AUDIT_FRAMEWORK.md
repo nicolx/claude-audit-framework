@@ -138,6 +138,308 @@ No changes to any ignore file are needed:
 
 ---
 
+## Category 0 — Product Strategy & Delivery Documentation
+
+**What it measures:** Whether the repository states what the product is for, what is planned, and
+which of it already exists — so that every other category is scored against a declared intent rather
+than against the code's own assumptions.
+
+This category is the frame the other ten hang on. Categories 1–10 measure how well a thing is built.
+None of them can tell you whether it is the thing the team meant to build, or whether the half that
+is missing is missing on purpose. A codebase can score 9 across the board and still be an elegant
+answer to a question nobody asked — and an auditor with no product documentation cannot see that,
+because the code is then the only surviving account of intent, and code always agrees with itself.
+
+Concretely, this is what its absence costs the rest of the audit:
+
+- **Scope calls become guesses.** Category 3 asks whether the domain model matches the domain. With
+  no written domain context, "the domain" is inferred from the entities, and the criterion collapses
+  into "is the code self-consistent" — which it always is.
+- **Incompleteness becomes indistinguishable from debt.** A missing authorisation check is a
+  Category 8 finding if the feature shipped, and a non-finding if it belongs to a spec still marked
+  `todo`. Only the delivery documentation separates the two, and the difference is the whole
+  severity of the finding.
+- **Priorities become the auditor's, not the team's.** "The top three improvements by impact" is a
+  product judgement wearing an engineering hat. With nothing saying what the product is for, impact
+  gets estimated from the severity of code smells, which is a different ranking and belongs to
+  somebody else.
+
+Score this category **first** and let its findings travel with the rest of the audit. A low score
+here is not one finding among eleven — it is a caveat on every finding that follows.
+
+**Proportionality.** The *form* scales with the project: a solo project's product context is
+legitimately one page, and one page that is true scores 8. The *presence* does not scale. A
+two-person project with nothing written down has the same problem as a fifty-person one; it just
+meets it later, usually when the second person arrives.
+
+**When this is N/A.** Rarely, and never for a project with work in flight. A frozen archive or a
+single-purpose script has no 0.3 and no 0.4 to score — say which subcriteria are structurally absent
+and score the rest. "We are too small to document" is not a structural absence; it is a low score.
+
+### Subcriteria
+
+#### 0.1 Product context is written down
+
+What the product is for, who uses it, and what it deliberately does not do. Not a marketing
+paragraph: the material a new team member — or an agent proposing a change — needs in order to judge
+whether a proposal belongs in this product at all.
+
+**Good:**
+
+- A committed context document naming the users, the problem, the constraints that are not
+  negotiable (regulatory, contractual, volume, latency), and what is explicitly out of scope
+- The domain vocabulary defined once, where code can be read against it. This is also what makes
+  2.8's language calls decidable rather than stylistic: a term is domain language because a document
+  says so, not because a reviewer recognises it
+- Dated or versioned, so a reader can tell whether it describes the current product
+
+**Bad:**
+
+- The only statement of purpose is the README's first sentence, written at `git init` and true of a
+  different product since
+- The "why" lives in a chat history, a slide deck outside the repository, or one person's head — all
+  three fail the same way, by being unavailable to the person who needs them at 11pm
+- A context document describing the product as it was pitched, never as it was built, with nothing
+  marking the divergence
+
+#### 0.2 The documentation has a home, and the home is discoverable
+
+One predictable root, with a stated rule about what lives where. Discoverability is the criterion,
+not tidiness: documentation a reader cannot find is worth exactly what documentation that does not
+exist is worth, and an agent that cannot find it will reconstruct its content from the code — wrongly,
+and confidently.
+
+**Good:**
+
+- A single root — `docs/` is the common choice — split by area in a way a newcomer can predict:
+  product specs, decision records, design artifacts, context
+- An index at that root saying what each area holds and what belongs in it
+- The layout named where both people and agents will meet it — `CLAUDE.md`, `CONTRIBUTING.md`, or the
+  README — in exactly one of them, with the others pointing at it rather than restating it
+- External tools (tracker, design tool, wiki) are reachable *from* the repository; the repository is
+  not a thing you find from the wiki
+
+**Bad:**
+
+- Documents scattered across the repository root, or a `docs/` whose structure is the sediment of
+  whoever wrote last
+- A wiki holding the real documentation that the repository never mentions — so the repository looks
+  undocumented and the wiki looks abandoned, and both impressions are acted on
+- Two homes with overlapping content and no rule about which one wins
+
+#### 0.3 Work in flight has an implementation spec
+
+A feature-level document — PRD, spec, RFC; the name matters less than the content — stating what is
+to be built, for whom, and what *done* means, committed alongside the code that will satisfy it.
+
+**Good:**
+
+- One document per unit of delivery, identified by number or dated slug, so a commit, a branch or a
+  test can cite it
+- Acceptance criteria written as things that are observably true or false: a test could be written
+  from them without asking the author a question
+- Written before the work and reviewed like code. Changes to it are commits, so the negotiation is in
+  the history rather than in a thread
+- Small changes carry no spec, and the threshold is written down rather than left to taste
+
+**Bad:**
+
+- The work exists only as tickets: the repository cannot say what it was supposed to do, and the
+  tracker cannot say what was actually built
+- Specs written after delivery to satisfy a process. They describe the code, so they can never
+  contradict it — which is the one thing a spec is for
+- Acceptance criteria that are aspirations: "fast", "intuitive", "secure"
+- A spec for every change, typo fixes included. A ceremony that expensive is abandoned within a
+  quarter, and it takes the specs that were worth writing down with it
+
+#### 0.4 Every implementation document declares its status
+
+This is the field the team reads most often, and the one that turns a documentation directory into a
+picture of what is left to do. A document describing work must state, in a fixed and machine-readable
+place, whether that work exists yet.
+
+**Good:**
+
+- A status field in a fixed location — YAML frontmatter is the usual choice — drawn from a **closed**
+  vocabulary: `todo`, `in-progress`, `implemented`, `superseded`, `abandoned`. The closed set is what
+  makes the field aggregatable; free text is prose with extra steps
+- Partially delivered specs mark status **per requirement**, not only per document, so `in-progress`
+  says which half is which
+- `superseded` and `abandoned` documents stay, marked, pointing at what replaced them. A deleted spec
+  takes its rationale with it and the question comes back in a year
+- The whole board is one command: `grep -rl 'status: todo' docs/product/` answers "what is left"
+  without opening a file, and that is what makes the marker useful to a team rather than to a reader
+
+**Bad:**
+
+- Status conveyed in prose — "we'll add this later", three paragraphs in — which nobody can aggregate
+  and nothing can verify
+- Status conveyed only by directory (`docs/done/`, `docs/backlog/`): invisible inside the document,
+  and updated only by moving a file, which is why it stops being updated
+- No status at all. The reader cannot tell whether a document describes the system or a wish, and the
+  only safe reading — treat every document as a wish — makes the whole corpus worthless
+- An open vocabulary: `status: mostly done`, `status: waiting on the API team`, `status: ✅`
+
+**Scoring thresholds:**
+
+| Score | Situation |
+|---|---|
+| 9–10 | Every implementation document carries a status from a closed vocabulary in a fixed location; partial delivery is marked per requirement; outstanding work is listable with one command |
+| 7–8 | Every document carries a status and the vocabulary is consistent; per-requirement granularity is missing where it would matter |
+| 5–6 | Most documents carry a status; or status exists at document level only, in an inconsistent format |
+| 3–4 | Status on some documents, in prose or by folder placement; not aggregatable |
+| 1–2 | Nothing says whether a document describes the present or the future |
+
+#### 0.5 The status marker is true
+
+A marker that is not maintained is worse than no marker: it is a claim, and readers act on claims.
+0.4 asks whether the field exists; this asks whether it is a fact.
+
+This is the delivery-state half of the drift problem. 7.10 owns what documents assert about the
+*system* — paths, commands, analyser levels; this subcriteria owns what they assert about their own
+*delivery state*. Same failure, different claim, and they are scored separately because a project
+often has one and not the other.
+
+**Good:**
+
+- Status changes in the same commit or pull request as the code that changes it — principle 22's rule
+  for factual claims, applied to delivery state
+- A spec marked `implemented` names what implements it: the module, the test, or the merge commit.
+  That is what makes the claim checkable by somebody other than its author
+- Something checks mechanically. A CI job that fails when a document is `implemented` and cites
+  nothing, or when a `todo` spec's acceptance criteria are all already green in the suite, is worth
+  more than a review step — because the review step is what gets skipped when the release is late
+- Documents that cannot be checked mechanically carry a visible date, so an `in-progress` from eleven
+  months ago reads as what it is
+
+**Bad:**
+
+- Everything is `todo`, including the four features that are in production. The field was filled in
+  at creation and never again
+- Everything is `implemented`, including the ones that are not, because status was swept clean before
+  a review
+- `in-progress` with no owner and no date, indistinguishable from abandoned
+- Status updated in a separate documentation commit, days later, by somebody who was not there. That
+  is how it becomes a chore, and a chore is what it is right before it stops
+
+#### 0.6 Design and interaction artifacts are versioned with the code
+
+Mockups, wireframes, flows and content design are specifications: they say what to build as precisely
+as prose does, and they change as often. When they live only on a design tool's mutable canvas, the
+artifact the code was built against has ceased to exist by the time anyone reviews the code.
+
+**Good:**
+
+- The agreed state is committed — an export, a PDF, a frame capture — beside the spec that references
+  it, so a review can compare the code against what was actually approved
+- Links into the design tool are pinned to a file *and* a frame or version, never to the current canvas
+- Each artifact is named by the spec that depends on it, so "which mock does this screen implement"
+  has an answer
+- Superseded designs are kept and marked, on the same rule as superseded specs
+
+**Bad:**
+
+- A bare link to a design tool's home canvas. The approved design has been edited since, and nobody
+  can say how
+- Mockups delivered in chat and never landed anywhere, leaving the implementation as the only
+  surviving record of the agreement
+- A `mockups/` directory of undated exports that no document references
+- Committed exports that were never regenerated after the design moved and are not marked historical
+  — worse than a stale link, because they look current
+
+#### 0.7 Architecture Decision Records (ADRs)
+
+Significant architectural decisions belong in short, committed records capturing context, rationale
+and the alternatives rejected. Code alone cannot explain why a decision was made, and the reasons are
+the first thing lost — usually to a reorganisation, sometimes to a holiday.
+
+An ADR is not an implementation spec. 0.3 records what will be built; an ADR records a decision that
+constrains how, and it outlives the feature that prompted it.
+
+**Good:**
+
+- A `docs/adr/` directory (under the home from 0.2) with numbered records
+- Each states the decision plainly, its context, its consequences, and the alternatives rejected
+- Superseded ADRs are marked, not deleted — the same `superseded` status 0.4 defines, from the same
+  closed vocabulary, so one convention covers every document in the tree
+- The index answers "why is this structured this way?" for every non-obvious structural choice
+
+**Bad:**
+
+- Architecture explicable only through tribal knowledge or a long conversation
+- No record of decisions that were reversed — only the current state, never the history that would
+  stop it being reversed back next year
+- ADRs written retrospectively as busywork rather than prospectively as decision aids
+
+**How to score:**
+
+- 0–2: No ADRs; structural decisions are implicit and undocumented
+- 3–5: Some decisions documented informally (README, comments), but no systematic practice
+- 6–7: ADR practice present; coverage incomplete or format inconsistent
+- 8–10: All significant structural decisions have ADRs; history is traceable; new decisions trigger
+  new ADRs as a matter of course
+
+### Adopting this category on an existing project
+
+A project that installs this framework in its third year has no history of specs and no way to
+acquire one. That is the normal case, not the exception, and the category has to be recoverable from
+it — a criterion that scores a past nobody can change is a criterion teams correctly learn to ignore.
+
+**Reconstructing the missing documents from the code is not the way, and it scores below the gap it
+was meant to fill.** Documentation reverse-engineered from an implementation cannot contradict that
+implementation: it is a description wearing a specification's clothes. The whole evidential value of
+a spec is that it was written by somebody who could still turn out to be wrong about what the code
+would do — retrofit it and that property is gone permanently, while the corpus now *looks* complete.
+A sweep like that produces documents that are 100% `implemented`, 100% accurate and 0% useful, and it
+destroys the one honest signal the project had: *we started documenting in March*.
+
+So the remediation runs forward, with a small bounded backfill. In this order:
+
+1. **Write the product context (0.1). One page, this week.** The highest score per unit of effort in
+   the category, and the only part that gets *easier* the longer the project has run: it comes out of
+   the team's heads rather than out of the code, and three years of arguing about what the product is
+   for have already produced the answer. It is also what the other ten categories most need.
+2. **Create the home and its index (0.2), and put the context in it.** An empty tree scores nothing.
+   A tree with one true document in it scores.
+3. **Start specs at the next unit of work (0.3), never at the last one.** The practice begins with the
+   next feature. Nothing shipped before that date gets a spec — demanding otherwise is what makes
+   teams abandon the practice inside a quarter.
+4. **Backfill ADRs (0.7) only where all three hold:** the decision still constrains the code today; a
+   new reader would not deduce it from the code; and somebody still on the team remembers the
+   reasoning. Where the first two hold and the third does not, the honest record says so —
+   `**Rationale:** not recovered, the decision predates the current team` is a real ADR and a more
+   useful one than an invented rationale, because it tells the next reader the constraint is
+   inherited rather than defended. Never backfill to raise a count.
+5. **Pin the design artifacts that are live (0.6)** — the mockups for the screens that exist now,
+   pinned to a frame or committed as an export. The history is gone. It is not recoverable and does
+   not need to be.
+
+Steps 4 and 5 are the entire backfill. Everything else runs forward.
+
+**How this is scored.** 0.3, 0.4 and 0.5 are scored against the **units of delivery since the practice
+started**, not against the project's whole history — the same way coverage on a legacy codebase is
+measured on changed lines rather than on the whole tree, and for the same reason: a denominator
+nobody can move is not a measurement, it is a sentence.
+
+Two things make that provision available, and refusing either is itself the finding:
+
+- **The adoption date is a fact in the repository** — the commit that created the documentation home
+  — not a claim made during the audit. Read it from the log.
+- **What gets scored is the distance between shipping and specifying.** A project that adopted in
+  March, shipped eleven features and wrote one spec has not adopted a practice; it has a directory.
+  Count the units of delivery since that date against the documents that describe them.
+
+A project three months into the practice, with a spec for every feature since and markers that match
+the code, scores 8. A project holding five years of documents nobody has updated scores 4. This
+category measures a practice that is running, not an archive that has accumulated.
+
+**The first audit is the adoption moment.** Where the framework has just been installed, Category 0
+scores what is actually there — usually low — and that number is a baseline rather than a verdict.
+What the next audit measures is the distance travelled from it, which is what the score history is
+for.
+
+---
+
 ## Category 1 — OOP & Design Patterns
 
 **What it measures:** How well the codebase applies object-oriented principles and established structural patterns to produce code that is modular, extensible, and resistant to accidental coupling.
@@ -1421,6 +1723,10 @@ before they work out it is lying.
 This criterion is not about how much is written. It asks whether anything **keeps the written
 description true**, and notices when it stops being.
 
+Its scope is what a document asserts about the **system**: paths, commands, analyser levels, layer
+rules. What a document asserts about its own **delivery state** — implemented, or still planned — is
+0.5. Both are drift; they are scored apart because projects routinely have one without the other.
+
 **Two audiences, and the quieter one fails worse:**
 
 *Human-facing* — README, onboarding, `CONTRIBUTING.md`, API contracts, the ADR index. Drift here
@@ -1783,6 +2089,9 @@ subcriteria at 8.
 
 **What it measures:** How well the delivery pipeline automates quality validation, environment management, and deployment — and how well version control practices make that pipeline trustworthy, auditable, and team-scale. Pipeline without discipline is a car with no steering wheel; discipline without pipeline is a steering wheel with no car.
 
+*Decision records are scored in 0.7, with the rest of the planning documentation. What this
+category measures is the pipeline and the repository, not the reasoning behind them.*
+
 ### Subcriteria
 
 #### 10.1 Build reproducibility
@@ -2084,30 +2393,6 @@ A version tag is a pointer from a human-readable name to a specific commit. It a
 
 **Automation with `semantic-release`:** Given Conventional Commits are enforced (10.11), the version bump and CHANGELOG generation can be fully automated: `feat:` → MINOR, `fix:` → PATCH, `BREAKING CHANGE:` footer → MAJOR. The CI pipeline tags the release, publishes the artefact, and updates the CHANGELOG without human intervention.
 
-#### 10.15 Architecture Decision Records (ADRs)
-
-Significant architectural decisions should be documented in short, committed records that capture context, rationale, and alternatives considered. Code alone cannot explain why a decision was made.
-
-**Good:**
-
-- A `/docs/adr/` directory exists with numbered ADR files
-- Each ADR states the decision plainly, its context, its consequences, and the alternatives rejected
-- Superseded ADRs are marked as deprecated, not deleted
-- The ADR index answers "why is this structured this way?" for every non-obvious structural choice
-
-**Bad:**
-
-- Architecture that can only be explained through tribal knowledge or long conversations
-- No record of decisions reversed or superseded — only the current state, not the history
-- ADRs written retrospectively as busywork, not prospectively as decision aids
-
-**How to score:**
-
-- 0–2: No ADRs; structural decisions are implicit and undocumented
-- 3–5: Some decisions documented informally (README, comments), but no systematic practice
-- 6–7: ADR practice present; coverage incomplete or format inconsistent
-- 8–10: All significant structural decisions have ADRs; history is traceable; new decisions trigger new ADRs as a matter of course
-
 ---
 
 ## How to conduct a quality evaluation
@@ -2116,16 +2401,19 @@ Significant architectural decisions should be documented in short, committed rec
 
 Read at least these files before assigning any score:
 
-1. The core domain models (Entities, Value Objects)
-2. The main use case or service entry points
-3. A representative controller or API handler
-4. The test suite structure (directories, a few test files)
-5. The CI configuration (`.github/workflows`, `Makefile`, `composer.json` scripts)
-6. The dependency manifests (`composer.json`, `package.json`)
-7. The git log (`git log --oneline -20`) — commit message quality is observable immediately
-8. The branch list (`git branch -a`) — stale or unnamed branches signal absent strategy
-9. `CONTRIBUTING.md` or equivalent — is the branching strategy documented?
-10. The translation catalogs and the surfaces that write text for a person (templates, PDF and mail builders, CLI output) — 2.9 and 2.10 cannot be scored from source alone
+1. The product documentation — the context of 0.1, the specs of 0.3 and their status markers. Read
+   it *first*, and before the code: it is the only account of intent that the code cannot supply,
+   and every later judgement about whether something is missing or merely unbuilt depends on it
+2. The core domain models (Entities, Value Objects)
+3. The main use case or service entry points
+4. A representative controller or API handler
+5. The test suite structure (directories, a few test files)
+6. The CI configuration (`.github/workflows`, `Makefile`, `composer.json` scripts)
+7. The dependency manifests (`composer.json`, `package.json`)
+8. The git log (`git log --oneline -20`) — commit message quality is observable immediately
+9. The branch list (`git branch -a`) — stale or unnamed branches signal absent strategy
+10. `CONTRIBUTING.md` or equivalent — is the branching strategy documented?
+11. The translation catalogs and the surfaces that write text for a person (templates, PDF and mail builders, CLI output) — 2.9 and 2.10 cannot be scored from source alone
 
 ### Step 2 — Score each subcategory with evidence
 
@@ -2139,10 +2427,16 @@ Across all categories, identify the three improvements that would have the highe
 - Automation gaps: any quality that currently relies only on developer discipline
 - Test coverage gaps: untested critical paths
 
+Rank against the product context of 0.1 where one exists — impact is a claim about the product, and
+a document that says what the product is for is better evidence for it than the auditor's reading of
+the code. Where it does not exist, say so in the ranking: the order is then an engineering judgement
+presented as a product one, and the reader deserves to know which they are getting.
+
 ### Step 4 — Produce a category summary
 
 | # | Category | Score | Top gap | Recommended action |
 |---|---|---|---|---|
+| 0 | Product Strategy & Delivery Documentation | 4.0 | PRDs carry no status marker | Add `status:` frontmatter from the closed set; update it in the implementing PR |
 | 1 | OOP & Design Patterns | 8.0 | PageController has 4 responsibilities | Split into PageController + BootstrapBuilder |
 | 10 | CI/CD & Version Control Discipline | 6.5 | No branch protection; commit messages undisciplined | Enable branch protection on main; add commitlint to CI |
 | ... | | | | |

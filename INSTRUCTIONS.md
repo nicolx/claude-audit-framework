@@ -147,16 +147,21 @@ It does **not** change the language of anything you write. Code, identifiers, co
 
 ## Enterprise Quality Standard
 
-A 10-category quality framework is active in this project.
+An 11-category quality framework is active in this project, numbered 0 to 10.
 
 **Full document:** `.claude/framework/standards/PROJECT_AUDIT_FRAMEWORK.md`
 
 Read it before conducting any quality evaluation or scoring. Do not score from memory alone.
 
-### The 10 categories
+### The 11 categories
+
+Category 0 is the frame the rest are scored inside: it asks what the project says it is building and
+how much of that exists. Read it and score it first — whether a gap in Categories 1–10 is a defect or
+simply unbuilt work is a question only the product documentation answers.
 
 | # | Category | Always evaluated? |
 |---|---|---|
+| 0 | Product Strategy & Delivery Documentation | Yes |
 | 1 | OOP & Design Patterns | Yes |
 | 2 | Clean Code | Yes (2.9–2.10 unless the project writes no text for anyone using it) |
 | 3 | Domain-Driven Design (DDD) | If domain layer is present |
@@ -203,7 +208,7 @@ If `.claude/CODING_STANDARDS.md` or `.claude/PROJECT_AUDIT_FRAMEWORK.md` exist, 
 
 ### Every criterion has a write-time counterpart
 
-The 22 principles in `CODING_STANDARDS.md` are the write-time half of the framework; the 10
+The 23 principles in `CODING_STANDARDS.md` are the write-time half of the framework; the 11
 categories in `PROJECT_AUDIT_FRAMEWORK.md` are the measurement half. The traceability table at the
 end of `CODING_STANDARDS.md` maps one to the other.
 
@@ -237,6 +242,31 @@ would quietly undo a decision. Name the contradiction, name both readings, and a
 
 Meanwhile, follow the code for what *is* true. Never apply a stale instruction just because it is
 written down.
+
+### Product documentation and delivery status
+
+Principle 23 governs this and defines the vocabulary; what follows is where it lands in a session.
+
+**Before implementing anything larger than a fix**, look for the document that already describes it —
+the product documentation home, usually `docs/`, laid out per Category 0. If one exists it is the
+specification: read it before proposing an approach, and if what you are about to build contradicts
+it, say so rather than routing around it. A spec and an implementation that disagree is a finding
+with two possible fixes, exactly like the stale-or-aspirational ambiguity above, and the developer
+picks which.
+
+**When you finish**, move that document's status marker in the same change as the code — and say you
+moved it. A marker nobody maintains is a claim the team acts on and is wrong about; leaving it for
+later is how it stops being true.
+
+**If the project has no documentation home at all**, flag it **once**, at the first substantial piece
+of work rather than at session start — a warning fired before there is anything to document is noise:
+
+> ⚠ No product documentation home found (`docs/` or equivalent). Implementation specs and their
+> status markers are what Category 0 scores, and what tells the next session which work already
+> exists. See Category 0 in `.claude/framework/standards/PROJECT_AUDIT_FRAMEWORK.md`.
+
+Then carry on. Do not scaffold a documentation tree unasked — the layout is the team's decision, and
+an empty `docs/` created by an agent is a worse signal than no `docs/` at all.
 
 ### Naming across languages
 

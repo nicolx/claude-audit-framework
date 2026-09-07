@@ -8,6 +8,24 @@
 
 ---
 
+## Category 0 — Product Strategy & Delivery Documentation
+
+[Optional but the most useful entry in this file: name where the product documentation lives and the
+exact status vocabulary in use, so 0.2, 0.4 and 0.5 are scored against this project's convention
+rather than the standard's example.
+Example:
+
+| Field | Value |
+|---|---|
+| Documentation home | `docs/` — `docs/product/` specs, `docs/adr/` decisions, `docs/design/` mockups |
+| Spec format | `docs/product/NNN-slug.md`, YAML frontmatter |
+| Status vocabulary | `todo`, `in-progress`, `implemented`, `superseded`, `abandoned` |
+| Per-requirement status | `- [ ]` / `- [x]` under `## Acceptance criteria` |
+| Outstanding work | `grep -rl 'status: todo' docs/product/` |
+| Spec threshold | anything beyond a bugfix or a one-file change |
+
+]
+
 ## Category 1 — OOP & Design Patterns
 
 [Optional: list the building blocks in use and their expected roles in this project.

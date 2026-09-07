@@ -708,6 +708,58 @@ honest; an unverifiable one relies on someone remembering, which is how it got s
 
 ---
 
+## 23. A spec is delivered when its status says so
+
+The documents that describe planned work carry a status marker — `todo`, `in-progress`,
+`implemented`, `superseded`, `abandoned` — and the whole value of that marker is that it can be
+trusted. Moving it belongs to the change that made it wrong, for the same reason principle 22 puts a
+doc correction there: the moment you finish the work is the last moment anyone reliably knows which
+document just became out of date.
+
+This is principle 22 applied to a different kind of claim. Principle 22 governs what a document says
+about the **system** — the command, the path, the analyser level. This one governs what it says about
+**itself**: whether the thing it describes exists yet.
+
+**Before you build**, look for the document that already describes the work. If one exists, it is the
+specification — read it before proposing an approach, and if you are about to build something it
+contradicts, that contradiction is the finding, not a detail to route around. If the work is more
+than a fix and no document describes it, say so: the spec is worth writing first, marked `todo`, and
+it is cheaper to disagree about a page than about a branch.
+
+**When asked to document an existing codebase**, say what reconstruction can and cannot produce
+before starting. Reading the code and writing down what it does yields a description, not a
+specification: it agrees with the implementation by construction, so it can never catch the
+implementation being wrong — which is the only reason a spec is worth reviewing. What is worth
+writing from an existing codebase is what does not come out of it: the product context, and the
+decisions that still constrain the code. Both live in people's heads. The specs start at the next
+piece of work, not at the last one.
+
+**When you finish**, move the marker in the same change, and make the claim checkable — a spec marked
+`implemented` should name the module or the test that implements it, so somebody other than its
+author can verify it. Where a spec is only half delivered, mark the requirements individually rather
+than moving the whole document; `in-progress` that does not say which half is a status nobody can
+act on.
+
+**What good looks like:**
+
+- The pull request that ships the feature contains the status change, in the same diff as the code
+- `implemented` accompanied by what implements it — a path, a test name, a merge reference
+- A partial delivery marked per requirement, so the remaining work is still listable
+- A spec written before the work when the work is large enough to be worth disagreeing about
+- Superseded documents kept and marked, pointing at what replaced them
+
+**Signals of drift:**
+
+- Every document says `todo`, including the ones running in production
+- A "documentation pass" that sweeps a batch of statuses to `implemented` before a review
+- `in-progress` with no date and no owner, indistinguishable from abandoned
+- Work started with no reference to the document that describes it, then diverging from it silently
+- A batch of specs generated from the code to fill a documentation gap — every one of them
+  `implemented`, every one of them accurate, none of them able to disagree with anything
+- A status moved by someone who was not in the change, days later, from the changelog
+
+---
+
 ## Traceability — where each principle is measured
 
 These principles are the write-time half of the framework; `PROJECT_AUDIT_FRAMEWORK.md` is the
@@ -731,7 +783,7 @@ can only be found in an audit, never written correctly the first time.
 | 10 | Agree on expected behaviour first | 4.2, 4.5 |
 | 11 | Refactor in two passes | 4.3, 10.9 |
 | 12 | Start simple, earn complexity | 6.7, 10.9 |
-| 13 | Document decisions with ADRs | 10.15 |
+| 13 | Document decisions with ADRs | 0.7 |
 | 14 | Check what already exists | 6.2, 6.4, 6.8, 6.9 |
 | 15 | Validate at the boundary | 8.1, 8.2, 8.3, 8.4, 8.6, 8.7 |
 | 16 | Observability is part of the feature | 9.1, 9.2, 9.4, 9.6 |
@@ -740,7 +792,8 @@ can only be found in an audit, never written correctly the first time.
 | 19 | History is part of the deliverable | 10.11, 10.14 |
 | 20 | Code speaks English, the domain speaks its own language, the product speaks the user's | 2.8, 2.9, 2.10 |
 | 21 | Know the cost of your data access | 7.9, 9.8 |
-| 22 | Documentation is part of the change that invalidated it | 7.10, 10.15 |
+| 22 | Documentation is part of the change that invalidated it | 7.10 |
+| 23 | A spec is delivered when its status says so | 0.3, 0.4, 0.5 |
 
 ### Criteria with no write-time principle, and why
 
@@ -749,6 +802,7 @@ writing a feature — stating which, and why, keeps the table above honest inste
 
 | Criteria | Why it is audit-only |
 |---|---|
+| 0.1, 0.2, 0.6 | The documentation home, the product context and the design artifacts are established once as project structure and then maintained; principle 23 governs what happens inside them per change |
 | 4.1 coverage level | An outcome of principles 10 and 17, not a separate instruction |
 | 7.1–7.7 tooling | Project infrastructure: configured once, not written per change |
 | 8.5 security headers | Configuration of the framework or web server, not of a feature |

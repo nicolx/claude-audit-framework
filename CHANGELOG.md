@@ -8,6 +8,102 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.12.0] — 2026-09-07
+
+Ten categories measured how well a thing was built. None of them could say whether it was the thing
+the team meant to build, or whether the half that was missing was missing on purpose — and that
+second question changes the severity of findings in every other category. A missing authorisation
+check is a Category 8 defect if the feature shipped and a non-finding if it belongs to a spec still
+marked `todo`; with no product documentation in the repository, an audit cannot tell those apart and
+scores them the same.
+
+So the framework gains a category at the top rather than at the end. Category **0** is the frame the
+other ten are scored inside: what the product is for, what is planned, and which of it exists.
+
+### Added
+
+- **Category 0 — Product Strategy & Delivery Documentation**, seven subcriteria: product context
+  written down (0.1), a discoverable documentation home (0.2), an implementation spec for work in
+  flight (0.3), a status marker on every implementation document (0.4), that marker being *true*
+  (0.5), design artifacts versioned with the code (0.6), and ADRs (0.7).
+- **The status marker as a scored, machine-readable field.** 0.4 asks for a fixed location and a
+  **closed** vocabulary — `todo`, `in-progress`, `implemented`, `superseded`, `abandoned` — because
+  the point of the field is that `grep -rl 'status: todo' docs/product/` answers *what is left* for
+  the whole team without opening a file. Status in prose, or conveyed by which folder a file sits in,
+  scores 3–4: it is not aggregatable, and a marker updated only by moving a file is a marker nobody
+  updates. Partial delivery is marked per requirement — `in-progress` that does not say which half is
+  a status nobody can act on.
+- **0.5, the drift half.** A marker that is not maintained is worse than none: it is a claim, and
+  readers act on claims. It scores whether status moves in the same change as the code, whether an
+  `implemented` spec names what implements it, and whether anything checks mechanically.
+- **Principle 23 — "A spec is delivered when its status says so."** Principle 22 put a documentation
+  correction in the change that caused it; 23 is the same rule for what a document says about
+  *itself*. Look for the spec before building, treat a contradiction between spec and intended
+  implementation as a finding rather than something to route around, move the marker in the same
+  diff, and say you moved it. Without a write-time half, the markers would be discovered only by an
+  audit and maintained by nobody — the exact failure 7.10 describes for quality checks that rely on
+  someone remembering.
+- **A once-per-session flag for a missing documentation home**, in `INSTRUCTIONS.md` — fired at the
+  first substantial piece of work rather than at session start, because a warning that arrives before
+  there is anything to document is noise. It flags and carries on; it never scaffolds a `docs/` tree
+  unasked, since an empty documentation directory created by an agent is a worse signal than none.
+- **"Adopting this category on an existing project"** — Category 0's remediation path, because a
+  criterion that scores a past nobody can change is one teams correctly learn to ignore. It names the
+  trap first: reconstructing the missing specs from the code scores *below* the gap it fills, since
+  documentation reverse-engineered from an implementation cannot contradict that implementation, and
+  a spec that cannot disagree with the code is the one thing a spec is not. The path runs forward —
+  product context first, then the home, then specs from the next unit of work — with a bounded
+  backfill of exactly two things: ADRs for decisions that still constrain the code *and* that someone
+  still remembers the reasoning for, and the design artifacts that are currently live.
+- **The adoption provision in scoring.** 0.3, 0.4 and 0.5 are scored against the units of delivery
+  **since the practice started**, not against the project's whole history — the same shape as
+  measuring coverage on changed lines rather than on a legacy tree. It is available on two conditions:
+  the adoption date is a commit in the repository rather than a claim, and what gets scored is the
+  distance between shipping and specifying, so a project that created a directory in March and shipped
+  eleven undocumented features has adopted nothing. Three months of the practice held honestly scores
+  8; five years of documents nobody updates scores 4.
+- **A Category 0 block in `templates/PROJECT_AUDIT_FRAMEWORK.md`** for projects to declare their own
+  documentation home, spec format and status vocabulary — the standard's example vocabulary is an
+  example, and 0.4 scores consistency against the project's declared set, not against ours.
+
+### Changed
+
+- **ADRs moved from 10.15 to 0.7.** A decision record is a planning and design artifact; it was in
+  Category 10 because that is where version-control discipline lived, not because a pipeline
+  measures it. The criterion text is unchanged apart from two ties it can now make: an ADR is
+  explicitly *not* an implementation spec (0.3), and a superseded ADR uses the same `superseded`
+  marker 0.4 defines, so one vocabulary covers every document in the tree. Category 10 carries a
+  one-line pointer at 0.7 — enough to find it, not enough to become a second copy of it.
+- **`/project-audit` runs eleven agents**, slices `cat-0.md` through `cat-10.md`, and captures the
+  documentation tree and every `status:` marker into the *shared* bundle rather than into Category 0's
+  slice alone. That placement is the point: an omission inside a spec marked `todo` is unbuilt work
+  rather than a defect, and all eleven agents need to know that before they score one.
+- **Evaluation order.** Step 1 of the standard now reads the product documentation first, before the
+  code — it is the only account of intent the code cannot supply. Step 3 ranks improvements against
+  the product context where one exists, and says so explicitly when one does not: "impact" without it
+  is an engineering judgement presented as a product one.
+- **7.10 and 0.5 divide the drift problem explicitly.** 7.10 owns what a document asserts about the
+  *system* — paths, commands, analyser levels; 0.5 owns what it asserts about its own *delivery
+  state*. Both files now say so, because the overlap is exactly where a duplicate criterion would
+  have grown.
+
+### Migration
+
+Nothing in a consumer project needs editing for the framework to keep working. Two things are worth
+knowing:
+
+- **`docs/audits/history.md` gains a `C0` column.** `/project-audit` adds it to an existing file and
+  fills prior rows with `—`, because those audits did not measure it and a blank that reads as a
+  score would put a fiction into the trend. It does **not** recompute their `Avg`: that number was
+  correct for what was scored at the time, and rewriting history to look consistent is how a trend
+  stops being evidence.
+- **A `.claude/PROJECT_AUDIT_FRAMEWORK.md` that specialises ADRs under `## Category 10`** should move
+  that section to `## Category 0`. Nothing breaks if it does not — the specialization is simply
+  appended to a slice whose criteria no longer mention ADRs, so the Category 0 agent scores 0.7
+  against the global standard alone.
+- **Category 10 scores are not comparable across this version.** It lost a subcriteria, so a movement
+  arrow on C10 in the next audit is measuring a different category, not a change in the project.
+
 ## [1.11.0] — 2026-09-05
 
 `/project-audit` had one output shape: every subcriteria, every category, every time. That is the
