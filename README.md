@@ -14,7 +14,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 ```bash
 # Add the submodule — pin a released version rather than tracking main
 git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-git -C .claude/framework checkout v1.12.0
+git -C .claude/framework checkout v1.12.1
 
 # Bootstrap: installs the commands, scaffolds the project files, records the version
 bash .claude/framework/scripts/init-project.sh
@@ -28,13 +28,18 @@ Then edit the generated `CLAUDE.md`, `.claude/PROJECT_AUDIT_FRAMEWORK.md`, and
 
 ## Set up your developer profile
 
-The first time you open Claude Code in a project with this framework, run:
+**Once per machine, not once per project.** The profile lives at `~/.claude/context/user_profile.md`
+— outside every repository — so each project on the same machine reads the same one. If it is
+already there, adding the framework to a new project needs no profile step at all: `init-project.sh`
+reports it as found and Claude never asks again.
+
+The first time, from any project with the framework installed:
 
 ```text
 /init-profile
 ```
 
-This creates a personal profile at `~/.claude/context/user_profile.md`. It stays on your machine — it is never tracked in the project repo. Every developer on the team creates their own.
+It stays on your machine — never tracked in a project repo. Every developer on the team creates their own, once.
 
 Most of it is competency levels. One block is not: the natural language you work in, which lets Claude tell you when a project's declared locale set leaves your language out (subcriteria 2.10). It never changes the language anything is written in — code, comments and documents stay English.
 
@@ -42,7 +47,7 @@ Most of it is competency levels. One block is not: the natural language you work
 
 | Command | What it does |
 |---|---|
-| `/init-profile` | First-time developer profile setup (~5 min) |
+| `/init-profile` | One-time developer profile setup for this machine (~5 min) |
 | `/project-audit` | Full 11-category quality evaluation with 11 parallel agents; writes a dated report and score history to `docs/audits/`. `--summary` / `--deep` change how much of the result is printed — never what is measured |
 | `/competency-review` | Quarterly review and update of your developer profile |
 
@@ -57,7 +62,7 @@ a framework that is present and doing nothing.
 bash .claude/framework/scripts/check-updates.sh
 
 # 2. Move to it
-cd .claude/framework && git fetch --tags && git checkout v1.12.0 && cd ../..
+cd .claude/framework && git fetch --tags && git checkout v1.12.1 && cd ../..
 
 # 3. Make the install conformant with the new version — migrations included
 bash .claude/framework/scripts/init-project.sh
@@ -65,7 +70,7 @@ bash .claude/framework/scripts/init-project.sh
 # 4. Verify, and read what it says
 bash .claude/framework/scripts/check-install.sh
 
-git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.12.0"
+git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.12.1"
 ```
 
 Three scripts, three questions, no overlap:
@@ -88,7 +93,7 @@ entries you need are named rather than hunted for. `init-project.sh` migrates ev
 automatically and is idempotent, so there is no version-by-version upgrade path to follow: you can
 go from any older version straight to the newest one.
 
-The conformance rules ship *inside* each version, so checking out `v1.12.0` gets you `v1.12.0`'s
+The conformance rules ship *inside* each version, so checking out `v1.12.1` gets you `v1.12.1`'s
 checks with no lookup table to keep in sync.
 
 ## Two halves: writing and measuring
@@ -157,9 +162,10 @@ The project's `CLAUDE.md` includes `@.claude/framework/INSTRUCTIONS.md`, which l
 framework into every Claude Code session. The commands are installed as copies in
 `.claude/commands/` by `init-project.sh`.
 
-Each developer has their own profile at `~/.claude/context/user_profile.md`. When the profile is
-missing, Claude suggests running `/init-profile` at the start of the session and then proceeds
-normally.
+Each developer has their own profile at `~/.claude/context/user_profile.md` — see *Set up your
+developer profile* above for its scope. When it is missing, Claude suggests running `/init-profile`
+once at the start of the session and then proceeds normally; when it is present, nothing is asked,
+in a newly installed project as in an old one.
 
 ## Project-level specializations
 

@@ -20,7 +20,9 @@ cat ~/.claude/context/user_profile.md 2>/dev/null && echo "---PROFILE_EXISTS---"
 ```
 
 **If `PROFILE_EXISTS`:** Tell the developer:
-> A profile already exists. To update it after skill changes, run `/competency-review` instead.
+> A profile already exists on this machine, and it applies to every project using this framework —
+> a newly installed project does not need one of its own. To update it after skill changes, run
+> `/competency-review` instead.
 > Do you want to overwrite the existing profile from scratch? (yes / no)
 
 If they say no, stop here. If yes, continue.

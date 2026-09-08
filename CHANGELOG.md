@@ -8,6 +8,35 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.12.1] — 2026-09-08
+
+The developer profile is one file per machine, at `~/.claude/context/user_profile.md`, shared by
+every project that installs this framework. The code already behaved that way — `init-project.sh`
+and `INSTRUCTIONS.md` both suggest `/init-profile` only when the file is absent — but nothing said
+so, and two places implied the opposite: the README opened its setup section with "the first time
+you open Claude Code in a project with this framework", and the installer, having found a profile,
+said nothing at all. A developer installing their second project read a per-project step and silence
+where the previous run had printed a warning.
+
+### Fixed
+
+- **`init-project.sh` reports a profile it found**, instead of only a profile it missed —
+  `✓ Developer profile found … — reused as is`, with the reason: it is per machine, so the project
+  needs no profile setup. The missing-profile warning and the optional next step are unchanged.
+- **The README's setup section is scoped to the machine, not the project** — once per machine, and
+  explicitly nothing to do when installing into a new project on a machine that already has one.
+- **`/init-profile` says the same thing when a profile exists**, before offering to overwrite it. The
+  command was already safe; the message read as though a new project were a reason to make a second
+  profile.
+- **`INSTRUCTIONS.md` now has a branch for a profile that exists but has no `next_review_date`.**
+  1.9.1 fixed the template that wrote the row under the wrong name; profiles created before it still
+  carry `Next review`, and the session-start check looked up a field that was not there and fell
+  through to nothing. An absent field now reads as a review due, and the rule that covers the whole
+  class is stated with it: an existing profile file is never a reason to suggest `/init-profile`,
+  whatever shape its contents are in.
+- **`/competency-review` renames a legacy `Next review` row** as it updates the date, so a profile
+  that predates 1.9.1 stops being invisible to the session-start check after one review.
+
 ## [1.12.0] — 2026-09-07
 
 Ten categories measured how well a thing was built. None of them could say whether it was the thing

@@ -137,3 +137,7 @@ Ask the user to confirm before writing.
 
 Apply confirmed changes to `~/.claude/context/user_profile.md`.
 Update `next_review_date` to today + 3 months.
+
+If the row is still named `Next review` — a profile written before the field was renamed — rename it
+to `next_review_date` in the same edit. `INSTRUCTIONS.md` looks the field up by that name and finds
+nothing under the old one, so the review is never flagged again.

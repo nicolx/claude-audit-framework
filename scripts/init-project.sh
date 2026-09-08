@@ -213,13 +213,20 @@ CONFORMANCE=$?
 set -e
 
 # Advice rather than conformance, so it stays here.
+# The profile is per machine, not per project: a developer who already has one is
+# installing their second project, not their second profile. Say so, rather than
+# staying silent — silence reads as "the step is missing" to someone who ran this
+# before and remembers being told to run /init-profile.
 PROFILE_MISSING=0
+echo ""
 if [ ! -f "$HOME/.claude/context/user_profile.md" ]; then
     PROFILE_MISSING=1
-    echo ""
     echo "  ⚠  Developer profile NOT found (~/.claude/context/user_profile.md)"
     echo "     Run /init-profile in Claude Code to calibrate recommendations to your skill level"
     echo "     and record the natural language you work in."
+else
+    echo "  ✓  Developer profile found (~/.claude/context/user_profile.md) — reused as is"
+    echo "     It is per machine, not per project: this project needs no profile setup."
 fi
 
 echo ""

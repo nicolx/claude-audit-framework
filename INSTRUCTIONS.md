@@ -135,6 +135,8 @@ here" is not a reason to ship a lower standard — it is the reason to explain w
 At the start of each session, check the `next_review_date` field. If today's date is on or past that date, flag it once:
 > 📋 Competency review due — run `/competency-review` when ready.
 
+If the field is **absent**, the profile predates it. Treat that as a review due and flag the same line — `/competency-review` renames the row as it writes. Never infer anything else from a missing field: **a profile file that exists is never a reason to suggest `/init-profile`**, in whatever shape its contents are. That command builds a profile from scratch, the file is per machine rather than per project, and a developer opening a newly installed project already has theirs.
+
 ### The one field that is not a competency level
 
 The profile's **User-facing language** section records the developer's primary natural language. It has exactly one use: seeding the required locale set a project declares for subcriteria 2.10. Its own disclaimer, written into the profile, is the authority — this file only points at it, because the profile is global and is read in projects where this framework is not installed.
