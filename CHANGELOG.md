@@ -8,6 +8,33 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.17.1] — 2026-10-10
+
+1.17.0 added a declaration block and shipped no mechanism that would tell an existing project it
+exists. The changelog said so, which reaches whoever reads changelogs. `init-project.sh` cannot write
+it — the file belongs to the project the moment it is scaffolded. And the breaking-change range in
+`check-install.sh` does not name it, correctly: a new block is additive, so the release has no
+`### Breaking` section. The comment above that check has claimed since it was written that *a new
+declaration* is among the things it exists to surface. It only ever surfaced the ones that broke
+something.
+
+### Fixed
+
+- **`check-install.sh` compares the template's declaration blocks against the project's file**, and
+  names the ones the project does not carry together with the line that adds them. Version-independent
+  by construction — it reads the template shipped with the version checked out — so every future block
+  surfaces without being documented release by release. A warning and never an error: declining a block
+  is a legitimate answer that sets a ceiling. `init-project.sh` runs this check as its verification
+  step, so an upgrade reports it on the spot.
+- **The README's upgrade section says what is not automatic.** It promised that `init-project.sh`
+  migrates everything it can and that there is no version-by-version path to walk — true of everything
+  except a declaration block, which is exactly the thing only the developer can fill in.
+- **`test-install-cycle.sh` covers both directions:** a freshly scaffolded project carries every block,
+  and a project missing one is told which, at exit 0.
+- **Its section headers no longer number the cases they contain.** The ranges were maintained by hand
+  and had already drifted — `Cases 11–14` sat above seven of them — so inserting a case silently
+  falsified the headers below it. The runner prints the real numbers.
+
 ## [1.17.0] — 2026-10-10
 
 1.16.0 scored whether the work was cut into steps that could ship. It said nothing about whether they

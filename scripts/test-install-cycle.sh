@@ -267,7 +267,7 @@ case "$OUT" in
 esac
 rm -rf "$PROJ"
 
-# ── Cases 11–14 — check-install.sh conformance ───────────────────────────────
+# ── check-install.sh conformance ─────────────────────────────────────────────
 
 # run_check <project> — runs check-install.sh there, leaving its exit code in
 # $check_code and its combined output in $check_out.
@@ -378,7 +378,37 @@ case "$check_out" in
 esac
 rm -rf "$PROJ"
 
-# ── Cases 17–22 — mutants that survived the audit's mutation testing ─────────
+new_case "check-install.sh: a declaration block the template added is reported"
+# A block arrives in a minor release, so the breaking-change range never names it,
+# and init-project.sh must not write it into a file the project owns. Comparing
+# the template against the project is the only thing that surfaces one.
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
+run_check "$PROJ"
+case "$check_out" in
+    *"declaration blocks present"*) pass "a freshly scaffolded project carries them all" ;;
+    *) fail "expected the all-present line:"; indent "$check_out" ;;
+esac
+
+# The shape of an install that predates the block: the heading and its body gone.
+awk '/^## Delivery convention$/ { skip = 1; next }
+     /^## / { skip = 0 }
+     !skip' "$PROJ/.claude/PROJECT_AUDIT_FRAMEWORK.md" > "$PROJ/.claude/spec.tmp"
+mv "$PROJ/.claude/spec.tmp" "$PROJ/.claude/PROJECT_AUDIT_FRAMEWORK.md"
+run_check "$PROJ"
+case "$check_out" in
+    *"Declaration blocks offered by"*"Delivery convention"*)
+        pass "names the block the project does not carry" ;;
+    *) fail "expected the missing-block warning:"; indent "$check_out" ;;
+esac
+if [ "$check_code" -eq 0 ]; then
+    pass "stays exit 0 — declining a block is legitimate, not an install error"
+else
+    fail "expected exit 0 with a warning, got $check_code"
+fi
+rm -rf "$PROJ"
+
+# ── mutants that survived the audit's mutation testing ───────────────────────
 # Each of these passed a green suite while a real data-loss or load-nothing
 # defect was injected, which is why they exist.
 
@@ -485,7 +515,7 @@ else
 fi
 rm -rf "$SANDBOX"
 
-# ── Cases 23–28 — gaps the re-audit measured ─────────────────────────────────
+# ── gaps the re-audit measured ───────────────────────────────────────────────
 
 new_case "Install appends to a project's .gitattributes instead of replacing it"
 PROJ=$(new_project)
@@ -610,7 +640,7 @@ else
 fi
 rm -rf "$(dirname "$PROJ")"
 
-# ── Cases 29–32 — the bypasses an adversarial pass found ─────────────────────
+# ── the bypasses an adversarial pass found ───────────────────────────────────
 # All four were working attacks against v1.8.1, three of them destructive.
 
 new_case "A symlinked .claude/framework does not redirect writes to another project"
@@ -713,7 +743,7 @@ else
 fi
 rm -rf "$(dirname "$PROJ")"
 
-# ── Cases 33–35 — the second adversarial pass ────────────────────────────────
+# ── the second adversarial pass ──────────────────────────────────────────────
 
 new_case "A symlinked .claude is refused, and the link target is untouched"
 ROOT=$(mktemp -d)

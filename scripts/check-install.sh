@@ -224,6 +224,42 @@ else
          "→ echo '.claude/ export-ignore' >> .gitattributes"
 fi
 
+# ── Declaration blocks the template offers and this project does not carry ───
+# A release can add a declaration block — the one thing init-project.sh must not
+# write for you, because it is a grant of authority or a statement of access that
+# only the developer can make. The breaking-change range below does not surface
+# one: a new block is additive, so its release correctly has no `### Breaking`
+# section, and v1.17.0's `Delivery convention` arrived announced in the changelog
+# and nowhere a tool would say it. Comparing the template against the project is
+# version-independent, so every future block surfaces without being documented
+# release by release.
+
+TEMPLATE_SPEC="$FRAMEWORK_DIR/templates/PROJECT_AUDIT_FRAMEWORK.md"
+PROJECT_SPEC="$PROJECT_ROOT/.claude/PROJECT_AUDIT_FRAMEWORK.md"
+
+if [ -f "$TEMPLATE_SPEC" ] && [ -f "$PROJECT_SPEC" ]; then
+    MISSING_BLOCKS=""
+    BLOCK_COUNT=0
+    while IFS= read -r block; do
+        [ -n "$block" ] || continue
+        BLOCK_COUNT=$((BLOCK_COUNT + 1))
+        grep -qF "## $block" "$PROJECT_SPEC" || MISSING_BLOCKS="$MISSING_BLOCKS, $block"
+    done <<EOF
+$(grep '^## ' "$TEMPLATE_SPEC" | sed 's/^## //' | grep -v '^Category ')
+EOF
+    MISSING_BLOCKS=${MISSING_BLOCKS#, }
+
+    if [ -n "$MISSING_BLOCKS" ]; then
+        warn "Declaration blocks offered by v$FRAMEWORK_VERSION, absent from .claude/PROJECT_AUDIT_FRAMEWORK.md:" \
+             "$(sanitize_display "$MISSING_BLOCKS")" \
+             "Each decides what a session may do, or what an audit is able to verify. Declining one" \
+             "is a legitimate answer that sets a ceiling — it breaks nothing." \
+             "→ copy the block from .claude/framework/templates/PROJECT_AUDIT_FRAMEWORK.md and fill it in"
+    elif [ "$BLOCK_COUNT" -gt 0 ]; then
+        ok "All $BLOCK_COUNT declaration blocks present in .claude/PROJECT_AUDIT_FRAMEWORK.md"
+    fi
+fi
+
 # ── Breaking changes between the recorded install and this version ───────────
 # init-project.sh migrates what it can. What it cannot — a new declaration, a
 # decision only the developer can make — lives in the changelog, and this is
