@@ -30,6 +30,13 @@ start() {
     echo "[$CHECKS] $1"
 }
 
+# note <text> — something this clone could not verify, or a reminder that is not
+# yet a defect. Visible on purpose, and deliberately not a failure: a check that
+# cannot run must say so rather than pass silently.
+note() {
+    echo "  ⚠  $1"
+}
+
 # indent <text> — prefix every line, so matched lines nest under the finding above.
 indent() {
     local pad="       "
@@ -264,6 +271,57 @@ if [ -n "$MISSING_IN_CI" ]; then
     fail "qa.sh runs checks the workflow does not:$MISSING_IN_CI"
 else
     pass "every check in qa.sh appears in the workflow"
+fi
+
+# ── 10. Every released version is tagged, at the commit that declared it ─────
+# Check 7 proves VERSION and CHANGELOG agree, which says nothing about whether the
+# release was ever published. The README's upgrade steps tell a consumer to run
+# `git checkout vX.Y.Z`, and check-updates.sh compares against the tags on the
+# remote — so an untagged release is an upgrade instruction that fails and a
+# version the update check cannot see. A tag on the wrong commit is the same
+# defect wearing the right answer, so the tag's own VERSION is read back.
+
+start "Release tags"
+
+if [ -z "$(git tag --list | head -1)" ]; then
+    note "this clone has no tags — cannot verify (a shallow checkout fetches none)"
+else
+    CURRENT=$(tr -d '[:space:]' < VERSION)
+    RELEASED=$(grep -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | tr -d '#[] ')
+    MISSING=""
+    MISPLACED=""
+    VERIFIED=0
+
+    for v in $RELEASED; do
+        # The newest entry is the release being prepared. It is tagged when it is
+        # published, which is necessarily after this gate has to pass.
+        [ "$v" = "$CURRENT" ] && continue
+        if ! git rev-parse -q --verify "refs/tags/v$v^{commit}" >/dev/null; then
+            MISSING="$MISSING v$v"
+        elif [ "$(git show "v$v:VERSION" 2>/dev/null | tr -d '[:space:]')" != "$v" ]; then
+            MISPLACED="$MISPLACED v$v"
+        else
+            VERIFIED=$((VERIFIED + 1))
+        fi
+    done
+
+    if [ -n "$MISSING" ]; then
+        fail "a CHANGELOG release has no tag — the README's 'git checkout <tag>' fails for it, and check-updates.sh cannot see it"
+        indent "missing:$MISSING"
+    fi
+    if [ -n "$MISPLACED" ]; then
+        fail "a tag points at a commit that declares a different VERSION"
+        indent "misplaced:$MISPLACED"
+    fi
+    if [ -z "$MISSING" ] && [ -z "$MISPLACED" ]; then
+        pass "all $VERIFIED published releases are tagged at the commit that declared them"
+    fi
+
+    if git rev-parse -q --verify "refs/tags/v$CURRENT^{commit}" >/dev/null; then
+        pass "the current version v$CURRENT is tagged"
+    else
+        note "v$CURRENT is not tagged yet — tag it when you publish: git tag -a v$CURRENT && git push origin v$CURRENT"
+    fi
 fi
 
 # ── Summary ──────────────────────────────────────────────────────────────────
