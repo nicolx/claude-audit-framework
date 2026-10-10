@@ -8,6 +8,26 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.16.1] — 2026-10-10
+
+1.16.0 shipped with the README's counts and version pins updated and nothing in it saying what the
+release had added. A reader of the README alone still saw the remediation order as the newest idea in
+the framework, and the tag is what a prospective consumer browses before deciding to install
+anything.
+
+**No shipped document changed.** `standards/`, `commands/`, `templates/` and `INSTRUCTIONS.md` are
+byte-identical to 1.16.0, so a project already on 1.16.0 gains nothing from moving and loses nothing
+by staying. Upgrading is worth it only to have the pin examples in the README match the tag you are
+reading them from.
+
+### Fixed
+
+- **The README names the plan criterion**, beside the remediation order it belongs with: a unit of
+  work is measured on whether it arrived as a sequence of releasable steps or as one flip, read from
+  the git log and the CI runs rather than from the document that described it — the one criterion a
+  project cannot repair retroactively, and one the framework holds its own remediation output to.
+- **The install, upgrade and commit-message examples pin `v1.16.1`.**
+
 ## [1.16.0] — 2026-10-10
 
 The framework scored whether the work was written down and whether its status was true, and said
