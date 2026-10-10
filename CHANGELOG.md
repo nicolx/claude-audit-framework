@@ -8,6 +8,77 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.15.0] — 2026-10-10
+
+The previous release gave the remediation list an order and left the question of depth open. Those
+are different questions, and a project can answer the first perfectly while failing on the second in
+a way everybody recognises once it is named: the team that owns the pipeline takes Category 10 from
+1 to 9 in a quarter — that being the work it already knows how to do — and Category 1 is still at 2.
+Phase order permitted it. The average applauded it. Nothing a user touches got better, and no future
+refactoring got safer, because what made it unsafe was never the pipeline.
+
+So the framework now says how far as well as in what order. A project raises its floor, not its best
+number: every scored category reaches the target of the band it is on before any category is taken
+past it.
+
+### Added
+
+- **`standards/PROJECT_AUDIT_FRAMEWORK.md` § *How far to take a category before starting the next*.**
+  The maturity minimums already in *Quick reference* — 4, 6, 7, 8 — are re-read as rungs rather than
+  labels, and a project climbs them one at a time, stopping at the rung its own maturity requires.
+  Band and phase compose in one direction only: the band decides which categories are in scope, the
+  phase orders the ones that are. Which makes a phase complete *for a band* when its categories reach
+  that band's target rather than when they reach 10 — so every phase reopens at the next rung, and
+  the second pass is shorter than the first.
+- **§ *What the band rule governs, and what it does not*.** It governs where the next unit of effort
+  goes, tested by one question: does this change raise the lowest score? It does not forbid a category
+  sitting above the band — scores are not a budget and nothing is lowered to level a profile — and it
+  does not forbid free overshoot, because declining an afternoon's configuration to keep the profile
+  flat is the rule worn as a costume. It is *paid* overshoot that waits. The exemptions are the four
+  the phase order already names, pointed at rather than restated. Also handles the category that
+  resists the ladder on principle: a framework two majors behind is upgraded or it is not, and there
+  the band rule and the phase order agree, because Category 6 is Phase 4 and last regardless.
+- **§ *Why the floor and the spread, and not the average*.** Across eleven categories, taking one of
+  them from 6 to 10 and taking four of them from 5 to 6 are the same +0.36, and only the second is
+  progress — so the average will reliably endorse the behaviour the band rule exists to stop. Report
+  it, steer by the floor and the spread. Both are derived from the scores in `history.md` rather than
+  stored beside them: a number derived from the same row twice eventually disagrees with itself, and
+  the `C0` column is the standing reminder of what repairing a history file costs.
+- **A band-and-phase headline for the audit**, in *Recording the order in the audit* — band target,
+  phase, floor, spread, and the categories below target, in one line. Two audits apart it answers for
+  the programme what the blocked-gap paragraph already answers for a single gap: a band target that
+  has not moved in three audits is the finding, whatever the average did.
+
+### Changed
+
+- **The phase is read against the band target, not the maturity minimum.** An Established project
+  with Category 4 at 5/10 and nothing lower is at band target 6 and leaves Phase 2 when 4, 7 and 10
+  reach 6 — then re-enters Phase 2 at band 7. Previously the rule read the maturity minimum directly,
+  which made every phase a single long pass and left no room for the ladder.
+- **Step 3 of the evaluation procedure ranks inside the band and inside the phase.** The band selects
+  the categories still short of target, the phase orders them, impact per unit of effort chooses among
+  what is left. A top three leading with a category already at the band target is worse than one
+  leading with blocked work: it reads as a plan, works as one, and leaves the project as fragile as it
+  was.
+- **The framework-replacement row of the gate table asks for the maturity minimum explicitly**, not
+  merely the current band. It is the one piece of work the ladder does not let a project take early —
+  too expensive to do twice, too hard to reverse once.
+- **`/project-audit` § *Top actions* is band-aware.** A category already at the band target does not
+  enter the ranking at all — not as a blocked entry, not as a footnote — unless it is the one-line
+  configuration fix the standard allows out of order, which is labelled `out of order — one line` so
+  the reader can see the call was deliberate. And the list does not reach past the band to reach three.
+- **The project snapshot and the `--summary` closing lines carry band, phase, floor and spread**, all
+  four computed from the summary table in the same report rather than from anything stored.
+- **§ *Maturity target check* reports two lists** — the categories below the maturity minimum and the
+  categories below the current band target. They differ whenever the project is more than one rung
+  out, and the difference is the point: destination against this quarter's scope.
+- **`.claude/audit-focus.md` ranks by distance below the band target**, not below the maturity
+  minimum, so the write-time focus and the report's Top actions cannot point a project in two
+  directions.
+- **`INSTRUCTIONS.md` § *Closing a gap is a sequenced job, not a free choice*** gained the second
+  half of the order, and the two carve-outs it already stated now say *in every phase and at every
+  band*.
+
 ## [1.14.0] — 2026-10-10
 
 Eleven categories told a project what was wrong with it and ranked the findings by impact per unit

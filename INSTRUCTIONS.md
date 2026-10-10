@@ -189,7 +189,7 @@ simply unbuilt work is a question only the product documentation answers.
 1. Read `.claude/framework/standards/PROJECT_AUDIT_FRAMEWORK.md` in full before scoring
 2. Check for `.claude/PROJECT_AUDIT_FRAMEWORK.md` — if present, it extends the global framework; apply both
 3. Score each subcategory with specific file/line evidence — no vague scores
-4. Identify top 3 improvement opportunities by impact/effort ratio, ranked within the project's remediation phase
+4. Identify top 3 improvement opportunities by impact/effort ratio, ranked within the project's current remediation band and phase
 5. Produce a category summary table with score, top gap, and recommended action
 6. Re-score only after changes are implemented and verified — not for planned work
 
@@ -205,8 +205,17 @@ The phases, what each one gates, and what clears a gate are in the **Remediation
 quality work, including when the request arrives outside an audit — *"let's clean this file up"* is
 Phase 3 work and is subject to the same gate as the version of it that came from a report.
 
-Two things it does **not** gate, because both are routinely misread: new code is written to the full
-standard in every phase, and every category is scored at its real value in every phase.
+The order has a second half, and it is the one a team is likelier to get wrong on its own: **how far
+to take a category before starting the next.** A project raises its floor, not its best number.
+Every scored category reaches the target of the band the project is on — 4, 6, 7, 8, read as rungs —
+before any category is taken past it, so a quarter that moves CI/CD from 1 to 9 while design
+patterns sit at 2 is not progress however much it improves the average. The same section states the
+rule, what it does and does not forbid, and why the floor and the spread are the numbers to steer by
+when the average will happily endorse the opposite.
+
+Two things neither half gates, because both are routinely misread: new code is written to the full
+standard in every phase and at every band, and every category is scored at its real value in every
+phase and at every band.
 
 ---
 

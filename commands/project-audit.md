@@ -353,8 +353,15 @@ The summary table comes before the per-category evidence rather than after it, w
 used to sit: the verdict is what a reader wants first, and it is what makes truncating at section 3
 a coherent report rather than a report with its conclusion cut off.
 
-**1. Project snapshot** — stack, maturity with reasoning, scope, remediation phase with reasoning,
-quality gate result (with the failing lines if not green), and any of these warnings that apply:
+**1. Project snapshot** — stack, maturity with reasoning, scope, remediation band and phase with
+reasoning, quality gate result (with the failing lines if not green), and any of these warnings that
+apply:
+
+The band and phase line is the one in *Recording the order in the audit* in
+`.claude/framework/standards/PROJECT_AUDIT_FRAMEWORK.md`, filled in from this audit's scores: band
+target, phase, floor (the lowest-scoring category and its score), spread (highest minus lowest), and
+the categories below the band target. Compute all four from the summary table — none of them is
+stored anywhere, and a figure that disagrees with the table beside it is worse than no figure.
 
 - ⚠ No project-level `.claude/PROJECT_AUDIT_FRAMEWORK.md` — audit uses the global framework only
 - ⚠ No project-level `.claude/CODING_STANDARDS.md`
@@ -386,30 +393,40 @@ quality gate result (with the failing lines if not green), and any of these warn
 At `--summary` the report ends here, with two closing lines and nothing else:
 
 ```text
+Band target 6 · Phase 2 · floor Cat 9 (4.0) · spread 5.0
 Below the Established target (7/10): Cat 4 (5.0) · Cat 7 (6.5) · Cat 9 (4.0)
 Full report: docs/audits/2026-09-05-audit.md — 23 recorded gaps. Re-run with --deep to read them.
 ```
 
 **4. Detailed subcriteria scores** — the 11 category blocks in order, verbatim from the agents.
 
-**5. Top actions** — ranked by impact/effort **within the project's current phase**. For each: what
-to fix, where (`file:line`), why it matters, estimated effort (small / medium / large), and the phase
-it belongs to.
+**5. Top actions** — ranked by impact/effort **within the project's current band and phase**. For
+each: what to fix, where (`file:line`), why it matters, estimated effort (small / medium / large),
+and the phase it belongs to.
 
-The phase comes from *Remediation order* in `.claude/framework/standards/PROJECT_AUDIT_FRAMEWORK.md`,
-and this section is where that order becomes an instruction rather than a principle. Two rules follow
-from it:
+Band and phase both come from *Remediation order* in
+`.claude/framework/standards/PROJECT_AUDIT_FRAMEWORK.md`, and this section is where that order
+becomes an instruction rather than a principle. Three rules follow from it:
 
-- **A gap in a later phase does not enter the ranking.** It appears instead as the blocked entry the
-  standard describes — the gap named, the prerequisite named, the prerequisite's own effort given —
-  and it appears once, below the ranked actions under `Blocked by an earlier phase`. The project
-  still gets to see its biggest problem; it does not get to see it presented as this quarter's work.
-- **Where the current phase yields fewer than three actions, the list is shorter than three.** Do not
-  reach into the next phase to fill it. A project whose Phase 2 work is two items has two top
-  actions, and saying so is more useful than a third that cannot be started.
+- **A category already at the band target does not enter the ranking at all.** Not as a blocked
+  entry, not as a footnote — the work is real and it is simply not next. The exception is the one
+  the standard allows: a fix that is a line of configuration and cannot regress silently, which is
+  listed with `out of order — one line` on it so the reader can see it was a deliberate call.
+- **A gap in a later phase does not enter the ranking either.** It appears instead as the blocked
+  entry the standard describes — the gap named, the prerequisite named, the prerequisite's own
+  effort given — and it appears once, below the ranked actions under `Blocked by an earlier phase`.
+  The project still gets to see its biggest problem; it does not get to see it presented as this
+  quarter's work.
+- **Where the current band and phase yield fewer than three actions, the list is shorter than
+  three.** Do not reach into the next phase, and do not reach past the band target of a category
+  that has already met it, to fill the list. A project whose Phase 2 work is two items has two top
+  actions, and saying so is more useful than a third that cannot be started or should not be.
 
 **6. Maturity target check** — the assessed maturity, the framework's minimum per category for that
-level, and every category below it with its actual score.
+level, every category below it with its actual score, and the current band target with the categories
+below *that*. The two lists differ whenever the project is more than one rung from its maturity
+minimum, and the difference is the point: the first is the destination, the second is this quarter's
+scope.
 
 **7. Remediation detail** — `--deep` only. **Every** subcriteria whose `Gap` column is not `—`,
 worst score first, across all categories. The cut is the presence of a recorded gap, not a threshold:
@@ -502,7 +519,8 @@ look them up in the traceability table at the end of
 `.claude/framework/standards/CODING_STANDARDS.md`. A gap in project infrastructure (a missing CI
 gate, absent security headers, no health endpoint) cannot be honoured while writing a feature; it
 belongs in the report's Top actions as project work, not here. Ranking is by distance below the
-maturity target, severity breaking ties.
+band target, severity breaking ties — the same floor-first rule the Top actions follow, so the two
+artefacts cannot point a project in different directions.
 
 2.10 is the same shape as those: populating a catalog is backlog work, not a rule someone can honour
 while writing a feature, so it belongs in Top actions. 2.9 belongs here — "put the string in the
@@ -516,7 +534,7 @@ this shape:
 
 > Generated by `/project-audit` from `docs/audits/2026-09-03-audit.md`. Regenerated at every
 > audit — do not edit by hand, edits are overwritten.
-> Scope: full project · Maturity: Established (target 7/10)
+> Scope: full project · Maturity: Established (target 7/10) · Band target 6 · Phase 2
 
 ## 1. Category 9 — Observability & Operability — 4/10
 

@@ -2642,10 +2642,14 @@ a document that says what the product is for is better evidence for it than the 
 the code. Where it does not exist, say so in the ranking: the order is then an engineering judgement
 presented as a product one, and the reader deserves to know which they are getting.
 
-**Rank inside a phase, not across phases.** Which improvements are available to a project at all is
-decided by *Remediation order* below, and that section is applied before this ranking rather than
-after it. A top three that leads with work the project cannot yet do safely is a worse artefact than
-one that leads with the prerequisite holding it: the first reads as a plan and fails as one.
+**Rank inside the band and inside the phase, never across either.** Which improvements are
+available to a project at all is decided by *Remediation order* below, and that section is applied
+before this ranking rather than after it: the band selects the categories that are still short of
+target, the phase orders them, and impact per unit of effort chooses among what is left. A top three
+that leads with work the project cannot yet do safely is a worse artefact than one that leads with
+the prerequisite holding it — the first reads as a plan and fails as one. A top three that leads
+with a category already at the band target is worse still: it reads as a plan, works as one, and
+leaves the project exactly as fragile as it was.
 
 ### Step 4 — Produce a category summary
 
@@ -2728,19 +2732,91 @@ the hardest to reverse once a sprint of application code has been written agains
 change made on top of a project that has already reached Phase 3 is a contained migration; the same
 change made first is a rewrite that nobody called a rewrite.
 
+### How far to take a category before starting the next
+
+The phases say which category gets attention first. They do not say when it has had enough, and a
+programme that follows them perfectly can still fail in a shape most engineering organisations will
+recognise: the team that owns the pipeline takes Category 10 from 1 to 9 in a quarter — that being
+the work it already knows how to do — and Category 1 is still at 2. The average moved. Nothing a
+user touches got better and no future refactoring got safer, because what made it unsafe was never
+the pipeline.
+
+**The rule: a project raises its floor, not its best number.** Every scored category reaches the
+target of the band the project is on before any category is taken past it. The bands are the
+maturity minimums in *Quick reference* below, read as rungs rather than as labels — **4, 6, 7, 8** —
+and a project climbs them one at a time: at 4 across the board it targets 6 everywhere before
+anything targets 7. It stops at the rung its own maturity requires. Past that the ladder has nothing
+further to say and effort goes wherever the product needs it.
+
+So the programme is steered by two numbers, and they answer different questions:
+
+| | The question it answers | Where it comes from |
+|---|---|---|
+| **Band target** | How far every category has to get | The next rung above the project's lowest score, capped at the maturity minimum |
+| **Phase** | Which category gets there first | *The phases*, above |
+
+They compose in one direction only: **the band decides which categories are in scope, the phase
+orders the ones that are.** A phase is therefore complete *for a band* when its categories reach
+that band's target — not when they reach 10 — and every phase reopens at the next rung. A project
+that finished Phase 2 at band 6 is in Phase 2 again the moment its target becomes 7 and Category 4
+is sitting at 6.
+
+Categories marked N/A are excluded from the floor and the spread, as they already are from the
+average.
+
+### What the band rule governs, and what it does not
+
+It does not forbid a category being above the band. Scores are not a budget, and nothing is ever
+lowered to level a profile: a project whose Category 8 is at 9/10 because it was built by someone
+who knew what they were doing keeps that 9 while the floor climbs toward it.
+
+What the rule governs is **where the next unit of effort goes**, and the test is a single question:
+*does this change raise the lowest score?* If it does not, it needs one of the exemptions to be
+worth starting. A sprint spent on a category already at the band target while another sits beneath
+it is the move this rule exists to prevent — and it is an attractive move precisely because that
+category is the one the team is already good at.
+
+The exemptions are the four in *What the order does not gate* below, unchanged and for the same
+reasons: Phase 0, new code, scoring, and a fix that is one line of configuration. The last one
+matters most here. Enabling a setting that happens to take Category 10 from 6 to 8 costs an
+afternoon; declining it to keep the profile flat is the rule worn as a costume. Free overshoot is
+free — it is *paid* overshoot that waits.
+
+One category resists the ladder on principle. A framework two majors behind is upgraded or it is
+not; there is no way to spend 60% of that work and bank 60% of the score. Where a gap has no small
+version, the band rule and the phase order agree rather than conflict: Category 6 is Phase 4, it is
+last regardless, and a project short of its band target elsewhere was never going to start it.
+
+### Why the floor and the spread, and not the average
+
+Because the average rewards the behaviour the band rule exists to stop, and rewards it identically.
+Across eleven categories, taking one of them from 6 to 10 and taking four of them from 5 to 6 are
+the same **+0.36**, and only the second is progress. Anything that can be bought four points at a
+time in the category a team already likes will be, and the trend line will applaud.
+
+So report the average — it is the cheapest summary of total work done — and **steer by the floor and
+the spread**: the lowest-scoring category, and the distance between the lowest and the highest. A
+project whose spread is widening is getting less maintainable while its average improves, and the
+floor is the one number that cannot move without someone doing the work nobody volunteers for.
+
+Both are read off the scores already in `history.md` rather than stored beside them. A number
+derived from the same row twice is a number that will eventually disagree with itself, and the `C0`
+column is the standing reminder of what it costs to repair a history file after the fact.
+
 ### Which phase a project is in
 
 The phase is read off the scores, not negotiated: **a project is in the earliest phase that still
-has a category below the minimum for its maturity.** A project assessed as Established with
-Category 4 at 5/10 is in Phase 2 regardless of how bad Category 2 looks, and it leaves Phase 2 when
-4, 7 and 10 reach 7 — which is a date the score history can be asked for rather than a judgement
-anybody has to defend in a meeting.
+has a category below its current band target.** A project assessed as Established with Category 4
+at 5/10 and nothing lower is at band target 6, and it is in Phase 2 regardless of how bad Category 2
+looks; it leaves Phase 2 when 4, 7 and 10 reach 6 — which is a date the score history can be asked
+for rather than a judgement anybody has to defend in a meeting. It re-enters Phase 2 at band 7, and
+the second pass is shorter than the first every time.
 
-That number is the headline for the programme. It is not the gate for an individual change, and the
-two are allowed to disagree: the gate in the table below is scoped to the module being changed, so a
-team whose project sits in Phase 2 may still refactor the one module it has just covered. The phase
-says where the work as a whole has got to; the gate says whether this change may start today.
-Report the phase, apply the gate.
+Band and phase together are the headline for the programme. They are not the gate for an individual
+change, and the two are allowed to disagree: the gate in the table below is scoped to the module
+being changed, so a team whose project sits in Phase 2 may still refactor the one module it has just
+covered. The band and the phase say where the work as a whole has got to; the gate says whether this
+change may start today. Report the band and the phase, apply the gate.
 
 ### What the gate actually requires
 
@@ -2752,7 +2828,7 @@ that way has swapped one failure for a slower one.
 |---|---|---|
 | Refactoring a module | Tests cover that module's behaviour at some seam, and CI runs them | Run the suite; make a deliberate breaking edit in the module; confirm something red appears without being asked |
 | Renaming to the declared domain language (2.8–2.10) | The term's meaning is recorded, and the rename is observable to the suite | A document or glossary states what the term means; the suite exercises every mechanism that resolves the name as a string |
-| Introducing or replacing a framework (6.x) | Phases 1–3 reached their target, plus the Phase 2 signals for runtime behaviour | The audit's previous entry in `history.md` shows Categories 0, 4, 7 and 10 at the maturity target |
+| Introducing or replacing a framework (6.x) | Phases 1–3 reached the **maturity** minimum — not merely the current band — plus the Phase 2 signals for runtime behaviour | The audit's previous entry in `history.md` shows Categories 0, 4, 7 and 10 at the maturity target. This is the one piece of work the band ladder does not let a project take early: it is too expensive to do twice and too hard to reverse once |
 | Splitting a layer or extracting a bounded context (1.x, 3.x) | The use cases crossing that boundary are covered end to end | Name the tests that would fail if the boundary were drawn wrongly |
 | Raising the analyser level (7.1) | Nothing — it is Phase 2 work | Raising it is Phase 2; fixing what it then reports is Phase 3, site by site. A baseline file is what keeps the two separable |
 
@@ -2825,10 +2901,16 @@ actually a credit note.
 
 ### Recording the order in the audit
 
-Step 3's ranking runs inside a phase, not across phases. When the highest-impact gap in the project
-sits in a later phase than the project has reached, the report names it *and* names the prerequisite
-that holds it, in that order — the reader needs to know both that the gap is the biggest one and why
-it is not this quarter's work:
+Step 3's ranking runs inside a band and inside a phase, not across either. The report opens the
+programme with one line carrying both, plus the two numbers the band rule is steered by:
+
+> **Band target 6** (Established, minimum 7) · **Phase 2** · floor Cat 9 at 5.0 · spread 4.0 (Cat 1
+> at 9.0). Below target: Cat 9, Cat 4. Category 10 is at 8.0 and its backlog is not this quarter's
+> work unless an item is the afternoon kind.
+
+When the highest-impact gap in the project sits in a later phase than the project has reached, the
+report names it *and* names the prerequisite that holds it, in that order — the reader needs to know
+both that the gap is the biggest one and why it is not this quarter's work:
 
 > **Cat 2 — 3/10. Highest-impact gap in the project; blocked.** The domain layer is in mixed
 > Italian and English (`src/Domain/Fattura.php:14`). Renaming is Phase 3 work and this project is in
@@ -2837,7 +2919,8 @@ it is not this quarter's work:
 > work behind it.
 
 Two audits apart, that paragraph is also how a reader tells progress from drift: the prerequisite
-either moved or it did not.
+either moved or it did not. The headline above it answers the same question for the programme — a
+band target that has not changed in three audits is the finding, whatever the average did.
 
 ---
 
@@ -2851,6 +2934,11 @@ either moved or it did not.
 | Enterprise | Regulated, multiple teams, high availability | 8/10 |
 
 A project that consistently scores 7/10 across all measured categories is well-engineered, maintainable, and defensible in a professional context.
+
+The four minimums are also the rungs a project climbs on its way to its own: see *How far to take a
+category before starting the next* in *Remediation order* above. The column is a floor for every
+category, never an average across them — a project with one category at 4 has not reached 6, whatever
+the other ten say.
 
 ---
 
