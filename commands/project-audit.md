@@ -353,8 +353,8 @@ The summary table comes before the per-category evidence rather than after it, w
 used to sit: the verdict is what a reader wants first, and it is what makes truncating at section 3
 a coherent report rather than a report with its conclusion cut off.
 
-**1. Project snapshot** — stack, maturity with reasoning, scope, quality gate result (with the
-failing lines if not green), and any of these warnings that apply:
+**1. Project snapshot** — stack, maturity with reasoning, scope, remediation phase with reasoning,
+quality gate result (with the failing lines if not green), and any of these warnings that apply:
 
 - ⚠ No project-level `.claude/PROJECT_AUDIT_FRAMEWORK.md` — audit uses the global framework only
 - ⚠ No project-level `.claude/CODING_STANDARDS.md`
@@ -392,8 +392,21 @@ Full report: docs/audits/2026-09-05-audit.md — 23 recorded gaps. Re-run with -
 
 **4. Detailed subcriteria scores** — the 11 category blocks in order, verbatim from the agents.
 
-**5. Top actions** — ranked by impact/effort. For each: what to fix, where (`file:line`), why it
-matters, estimated effort (small / medium / large).
+**5. Top actions** — ranked by impact/effort **within the project's current phase**. For each: what
+to fix, where (`file:line`), why it matters, estimated effort (small / medium / large), and the phase
+it belongs to.
+
+The phase comes from *Remediation order* in `.claude/framework/standards/PROJECT_AUDIT_FRAMEWORK.md`,
+and this section is where that order becomes an instruction rather than a principle. Two rules follow
+from it:
+
+- **A gap in a later phase does not enter the ranking.** It appears instead as the blocked entry the
+  standard describes — the gap named, the prerequisite named, the prerequisite's own effort given —
+  and it appears once, below the ranked actions under `Blocked by an earlier phase`. The project
+  still gets to see its biggest problem; it does not get to see it presented as this quarter's work.
+- **Where the current phase yields fewer than three actions, the list is shorter than three.** Do not
+  reach into the next phase to fill it. A project whose Phase 2 work is two items has two top
+  actions, and saying so is more useful than a third that cannot be started.
 
 **6. Maturity target check** — the assessed maturity, the framework's minimum per category for that
 level, and every category below it with its actual score.
@@ -412,6 +425,8 @@ was asked for. One entry each:
   not the criterion restated
 - **What to change:** the smallest change that closes it
 - **Effort:** small / medium / large
+- **Phase:** 0–4, from *Remediation order*; where it is later than the project's own phase, name the
+  prerequisite on the same line — `3 — blocked on Cat 4 coverage of src/Domain`
 ```
 
 - **Expand from evidence already in hand.** The agents cited `file:line` for every subcriteria they

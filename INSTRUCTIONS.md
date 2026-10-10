@@ -189,9 +189,24 @@ simply unbuilt work is a question only the product documentation answers.
 1. Read `.claude/framework/standards/PROJECT_AUDIT_FRAMEWORK.md` in full before scoring
 2. Check for `.claude/PROJECT_AUDIT_FRAMEWORK.md` — if present, it extends the global framework; apply both
 3. Score each subcategory with specific file/line evidence — no vague scores
-4. Identify top 3 improvement opportunities by impact/effort ratio
+4. Identify top 3 improvement opportunities by impact/effort ratio, ranked within the project's remediation phase
 5. Produce a category summary table with score, top gap, and recommended action
 6. Re-score only after changes are implemented and verified — not for planned work
+
+### Closing a gap is a sequenced job, not a free choice
+
+The order in which scores are improved is part of the framework, not left to whoever picks up the
+work. Recorded intent and a working safety net come before any change to code that already exists:
+refactoring, renaming into the declared domain language, restructuring a layer, or replacing a
+framework are all spending something Categories 0, 4, 7 and 10 have to earn first.
+
+The phases, what each one gates, and what clears a gate are in the **Remediation order** section of
+`.claude/framework/standards/PROJECT_AUDIT_FRAMEWORK.md`. Read it before proposing or starting
+quality work, including when the request arrives outside an audit — *"let's clean this file up"* is
+Phase 3 work and is subject to the same gate as the version of it that came from a report.
+
+Two things it does **not** gate, because both are routinely misread: new code is written to the full
+standard in every phase, and every category is scored at its real value in every phase.
 
 ---
 

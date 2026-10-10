@@ -8,6 +8,77 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.14.0] — 2026-10-10
+
+Eleven categories told a project what was wrong with it and ranked the findings by impact per unit
+of effort. Nothing told it what order to fix them in, and the ranking quietly implied there wasn't
+one: the biggest number goes first. For most projects the biggest number is Category 2, and acting
+on it means a large refactoring on a codebase whose test suite, by the same report, scores 5.
+
+That is the sequence that makes a quality programme fail in a way the team reads as the framework's
+fault. Six weeks of renaming and decomposing, a regression nobody can localise because thirty files
+moved in one diff, and a conclusion that the audit costs more than it returns. The scores were
+right. The order was the team's to invent, and the report gave them no reason to think it mattered.
+
+So the framework now says it. Recorded intent and a working safety net are earned before any change
+to existing code spends them, and the audit's recommendations are ranked inside that order rather
+than across it.
+
+### Added
+
+- **`standards/PROJECT_AUDIT_FRAMEWORK.md` § *Remediation order*.** Five phases: stop the bleeding
+  (Cat 8, and the parts of 9 and 10 where something is actively being lost), record the intent
+  (Cat 0), build the net (Cat 4, 7, 10, plus the Cat 9 signals where the planned change alters
+  runtime behaviour), change the code (Cat 1, 2, 3, 5), change the platform (Cat 6). Phase 4 is last
+  because it invalidates more of the net than anything else and is the hardest change to reverse.
+- **A rule for reading a project's phase off its own scores** — the earliest phase that still has a
+  category below the minimum for the project's maturity. Not a judgement anybody has to defend: an
+  Established project with Category 4 at 5/10 is in Phase 2 no matter how bad Category 2 looks, and
+  it leaves Phase 2 on a date the score history can be asked for.
+- **A gate scoped to the change, not to the project**, as a table of planned work against what must
+  be true before it starts and how to check it. "We cannot refactor until Category 4 is 7/10" is the
+  misreading that turns the order into an excuse, and the table exists to foreclose it: a team that
+  covered one module on Monday has cleared the gate for that module on Tuesday and for nothing else.
+  The project phase and the per-change gate are allowed to disagree — one reports, the other decides.
+- **An answer to the standing objection — code that cannot be tested until it has been refactored.**
+  Left unanswered the order is a sentence rather than a plan, and a team that accepts it has a
+  principled reason to change nothing. A test does not have to be a good test to be a net: Phase 2
+  asks for the ability to detect a regression, not a well-factored suite. So the net goes at the
+  coarsest seam the code already has — the endpoint, the CLI command, the database state before and
+  after, a golden file over a hundred real inputs — which requires the code to be callable rather
+  than well designed, and is written to be deleted once real tests can replace it. With one
+  condition that is the whole point of the technique: it is captured before the refactoring, never
+  after.
+- **The mass rename, written up as the case the order exists for.** Translating identifiers into the
+  declared domain language looks like the safest item on any remediation list and is close to the
+  opposite: a uniform diff nobody reviews past the first page, a blast radius of the whole tree, and
+  a compiler that does not see string-keyed container lookups, serialized payloads already in a
+  queue, ORM mappings inferred from a property name, catalog keys, reflection, or a column a
+  migration will not rename with the property. It also carries the one Phase 1 prerequisite the rest
+  of Phase 3 does not: the term that most needs translating is the one whose meaning is least
+  recoverable from the code, and `Fattura` → `Invoice` is wrong twice if the entity is a credit note.
+- **What the order does not gate, stated where it cannot be missed** — new code is written to the
+  full standard in every phase, every category is scored at its real value in every phase, Phase 0
+  bypasses everything, and a fix that is one line of configuration and cannot regress silently is
+  taken out of order and said to have been. Both of the first two are routine misreadings, and both
+  invert the section if left implicit.
+- **`INSTRUCTIONS.md` § *Closing a gap is a sequenced job, not a free choice*** — a pointer, so the
+  order applies in the sessions where quality work actually starts. *"Let's clean this file up"* is
+  Phase 3 work and meets the same gate as the version of it that came out of a report.
+
+### Changed
+
+- **Step 3 of the evaluation procedure ranks inside a phase, not across phases.** Impact per unit of
+  effort still chooses among the improvements available; it no longer chooses which are available.
+- **`/project-audit` § *Top actions* is phase-aware.** A gap in a later phase leaves the ranking and
+  appears once below it under `Blocked by an earlier phase`, with its prerequisite and that
+  prerequisite's effort — the project still sees its biggest problem, it just stops seeing it
+  presented as this quarter's work. Where the current phase yields fewer than three actions the list
+  is shorter than three; reaching into the next phase to reach a round number is what this change is
+  against.
+- **The project snapshot carries the remediation phase**, and each `--deep` remediation entry carries
+  its own phase and, when that is later than the project's, the prerequisite holding it.
+
 ## [1.13.0] — 2026-10-10
 
 Category 9 measured eight ways a system can produce signals and no way of reaching them. A project

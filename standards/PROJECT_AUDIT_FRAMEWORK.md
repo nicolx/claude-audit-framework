@@ -2642,6 +2642,11 @@ a document that says what the product is for is better evidence for it than the 
 the code. Where it does not exist, say so in the ranking: the order is then an engineering judgement
 presented as a product one, and the reader deserves to know which they are getting.
 
+**Rank inside a phase, not across phases.** Which improvements are available to a project at all is
+decided by *Remediation order* below, and that section is applied before this ranking rather than
+after it. A top three that leads with work the project cannot yet do safely is a worse artefact than
+one that leads with the prerequisite holding it: the first reads as a plan and fails as one.
+
 ### Step 4 — Produce a category summary
 
 | # | Category | Score | Top gap | Recommended action |
@@ -2654,6 +2659,185 @@ presented as a product one, and the reader deserves to know which they are getti
 ### Step 5 — Reassess after changes
 
 Score only after changes are implemented and verified. An improvement that is "planned" or "in progress" does not change the score.
+
+---
+
+## Remediation order — what has to be true before a gap can be closed
+
+An audit produces a list of gaps. A list is not a plan, and ranking it by impact per unit of effort
+does not make it one: that ranking answers *which gap is worth the most*, which is a different
+question from *which gap can be closed safely this month*. The second question has a stricter
+answer, and it does not depend on how much any one gap is worth.
+
+**The rule in one sentence: a change to existing code is only as safe as the project's ability to
+notice that it broke something.** Categories 0, 4, 7 and 10 are what produce that ability —
+recorded intent, tests, analysers, and a pipeline that runs them on every change. Categories 1, 2,
+3, 5 and 6 spend it. Spending before earning is how a quality programme turns into an outage, and
+it is the single most common way a team that did everything the audit asked ends up worse off than
+when it started.
+
+The failure is not hypothetical and it has a recognisable shape. A team reads a 4/10 in Clean Code,
+spends six weeks renaming and decomposing, ships a regression nobody can localise because thirty
+files moved in the same diff, and concludes that the framework costs more than it returns. The
+audit was right about the score. The sequence was wrong, and the sequence was the team's to choose
+because nothing in the report told them one existed.
+
+### The phases
+
+Work in phase order. Within a phase, rank by impact per unit of effort — that is where the ranking
+of Step 3 belongs, and the only place it is safe.
+
+| Phase | The work | Categories | What it produces |
+|---|---|---|---|
+| 0 | Stop the bleeding | 8, parts of 9 and 10 | Nothing is actively being lost |
+| 1 | Record the intent | 0 | A statement of what the code is supposed to do |
+| 2 | Build the net | 4, 7, 10, parts of 9 | The ability to detect a regression |
+| 3 | Change the code | 1, 2, 3, 5 | Structure, naming, boundaries |
+| 4 | Change the platform | 6 | A supported framework and dependency set |
+
+**Phase 0 — Stop the bleeding.** An exploitable vulnerability (Category 8), data that is
+accumulating with no backup or no retention bound (9.7, 9.10), a deploy that cannot be rolled back
+(10.6). These bypass every gate below, because the cost of waiting on them is unbounded while the
+cost of waiting on everything else is linear. The bypass is narrow: it licenses the smallest change
+that closes the hole, not the refactoring the same file also deserves.
+
+**Phase 1 — Record the intent.** Category 0, and specifically 0.1. A refactoring is a claim that
+two pieces of code mean the same thing, and nothing in the code can adjudicate it — the odd special
+case in the pricing function is either an accident worth deleting or a contract signed in 2021, and
+only a document distinguishes them. Without 0.1, every Phase 3 decision is a guess dressed as a
+cleanup. The backfill is bounded and the order inside this category is its own:
+see *Adopting this category on an existing project* in Category 0 — do not reconstruct
+documentation from the code to clear this gate, which produces a corpus that cannot contradict the
+implementation and therefore cannot sign off on changing it.
+
+**Phase 2 — Build the net.** Category 4 on the paths the planned work will touch, Category 7's
+analyser and formatter, and Category 10 running both on every change. All three, not the first two:
+a suite nobody runs is not a net, and a formatter that is a local habit becomes a diff full of
+whitespace the moment two people touch the same file. Where the planned change alters runtime
+behaviour rather than structure — a framework upgrade, a swapped library, a changed query — the
+Category 9 subcriteria that would reveal the regression in production (9.1, 9.2, 9.3) belong in
+this phase too, because some breakage is not observable from a test suite at all.
+
+**Phase 3 — Change the code.** Categories 1, 2, 3 and 5: decomposition, naming, layering, the
+domain model, the frontend's structure. This is the work most audits make look most urgent, and it
+is the work with the least standing to go first.
+
+**Phase 4 — Change the platform.** Category 6: a major framework version, a replaced library, a
+build system swapped out. Last, because it invalidates more of the net than any other change and is
+the hardest to reverse once a sprint of application code has been written against it. A platform
+change made on top of a project that has already reached Phase 3 is a contained migration; the same
+change made first is a rewrite that nobody called a rewrite.
+
+### Which phase a project is in
+
+The phase is read off the scores, not negotiated: **a project is in the earliest phase that still
+has a category below the minimum for its maturity.** A project assessed as Established with
+Category 4 at 5/10 is in Phase 2 regardless of how bad Category 2 looks, and it leaves Phase 2 when
+4, 7 and 10 reach 7 — which is a date the score history can be asked for rather than a judgement
+anybody has to defend in a meeting.
+
+That number is the headline for the programme. It is not the gate for an individual change, and the
+two are allowed to disagree: the gate in the table below is scoped to the module being changed, so a
+team whose project sits in Phase 2 may still refactor the one module it has just covered. The phase
+says where the work as a whole has got to; the gate says whether this change may start today.
+Report the phase, apply the gate.
+
+### What the gate actually requires
+
+The gate is scoped to the change, never to the project. "We cannot refactor until Category 4 is
+7/10" is a misreading that makes the order an excuse for doing nothing, and a project that reads it
+that way has swapped one failure for a slower one.
+
+| The work planned | What must be true first | How to check it |
+|---|---|---|
+| Refactoring a module | Tests cover that module's behaviour at some seam, and CI runs them | Run the suite; make a deliberate breaking edit in the module; confirm something red appears without being asked |
+| Renaming to the declared domain language (2.8–2.10) | The term's meaning is recorded, and the rename is observable to the suite | A document or glossary states what the term means; the suite exercises every mechanism that resolves the name as a string |
+| Introducing or replacing a framework (6.x) | Phases 1–3 reached their target, plus the Phase 2 signals for runtime behaviour | The audit's previous entry in `history.md` shows Categories 0, 4, 7 and 10 at the maturity target |
+| Splitting a layer or extracting a bounded context (1.x, 3.x) | The use cases crossing that boundary are covered end to end | Name the tests that would fail if the boundary were drawn wrongly |
+| Raising the analyser level (7.1) | Nothing — it is Phase 2 work | Raising it is Phase 2; fixing what it then reports is Phase 3, site by site. A baseline file is what keeps the two separable |
+
+Three of those rows ask for coverage of *the thing being changed*. None asks for a project-wide
+number. A team that writes characterisation tests for one module on Monday has cleared the gate for
+that module on Tuesday, and has cleared nothing for the module next door — which is correct, and is
+why the order does not stall a project that moves module by module.
+
+### When the code cannot be tested until it has been refactored
+
+This is the standing objection to the order, and on a bad enough codebase it is a real one: the
+class has a constructor that opens a database connection, so there is no way to instantiate it in a
+test, so there is no net, so by this section's rule it may never be touched. Read that way the order
+is a sentence rather than a plan, and a team that accepts it has found a principled reason to change
+nothing.
+
+The way out is that **a test does not have to be a good test to be a net.** What Phase 2 requires is
+the ability to detect a regression, not a well-factored suite — those are different goals and only
+the first one gates. So the net is built at the coarsest seam the code already has, which is almost
+never the class:
+
+- The HTTP endpoint, driven with a recorded request and asserted on the whole response body
+- The CLI command, run end to end, asserted on exit code and output
+- The database state before and after a job, compared row by row
+- A golden file: capture today's output for a hundred real inputs, assert the refactoring reproduces
+  it byte for byte
+
+None of these require the code to be well designed. They require it to be *callable*, which it is —
+something calls it in production. They are allowed to be slow, to need a database, and to assert on
+things a unit test never would, because their entire job is to be deleted later, once the structure
+they protected has emerged and real tests can be written against it.
+
+What they must not be is written *after* the refactoring. A characterisation test records what the
+system does now, including the behaviour nobody intended — that is the point of it, and it is
+worthless if captured from the code you are about to claim is equivalent.
+
+### The mass rename is the most ordered change of all
+
+Translating identifiers into the project's declared language looks like the safest item on any
+remediation list: mechanical, reviewable, no logic touched. It is close to the opposite, and the
+reason it is worth stating explicitly is that its danger is invisible in exactly the way its cost
+is.
+
+The diff is large, uniform, and resistant to review — a reader checks the first forty renames
+carefully and scrolls the remaining nine hundred. The blast radius is the whole tree. And the
+compiler, which is what makes the change feel safe, does not see most of the ways a name is
+resolved: string-keyed container lookups, serialized payloads already sitting in a queue or a
+column, ORM mappings inferred from a property name, translation catalog keys, reflection, route
+names in a configuration file, a column name a migration will not rename with the property. Each of
+those fails at runtime, in production, on the path the rename did not touch.
+
+So the rename is Phase 3 work with a Phase 1 prerequisite that nothing else in that phase has: you
+cannot rename a domain term correctly without knowing what it means, and the term that most needs
+translating is usually the one whose meaning is least recoverable from the code — otherwise someone
+would have translated it already. `Fattura` becomes `Invoice` and both are wrong if the entity is
+actually a credit note.
+
+### What the order does not gate
+
+- **New code.** Written to the full standard from the first line, in every phase. The order governs
+  changes to code that already exists and already works; it has nothing to say about code being
+  written now, and reading it as "we cannot write clean code until we have tests" inverts it.
+- **Scores.** Every category is scored at its real value at every phase. The order decides what to
+  *do* about a 3/10, never whether to report one — an audit that hid the Category 2 score until
+  Category 4 was fixed would be withholding the reason the work matters.
+- **Phase 0.** Named above, and the only exception.
+- **A gap whose fix is a line of configuration.** Enabling branch protection, adding a `.editorconfig`,
+  pinning a dependency: no net is required to change something that cannot regress silently. Where
+  the fix is genuinely that small and genuinely that contained, take it out of order and say so.
+
+### Recording the order in the audit
+
+Step 3's ranking runs inside a phase, not across phases. When the highest-impact gap in the project
+sits in a later phase than the project has reached, the report names it *and* names the prerequisite
+that holds it, in that order — the reader needs to know both that the gap is the biggest one and why
+it is not this quarter's work:
+
+> **Cat 2 — 3/10. Highest-impact gap in the project; blocked.** The domain layer is in mixed
+> Italian and English (`src/Domain/Fattura.php:14`). Renaming is Phase 3 work and this project is in
+> Phase 2: `src/Domain` has no test covering it, so no rename is observable. **Prerequisite:**
+> characterisation tests over the invoicing use cases (Cat 4, ~2 weeks). The rename is a week of
+> work behind it.
+
+Two audits apart, that paragraph is also how a reader tells progress from drift: the prerequisite
+either moved or it did not.
 
 ---
 
