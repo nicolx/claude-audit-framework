@@ -240,7 +240,7 @@ If `.claude/CODING_STANDARDS.md` or `.claude/PROJECT_AUDIT_FRAMEWORK.md` exist, 
 
 ### Every criterion has a write-time counterpart
 
-The 25 principles in `CODING_STANDARDS.md` are the write-time half of the framework; the 11
+The 26 principles in `CODING_STANDARDS.md` are the write-time half of the framework; the 11
 categories in `PROJECT_AUDIT_FRAMEWORK.md` are the measurement half. The traceability table at the
 end of `CODING_STANDARDS.md` maps one to the other.
 

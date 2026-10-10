@@ -1206,7 +1206,7 @@ A Bounded Context is the explicit boundary within which a domain model applies. 
 
 ## Category 4 — Testing
 
-**What it measures:** How thoroughly and reliably the test suite verifies the system's behaviour, and how maintainable the tests are as the codebase evolves.
+**What it measures:** How thoroughly and reliably the test suite verifies the system's behaviour, how maintainable the tests are as the codebase evolves, and whether the suite grows by one test for every defect the project has already paid for.
 
 ### Subcriteria
 
@@ -1359,6 +1359,72 @@ $guzzle->method('request')->willReturn(new Response(200, [], '{"price": 42000}')
 The bad pattern is identical across all languages: mocking `OkHttpClient` in Kotlin, `aiohttp.ClientSession` in Python, or `URLSession` in Swift produces the same fragility.
 
 **Prefer stubs and fakes over mocks for dependencies you query:** If you only need a repository to return data, use a `StubOrderRepository` with pre-loaded data. Reserve mocks for verifying side effects (emails sent, events published) — interactions, not queries.
+
+#### 4.7 Bug fixes leave regression tests behind
+
+The six subcriteria above measure the suite against the code as it is today: what is covered, how
+well, with which doubles. This one measures it against the project's own history — whether each
+defect the project has already paid for is pinned by a test, and whether those tests survive the
+years between the fix and the next person to touch that code.
+
+It is the most mechanically observable criterion in this category, because the evidence is the log.
+Every bug-fix commit either changed a test file or did not:
+
+```bash
+# Conventional Commits. Without them, read the subjects and pick the fixes by hand —
+# an unlabelled history is harder to query, not exempt from the question.
+git log --format='%H%x09%s' --grep='^fix' | while IFS=$'\t' read -r sha subject; do
+  git show --name-only --format= "$sha" \
+    | grep -qiE '(^|/)(tests?|spec|__tests__)/|(_test|Test|\.test|\.spec)\.' \
+    && printf 'test  %s\n' "$subject" || printf 'NONE  %s\n' "$subject"
+done
+```
+
+That ratio is the first number. The second is whether the tests were real: for three to five recent
+fixes, check out the fix's parent, bring in only the new test, and run it. A regression test that
+passes against the unfixed code was written from the fix rather than from the bug, and asserts that
+the new code does what the new code does.
+
+The third is whether they stay. `git log --diff-filter=D --name-only -- tests/` lists every deleted
+test; each deletion should sit in a commit that changed the behaviour the test pinned, not in a
+refactor, a suite reorganisation, or a sweep for slow or flaky tests.
+
+**Scope:** N/A only where the history is structurally too short to contain bug fixes — a repository
+in its first weeks. Unlabelled commits do not make it N/A, and neither does a small number of fixes:
+four fix commits are a sample, and four fix commits with no tests are an answer.
+
+**Good:**
+
+- The test arrives in the fix commit and fails on that commit's parent
+- The test names the defect it pins — issue id in the method name, or one line of docblock. The next
+  reader can see why a test exists for an input nobody would think to try
+- Regression tests run in the default suite, at the lowest level that reproduces the defect
+- A defect that recurs is treated as a finding about the suite, not as bad luck
+- Retiring a regression test happens in the commit that changes the behaviour it pinned, and says so
+
+**Bad:**
+
+- Fix commits that touch only production code. *"Test to follow"* is a commitment with no deadline
+  and no artifact, and the follow-up competes with the next bug
+- A regression test that passes when the fix is reverted — written from the diff, not from the report
+- Regression tests parked in a skipped group, a `@flaky` tag, or a suite CI does not run. A test
+  nobody runs is documentation with a build cost
+- A regression test deleted in a refactor, or folded into a broader test that no longer exercises the
+  specific input. The coverage number does not move; the defect becomes reachable again
+- The same defect twice in the log, months apart, two commits touching the same lines for the same
+  reported reason. This is the finding that scores the subcriteria on its own
+
+**How to score:**
+
+- 0–2: No relationship between fix commits and test changes. Defects are closed by changing code and
+  confirming manually that the symptom is gone
+- 3–5: Some fixes carry a test, usually where the code already had a suite and the test was cheap.
+  No expectation stated anywhere, so it holds exactly as long as the schedule does
+- 6–7: Most fixes carry a test, and the tests are genuine. The lifetime of a regression test is not
+  governed: deletions are not examined, and a test removed in a refactor removes the guarantee with it
+- 8–10: Every fix carries a test that failed first, at the level the defect lives on and naming the
+  defect; a recurrence is treated as a defect of the suite; and retiring a regression test requires
+  the behaviour change that justifies it. The log for the last year shows no defect fixed twice
 
 ---
 

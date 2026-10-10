@@ -863,6 +863,59 @@ commits said, which is the one thing a reader could already get from the commits
 
 ---
 
+## 26. Every bug fix leaves a test behind
+
+A bug is not only broken code. It is also a gap in the suite, which is what let the code break
+unobserved for as long as it did. Changing the code closes the first half. The test that would have
+caught it closes the second, and that is the half deciding whether the same defect can arrive twice.
+
+**The protocol:**
+
+1. **Reproduce it as a failing test, before the fix.** The test must fail on the current code and
+   fail *for the reported reason* — not on a setup error, not on an assertion the bug never violated.
+   A test written after the fix and never seen red proves only that it agrees with the code sitting
+   in front of it.
+2. **Write it at the lowest level that reproduces the defect.** A wrong rounding rule gets a unit
+   test on the calculation, not an end-to-end run through checkout. The level that reproduces the bug
+   is the level that will localise the next one.
+3. **Aim it at the root, not at the report.** Principle 9 decides where the fix goes; this decides
+   what pins it there. Where the root was a shared function and the report was one of its forty call
+   sites, the test belongs on the function — and the reported input stays in it as a case, because
+   that is the one a human confirmed.
+4. **Name the defect in the test.** The issue id, the ticket, or one line above it saying what broke.
+   A regression test is the one test whose reason to exist is not visible in the code it covers, and
+   the reader who cannot see the reason is the one who deletes it.
+
+**Then it stays.** It is removed only when the behaviour it pins is deliberately changed, in the same
+commit as that change, with the change stated. Nothing else is a reason:
+
+- **Not that it is red.** A red regression test is either a returned defect or a decided change of
+  behaviour. Both are answered in the production code or in the commit message, never by deleting
+  the test
+- **Not that it is old.** The defect is not less reachable because the fix is two years old; the code
+  around it has been rewritten twice since
+- **Not that a broader test covers it.** *"The integration suite covers that"* holds until the
+  integration suite is restructured by someone who never knew it was load-bearing
+- **Not that it is slow or awkward.** Make it faster at the level it is on. Raising its level or
+  dropping it trades a defect you have already paid for against a few seconds of CI
+
+**What good looks like:**
+
+- The fix commit contains the test, and the test fails on that commit's parent
+- A regression test that says what it is for, in its name or in one line above it
+- A behaviour change that retires a regression test doing so explicitly, in the commit that changes
+  the behaviour
+
+**Signals of drift:**
+
+- A fix commit touching only production code, with the test as a follow-up that never arrives
+- A regression test that still passes when the fix is reverted
+- Regression tests skipped, quarantined, or excluded from the default run
+- The same defect twice in the history — the strongest signal there is, and the only retroactive
+  one: whatever the first fix left behind, it was not a test
+
+---
+
 ## Traceability — where each principle is measured
 
 These principles are the write-time half of the framework; `PROJECT_AUDIT_FRAMEWORK.md` is the
@@ -899,6 +952,7 @@ can only be found in an audit, never written correctly the first time.
 | 23 | A spec is delivered when its status says so | 0.3, 0.4, 0.5 |
 | 24 | Cut the work into steps that ship | 0.8, 10.9 |
 | 25 | A change is delivered, not finished | 10.14, 10.15 |
+| 26 | Every bug fix leaves a test behind | 4.7 |
 
 ### Criteria with no write-time principle, and why
 

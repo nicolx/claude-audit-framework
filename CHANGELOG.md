@@ -8,6 +8,39 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.18.0] — 2026-10-10
+
+The framework scored how well a suite covers the code as it stands and said nothing about the one
+test everybody agrees should exist and nobody checks for: the one written when a bug was fixed. A
+defect that reaches production has already proved the suite could not see it, and a fix that changes
+only production code leaves that blindness exactly where it was. The second time the same bug is
+reported is not bad luck — it is the first fix's missing test, arriving late.
+
+The lifetime is half the rule and the half that gets lost. A regression test is the only test whose
+reason to exist is invisible in the code it covers, so it is the one a suite reorganisation, a flaky
+sweep, or a well-meant consolidation into a broader test removes without anyone noticing the
+guarantee leaving with it.
+
+### Added
+
+- **Principle 26 — *Every bug fix leaves a test behind*.** A four-step protocol: reproduce the defect
+  as a test that fails *for the reported reason* before the fix exists, at the lowest level that
+  reproduces it, aimed at the root principle 9 sends the fix to rather than at the reported call site,
+  and naming the defect so the next reader can see why a test exists for an input nobody would think
+  to try. Then the removal rule, with the four non-reasons spelled out: not because it is red, not
+  because it is old, not because a broader test covers it, not because it is slow. It goes in the
+  commit that deliberately changes the behaviour it pinned, and nowhere else.
+- **Subcriteria 4.7 — *Bug fixes leave regression tests behind*.** The rest of Category 4 scores the
+  suite against the code as it is today; this scores it against the project's own history, and the
+  evidence is the log rather than an opinion. Three queries: what share of fix commits touched a test
+  file, whether a sample of those tests actually fails when checked out against the fix's parent, and
+  whether deleted tests were deleted by a behaviour change. The same defect appearing twice in the
+  log carries the score on its own. N/A only where the history is too short to contain bug fixes —
+  unlabelled commits make the query harder, not the question inapplicable.
+- **The `/project-audit` evidence slice for Category 4 says where to look**, since 4.7 is the first
+  thing in that category that is not in the test tree: the whole log rather than `common.md`'s
+  twenty-line excerpt, the parent-commit spot check, and the deletions.
+
 ## [1.17.1] — 2026-10-10
 
 1.17.0 added a declaration block and shipped no mechanism that would tell an existing project it
