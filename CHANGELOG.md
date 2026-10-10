@@ -8,6 +8,108 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.16.0] — 2026-10-10
+
+The framework scored whether the work was written down and whether its status was true, and said
+nothing about the one property of a plan that decides how the week actually goes: whether it is a
+sequence of steps or a single flip. That gap is older than agents and survivable with people, who
+ask what to do first. An agent does not ask. Handed *"rebuild the billing module"* it rebuilds the
+billing module, in one pass, and the first moment anyone can tell whether it was right is the moment
+there is nothing left to compare it against.
+
+So the plan is now scored, and sequencing the work is now a principle. A step is one change, the one
+test that proves it, and a state the system can be released in — three things at once, or it is not
+a step. And the first one is chosen the way an A3 chooses it: the smallest change that settles the
+assumption most likely to be wrong.
+
+### Added
+
+- **`standards/PROJECT_AUDIT_FRAMEWORK.md` § *0.8 The plan decomposes into steps that each ship*.**
+  0.3 scores whether the work is specified; 0.8 scores whether it is sequenced. Scored on the units
+  of work large enough to carry a spec under 0.3's threshold, so a small change passes with a
+  one-step plan rather than failing for not having a list. The bad list names the failures that look
+  like plans: the layer-by-layer split where nothing is observable until the last step, the cutover
+  written as a line item, verification deferred to a phase of its own, and the done condition that
+  is *"it works"*.
+- **`standards/CODING_STANDARDS.md` § *24. Cut the work into steps that ship*.** The write-time half:
+  decompose before writing, agree the list in its own exchange, cut by behaviour rather than by
+  layer, and open on the riskiest assumption. States what to do when the request *is* the
+  destination — answer with the route, and never read agreement on a destination as agreement to
+  reach it in one pass. A developer who still wants the single cutover gets it, with a plain
+  statement of what cannot be verified until the end.
+- **`INSTRUCTIONS.md` § *Before the first line: the step list is the deliverable*.** Where principle
+  24 lands in a session, including the drift a developer cannot see coming: a sequence that was
+  stated and then collapsed into one change because it looked small from inside.
+- **§ *How the plan is measured against the history*,** inside 0.8. A plan read on its own scores the
+  writing, so the criterion joins the document to the record of how the work arrived — six indicators,
+  all read-only `git` plus the CI run list: whether the declared steps were the steps that landed,
+  whether one of them is the cutover wearing a step's number, whether each brought its own test,
+  whether the gate was green at each one, what was released between the first and the last, and
+  whether the plan was revised as the work reported back. Ceilings price what the history can support,
+  from *nothing cites the unit* (5) up to *every step separate, green and tested* (8) and *released
+  along the way* (10). It also says what the numbers cannot say: the counts are cheap to satisfy
+  without changing anything — five commits authored in ten minutes and merged together pass indicator
+  1 and fail 4 and 5 — and no command can tell you whether the first step was the one worth taking
+  first. Squash-on-merge destroys the step record before it reaches `main`, so the measurement moves
+  to the pull request, and a project that squashes one pull request per unit of work has no step
+  record at all.
+- **§ *The window*, inside the same section** — the half that makes the criterion actionable rather
+  than merely measurable. Scored over a rolling window of the **last five units of delivery**,
+  bounded at six months or the audit before last, with a short sample (under three units) capped at
+  6 rather than guessed at. Inside it the response is arithmetic a team can plan against: one unit
+  changes nothing, three of five lift the collapsed-delivery ceiling, five of five leave the ceilings
+  binding on nothing. Three raise and two lower — deliberately not mirrored, because a practice is
+  harder to demonstrate than to abandon. The report names the window it read, or two audits compare
+  different measurements and call the difference progress.
+- **§ *What the history is evidence of*.** Why the join exists at all: a plan read on its own agrees
+  with itself, exactly as a spec reconstructed from code agrees with the code, and the history is the
+  second hand. 0.8 is consequently the one criterion here that cannot be repaired retroactively — a
+  backfilled plan for a unit that shipped as one change scores the change — which is also what makes
+  it among the cheapest to raise going forward: five sequenced units, no infrastructure. And the
+  scope is stated: the delivery inside the window, never the people in it.
+- **An evidence focus for 0.8 in `/project-audit`** — read the step list in the specs for work in
+  flight, then run the indicators against the units in the slice rather than inferring them from
+  `common.md`'s twenty-line log, and quote the numbers. A five-step plan delivered as one commit
+  scores the commit, not the list.
+
+- **§ *How remediation work is delivered*,** in *Remediation order*. The order decides which gap and
+  when, and said nothing about the shape of the change that closes it — which is how a correctly
+  ordered programme still ships ninety files in one change and loses the quarter to the first
+  regression. Three rules: a phase is a direction and not a commit, the audit's own recommendation
+  names a first step, and size is not the test — uniformity is. Remediation gets no exemption from
+  0.8, and is the work that needs it most, because it changes code that already runs.
+- **§ *How it is cut*, in *The mass rename is the most ordered change of all*.** One term per step,
+  never the glossary in one change, and nothing else in the step: a behaviour change riding along
+  destroys the one property that made the diff reviewable, that every hunk is the same edit. The
+  resolution sites the compiler cannot see — container keys, serialized payloads, ORM mappings,
+  catalog keys, route names, the column a migration renames with the property — become the step's
+  checklist instead of its surprise. Per term that list is finite; across forty terms it is the blast
+  radius. This is what makes the rename ordered rather than merely large: it does one thing many
+  times.
+
+### Changed
+
+- **The audit's own output is held to 0.8.** In `/project-audit`, a Top action estimated medium or
+  large names its first step on its own line, and a `--deep` remediation entry that cannot be closed
+  in one change names the first step and what it settles. Top actions is the part of the report most
+  likely to be handed to an agent verbatim, and an instruction written at the altitude of the end
+  state is the artefact 0.8 exists to stop.
+- **Indicator 2 tests uniformity rather than size.** A step that does one thing many times is ordered
+  at any size; a step that does many things once is the cutover. Previously it exempted the mass
+  rename by name, which read as an exemption for large changes rather than for mechanical ones.
+- **Principle 9 says where the fix goes, not how much arrives at once.** A fix that generalises
+  across forty call sites is still delivered in steps — 11 for the shape, 24 for the sequence.
+- **`INSTRUCTIONS.md` carries the same boundary in the remediation paragraph:** the order governs
+  which gap and when, never the shape of the change that closes it.
+- **10.9 points at 0.8 rather than restating it.** 10.9 measures whether the architecture admits an
+  incremental sequence at all; 0.8 measures the plan that uses one. A system with no seams leaves no
+  plan available but the cutover, which is why both exist.
+- **The adoption provision covers 0.8**, on the same terms as 0.3–0.5: scored against the units of
+  delivery since the practice started. Step 3 of the adoption order now names the step list as the
+  half of the spec worth writing first — it changes what happens this week, rather than what is on
+  record about it.
+- **The principle count is 24** in `README.md`, `INSTRUCTIONS.md` and `CLAUDE.md`.
+
 ## [1.15.0] — 2026-10-10
 
 The previous release gave the remediation list an order and left the question of depth open. Those

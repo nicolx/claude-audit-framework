@@ -217,6 +217,12 @@ Two things neither half gates, because both are routinely misread: new code is w
 standard in every phase and at every band, and every category is scored at its real value in every
 phase and at every band.
 
+And the order governs *which* gap and *when*, never the shape of the change that closes it. A phase
+is a direction, not a commit: remediation is delivered in the steps of principle 24 like any other
+work, and gets no exemption for being quality work — it is the work that needs the rule most, because
+it changes code that already runs. The same section states it, under *How remediation work is
+delivered*.
+
 ---
 
 ## Coding standards
@@ -234,7 +240,7 @@ If `.claude/CODING_STANDARDS.md` or `.claude/PROJECT_AUDIT_FRAMEWORK.md` exist, 
 
 ### Every criterion has a write-time counterpart
 
-The 23 principles in `CODING_STANDARDS.md` are the write-time half of the framework; the 11
+The 24 principles in `CODING_STANDARDS.md` are the write-time half of the framework; the 11
 categories in `PROJECT_AUDIT_FRAMEWORK.md` are the measurement half. The traceability table at the
 end of `CODING_STANDARDS.md` maps one to the other.
 
@@ -293,6 +299,24 @@ of work rather than at session start — a warning fired before there is anythin
 
 Then carry on. Do not scaffold a documentation tree unasked — the layout is the team's decision, and
 an empty `docs/` created by an agent is a worse signal than no `docs/` at all.
+
+### Before the first line: the step list is the deliverable
+
+Principle 24 governs this; what follows is where it lands in a session.
+
+Anything larger than a fix is proposed as an ordered list of steps before any of it is written, and
+each step names the change it makes, the test that proves it, and the state the system is released
+in once it lands. Get agreement on the list first, in its own exchange.
+
+A request that names an end state — *"rewrite the importer"*, *"migrate everything to the new
+client"* — names a destination, not a step. Answer with the route, and say which step is first: the
+smallest change that settles the assumption most likely to be wrong, not the easiest file on the
+list. Never read agreement on a destination as agreement to reach it in one pass.
+
+Then hold the sequence. A stated plan collapsed into a single change because it looked small from
+inside is the failure this principle exists to prevent, and it is not visible to the developer until
+the diff arrives. If they ask for the single cutover anyway, having seen the sequence, that is their
+call — build it, and say which part of it nobody can verify until the end.
 
 ### Naming across languages
 

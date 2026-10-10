@@ -297,7 +297,7 @@ recorded in the manifest.
 
 | # | Category | Evidence focus |
 |---|---|---|
-| 0 | Product Strategy & Delivery Documentation | The documentation tree and status-marker listing captured in `common.md`, then the documents themselves — the context document, the specs, the ADR index, the design artifacts. For 0.4, read the markers, not the prose: the question is whether a fixed field from a closed vocabulary exists, which `grep` answers and reading does not. For 0.5, take the specs marked `implemented` and check the code they name actually exists; take the ones marked `todo` and check they are not already built — a spec silently delivered is the same defect as one silently abandoned. For 0.6, follow the design links: a link to a tool's current canvas and a link pinned to a frame are different scores. Apply the adoption provision in the slice: find the commit that created the documentation home, and score 0.3–0.5 against the units of delivery since that date rather than against the whole history — an inherited project cannot be scored on documents it was never going to have |
+| 0 | Product Strategy & Delivery Documentation | The documentation tree and status-marker listing captured in `common.md`, then the documents themselves — the context document, the specs, the ADR index, the design artifacts. For 0.4, read the markers, not the prose: the question is whether a fixed field from a closed vocabulary exists, which `grep` answers and reading does not. For 0.5, take the specs marked `implemented` and check the code they name actually exists; take the ones marked `todo` and check they are not already built — a spec silently delivered is the same defect as one silently abandoned. For 0.6, follow the design links: a link to a tool's current canvas and a link pinned to a frame are different scores. For 0.8, read the plan inside the specs for work in flight — an ordered list of steps, each naming its test and what is released once it lands — then stop reading and join it to the history: run the indicators in *How the plan is measured against the history* for the units in the slice and apply its ceilings. They are read-only `git` plus the CI run list, so run them rather than inferring them from `common.md`'s twenty-line log, and quote the numbers in the finding — including the window you read them over, which the section defines and the report must name. A five-step plan delivered as one commit scores the commit, not the list. Apply the adoption provision in the slice: find the commit that created the documentation home, and score 0.3–0.5 and 0.8 against the units of delivery since that date rather than against the whole history — an inherited project cannot be scored on documents it was never going to have |
 | 1 | OOP & Design Patterns | Domain and application classes, interfaces, factories, the largest classes in the manifest |
 | 2 | Clean Code | A sample across the tree, weighted to the longest files — that is where naming, size and duplication problems concentrate. For 2.8, read the **Domain language** section of `.claude/CODING_STANDARDS.md` *first*, note which context each sampled file belongs to, then sample deliberately across the context boundaries: a declared term inside its context is correct, the same term outside it is a boundary leak, and an undeclared non-English term is drift. For 2.9 and 2.10, read the **User-facing text** section of the same file first — it is the only place the required locale set is declared — then visit *every* surface the orchestrator listed, not a sample: a hardcoded PDF or mail template is the finding, and sampling is how it stays hidden. For 2.10, diff the key sets between catalogs rather than trusting their line counts, and score against the declared set only — nothing outside the repository enters the score |
 | 3 | Domain-Driven Design | Layer directories, entities, value objects, repository interfaces, domain events, and whatever enforces the boundaries |
@@ -417,6 +417,12 @@ becomes an instruction rather than a principle. Three rules follow from it:
   effort given — and it appears once, below the ranked actions under `Blocked by an earlier phase`.
   The project still gets to see its biggest problem; it does not get to see it presented as this
   quarter's work.
+- **An action that is more than one change names its first step.** For anything estimated medium or
+  large, give the smallest change that settles the riskiest part of the gap, on its own line —
+  `first step: characterise the invoicing use cases with a golden file, one day`. This section is the
+  part of the report most likely to be handed to an agent verbatim, and an instruction written at the
+  altitude of the end state is the one 0.8 exists to stop. A small action is one step already and
+  needs no second line.
 - **Where the current band and phase yield fewer than three actions, the list is shorter than
   three.** Do not reach into the next phase, and do not reach past the band target of a category
   that has already met it, to fill the list. A project whose Phase 2 work is two items has two top
@@ -440,7 +446,8 @@ was asked for. One entry each:
 - **The gap:** what is there now, in one sentence
 - **Why it matters:** the failure this makes likely, or makes invisible — concrete to this project,
   not the criterion restated
-- **What to change:** the smallest change that closes it
+- **What to change:** the smallest change that closes it — or, where the gap cannot be closed in one
+  change, the first step and what it settles
 - **Effort:** small / medium / large
 - **Phase:** 0–4, from *Remediation order*; where it is later than the project's own phase, name the
   prerequisite on the same line — `3 — blocked on Cat 4 coverage of src/Domain`

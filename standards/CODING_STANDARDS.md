@@ -237,6 +237,10 @@ When something is wrong, identify why it is possible before deciding how to fix 
 A patch that prevents the specific symptom while leaving the root cause intact will
 produce the next symptom.
 
+The root is *where* the fix goes, not how much of it arrives at once. A fix that generalises across
+forty call sites is still delivered in steps — principle 11 for the shape, principle 24 for the
+sequence. "Fix at the root" never licenses one change that touches everything the root touches.
+
 **What good looks like:**
 
 - A fix that makes the wrong thing structurally impossible, not just this instance harder
@@ -760,6 +764,58 @@ act on.
 
 ---
 
+## 24. Cut the work into steps that ship
+
+Anything larger than a fix is decomposed before it is written, and the decomposition is agreed on its
+own — a separate exchange, before the first line of code. The list of steps is the cheapest thing in
+the change to disagree about, and the last one that costs nothing to throw away.
+
+**What a step is.** One change to the implementation, the one test that proves it, and a state the
+system can be released and observed in. All three, in every step. A line item missing any of them is
+a wish with a number in front of it, and it will be discovered to be unfinishable somewhere in the
+middle of the next one.
+
+**Where to cut.** By behaviour, never by layer. A step that delivers all the entities, then one that
+delivers all the repositories, then one that delivers the controllers, produces nothing observable
+until the third — which makes it one step that has been counted three times, with the comfort of
+progress and none of the evidence. Cut so that each step changes something a test can see.
+
+**What to do first.** Open on the assumption most likely to be wrong, at the smallest cost that
+settles it. State it the way an A3 does, on one page: the problem, where the system is now, where it
+has to get to, the single countermeasure being tried first, and how its effect will be checked. The
+plan that begins with the easiest file reaches the hard question in week three, with a branch behind
+it that cannot be thrown away.
+
+**When the end state replaces something that exists**, the sequence is the subject of principles 11
+and 12: old and new coexist, verified against each other, and the legacy goes last. There is no step
+that is the cutover.
+
+**When the request itself is the destination.** *"Rewrite the importer"*, *"migrate everything to the
+new client"*, *"do it all in one go"* — these name where to end up, not what to do first. Answer with
+the route: the steps, which one is first, and what its test will be. Agreement on a destination is
+not agreement on a route, and must not be read as one. If the developer, having seen the sequence,
+still wants the single cutover, that is their call — build it, and say plainly which part of it
+nobody will be able to verify until the end.
+
+**What good looks like:**
+
+- A numbered plan agreed before implementation starts, each step naming its change, its test, and
+  what is released once it lands
+- A first step that lands within a day and settles the question the rest of the plan rests on
+- Each step merged on its own and revertible on its own, leaving the system working in between
+- A replacement that passed through a period where both implementations were live
+
+**Signals of drift:**
+
+- A plan that describes the end state and no intermediate state
+- *"I'll do the whole refactor and run the tests at the end"*
+- Steps that cannot be released: a step that leaves the build red, or whose only verification is the
+  step after it
+- A sequence that was stated and then collapsed into one pass because it looked small from inside
+- Scope added to a step because it was adjacent to what was already open
+
+---
+
 ## Traceability — where each principle is measured
 
 These principles are the write-time half of the framework; `PROJECT_AUDIT_FRAMEWORK.md` is the
@@ -794,6 +850,7 @@ can only be found in an audit, never written correctly the first time.
 | 21 | Know the cost of your data access | 7.9, 9.8 |
 | 22 | Documentation is part of the change that invalidated it | 7.10 |
 | 23 | A spec is delivered when its status says so | 0.3, 0.4, 0.5 |
+| 24 | Cut the work into steps that ship | 0.8, 10.9 |
 
 ### Criteria with no write-time principle, and why
 

@@ -173,8 +173,8 @@ two-person project with nothing written down has the same problem as a fifty-per
 meets it later, usually when the second person arrives.
 
 **When this is N/A.** Rarely, and never for a project with work in flight. A frozen archive or a
-single-purpose script has no 0.3 and no 0.4 to score — say which subcriteria are structurally absent
-and score the rest. "We are too small to document" is not a structural absence; it is a low score.
+single-purpose script has no 0.3, no 0.4 and no 0.8 to score — say which subcriteria are structurally
+absent and score the rest. "We are too small to document" is not a structural absence; it is a low score.
 
 ### Subcriteria
 
@@ -379,6 +379,235 @@ constrains how, and it outlives the feature that prompted it.
 - 8–10: All significant structural decisions have ADRs; history is traceable; new decisions trigger
   new ADRs as a matter of course
 
+#### 0.8 The plan decomposes into steps that each ship
+
+0.3 scores whether the work is written down. This scores whether it is **sequenced**. A spec that
+states an end state and nothing about the order it arrives in has left the most consequential
+decision in the change to whoever opens the editor next — and that is now routinely an agent, which
+will attempt the whole of it in one pass because nothing in the document said not to.
+
+The unit is the step, and a step is three things at once: **one change to the implementation, the one
+test that proves it, and a state the system can be released and observed in.** A line item missing
+any of the three is not a step, whatever the list calls it.
+
+The first step carries more weight than the rest of the list, and is where the A3 habit earns its
+place: one page stating the problem, where the system is now, where it has to get to, the single
+countermeasure being tried first, and how its effect will be checked. A plan that opens on the
+riskiest assumption learns in a day what a plan that opens on the easiest file learns in the third
+week — by which point the cost of being wrong is the whole branch.
+
+**Scored on the units of work that carry a spec under 0.3's threshold.** A change below it has a
+plan with one step in it, and that is a pass rather than a gap.
+
+**Good:**
+
+- The spec carries an ordered list of steps, each naming what it changes, the test that will prove
+  it, and what is observably true in a running system once it lands
+- Every step leaves the system working: it can be merged, released, and then left alone for a week.
+  Nothing is in a state that only the next step repairs
+- The order is a dependency order and says so. Where a step genuinely cannot ship alone, the spec
+  names what it is waiting on — a stated exception, not the shape of the whole plan
+- The first step is the smallest change that produces evidence about the assumption most likely to
+  be wrong
+- Each step can be reverted without reverting its neighbours, which is also what makes it an honest
+  unit for the commits of 10.11 and the pull requests of 10.12
+- Where the end state replaces something that exists, the plan names the intermediate states it
+  passes through; how to obtain them is 10.9's subject, not this one's
+
+**Bad:**
+
+- A plan whose only unit is the finished feature: one branch, one merge, one test run at the end,
+  and no point along the way at which anyone could have said *stop, this is wrong*
+- *"Then migrate everything to X"* as a line item — a cutover written as though it were a step, with
+  no releasable state anywhere between the old world and the new one
+- Steps cut by layer rather than by behaviour — all the entities, then all the repositories, then
+  all the controllers — where nothing is observable until the last one lands. That is one step
+  wearing three numbers
+- Verification deferred to a phase of its own at the end. A step whose test arrives later is a step
+  whose failure arrives later too, attached to the wrong cause
+- A step whose done condition is *"it works"*, *"refactored"*, or *"cleaned up"* — nothing a release
+  can be checked against, so nothing that can be called finished or unfinished
+- A plan written at the altitude of the request — *"rebuild the billing module"* — and handed
+  straight to an implementer. A person will ask what to do first; an agent will start
+
+**How to score:**
+
+- 0–2: Work arrives as one undivided change. The plan, where there is one, states a destination and
+  no route
+- 3–5: Steps exist but are not independently releasable — split by file or by layer, with everything
+  observable concentrated in the last one
+- 6–7: Units of work are sequenced into shippable steps; the test per step is implied rather than
+  named, or large replacements still contain a single cutover
+- 8–10: Every unit of work in flight carries an ordered plan whose steps each name their change,
+  their test and their released state; the first step tests the riskiest assumption; replacements
+  run through named intermediate states, and no step depends on its successor to be correct
+
+##### How the plan is measured against the history
+
+Read on its own, a plan scores the writing. What makes 0.8 falsifiable is the **join** between the
+document and the record of how the work actually arrived — and that record is already in the
+repository. Everything below is read-only `git`, plus the CI's own run history.
+
+**The join** is the identifier 0.3 already requires. Steps are counted in the document; deliveries
+are found with the identifier. The examples use `SPEC-042`; substitute the project's convention,
+which may be a scope, a branch name or a trailer.
+
+```bash
+git log --first-parent main --grep='SPEC-042' --format='%h %cI %s' --shortstat
+```
+
+**Where the project squashes on merge**, that commit is the pull request, not the step, and the
+granularity this measurement needs was discarded before the change reached `main`. Measure at the
+pull request instead — `gh pr list --search 'SPEC-042' --state merged` — and take the step record
+from there. A project that squashes *and* ships one pull request per unit of work has no step record
+anywhere, which is not a measurement problem: it is the finding.
+
+**1. Realisation — were the declared steps the steps that landed?** Count what the plan declares,
+count what cites it, compare. Five steps declared and one change merged is a plan that was collapsed
+into the cutover it was written to avoid, and the score belongs to the history rather than to the
+document. One step declared and forty commits merged at once is a plan that was never made.
+
+**2. Shape — is one of them the cutover wearing a step's number?** Compare each step's changed lines
+to the median of its siblings. No absolute size is wrong, and the test is not size but **uniformity**:
+a step that does one thing many times — a mechanical rename across nine hundred sites — is ordered at
+any size, and *The mass rename is the most ordered change of all* says how it is cut. A step that
+does many things once is the cutover, and it is usually the one an order of magnitude past the rest
+of a unit whose steps were meant to be alike.
+
+**3. Verification — did each step bring its own test?** Two numbers, and the second is the one that
+catches what the first misses:
+
+```bash
+for s in $(git log --first-parent main --grep='SPEC-042' --format=%h); do
+  printf '%s  tests=%s\n' "$s" \
+    "$(git show --name-only --format= "$s" | grep -cE '(^|/)(tests?|spec|__tests__)/')"
+done
+```
+
+The share of steps carrying a test file, and the share of the unit's *total* test churn that landed
+in its final step. A testing phase at the end is visible in the second even when the first looks
+healthy, because the tests exist — they just all arrived together, after the last thing they could
+have contradicted was already written.
+
+**4. Independence — was the system releasable at each step?** This is the indicator that cannot be
+staged after the fact, and the closest thing the criterion has to a fitness function (10.9). Join the
+step commits against CI:
+
+```bash
+gh run list --branch main --limit 200 --json headSha,conclusion,createdAt
+```
+
+A step whose pipeline failed, or never ran, is a step nobody could have released — whatever the plan
+called it. Where no CI history survives, the local equivalent is exact and nearly as cheap: check the
+step out in a detached worktree and run the project's one-command quality gate (7.7) against it.
+
+```bash
+probe=$(mktemp -d)/step && git worktree add -d "$probe" <step-sha>
+# run the gate inside "$probe", then:
+git worktree remove --force "$probe"
+```
+
+**5. Cadence — did anything reach users between the first step and the last?** Count the releases
+inside the unit's window — tags, deployment records, or first-parent merges to `main` where the
+project deploys continuously.
+
+```bash
+first=$(git log --first-parent main --grep='SPEC-042' --format=%cI --reverse | head -1)
+last=$(git log  --first-parent main --grep='SPEC-042' --format=%cI | head -1)
+git tag --sort=creatordate --format='%(creatordate:short) %(refname:short)' |
+  awk -v a="${first%%T*}" -v b="${last%%T*}" '$1 >= a && $1 <= b'
+```
+
+Zero releases across a unit that ran for six weeks means no step was releasable in fact, however the
+document described them. This is also where the cosmetic split shows: steps authored within minutes
+of each other and merged together were one change cut up for the log, and they satisfy indicator 1
+while failing this one and 4.
+
+**6. Learning — did the plan change as the work taught it something?**
+
+```bash
+git log --follow --format='%cI %h %s' -- docs/specs/042-billing.md
+```
+
+A plan with one commit, written before the work and never touched again, either guessed perfectly or
+was never opened after the kickoff; the second is far more common. Revisions dated *between* step
+deliveries are the check half of the A3, visible in the record. This is the one indicator where more
+is not better without limit — a plan rewritten after every step was not a plan.
+
+**Ceilings.** Applied after the bands above, over the window defined below:
+
+| What the history supports | Ceiling |
+|---|---|
+| The plan declares no steps — there is nothing to join | 3 |
+| Steps declared; nothing in the history cites the unit, so the plan cannot be checked against what was delivered | 5 |
+| Citations exist and the unit arrived as one change — the declared steps were not the steps that landed | 5 |
+| Steps landed separately, but they carry no tests of their own, or the gate was not green between them | 6 |
+| Each step landed separately and green, carrying the test that proves it | 8 |
+| …and the unit released more than once along the way, with the plan revised as the steps reported back | 10 |
+
+**The window — how many units, and when the number moves.** A score computed over everything since
+the adoption date is a score the team cannot move: the collapsed unit from twenty deliveries ago is
+still in the denominator, and the arithmetic answers *wait a year*. Nobody waits a year. They stop
+reading the number, which is the failure the adoption provision already names — a denominator nobody
+can move is not a measurement, it is a sentence. So 0.8 is scored on a **rolling window**:
+
+- the **last five units of delivery**, in the sense 0.3 gives the word — not the last five commits;
+- **bounded at six months**, or at the audit before last, whichever is nearer. Older work was done by
+  a different team under a different practice, and averaging it in measures neither;
+- **fewer than three units inside those bounds** and the sample is too short to carry the criterion:
+  score the plans as documents, say the sample is short, and cap at 6. A practice that has not been
+  observed cannot be certified by reading about it.
+
+The report **names the window it used** — which units, which dates. Two audits that read different
+windows are two different measurements, and the difference between them is not progress.
+
+Inside that window the response is arithmetic, and a team can plan against it:
+
+| Units in the window delivered the new way | What happens to the score |
+|---|---|
+| 1 | Nothing. One unit is an anecdote, and the ceilings read the sample rather than its best member |
+| 3 of 5 | The collapsed-delivery ceiling lifts: the new practice is now most of what the window holds. 6, or 8 where those three carried their tests and stayed green |
+| 5 of 5 | The window holds nothing else. The ceilings stop binding and the score is whatever the plans themselves earn |
+
+Downward, the thresholds are deliberately not the mirror image: **three units raise the score, two
+lower it.** One collapsed unit in five is a lapse and does not move a settled score; two in five is
+the mode wearing the clothes of an exception, and the score returns to the ceiling those deliveries
+carry. A practice is harder to demonstrate than to abandon, and a measure that pretends otherwise
+reads high for exactly as long as it takes somebody to notice.
+
+**So the answer to "when does it improve" is five units** — three to move the number, five to settle
+it — and no document written today shortens that by a day. Indicators 4 and 5 read the history of
+units already delivered, and that history is written. 0.8 is the criterion in this framework that
+**cannot be repaired retroactively**, which is the same property that makes it worth measuring: a
+backfilled plan for a unit that shipped as one change scores the change, exactly as a spec
+reconstructed from code scores below the gap it was written to fill.
+
+It is also among the cheapest criteria to raise going forward. Sequencing the next five units needs
+no infrastructure, no refactoring and no budget — unlike coverage, which needs a quarter, or a
+framework upgrade, which needs a release window. On a floor-raising programme that usually puts it
+early rather than late.
+
+**What the numbers cannot say.** Indicators 1, 2 and 6 are counts, and counts are the cheapest thing
+in this criterion to satisfy without changing anything — which is why they are here to find the
+collapsed plan, not to certify a good one. What cannot be staged is 4 and 5: a green gate at each
+step and a release between them require the system to have actually been in that state.
+
+And no command answers the question the criterion opens with — whether the first step was the one
+worth taking first. The riskiest assumption is a judgement about the problem, not a property of the
+repository, and an audit reports it as a judgement with its reasoning attached.
+
+**What the history is evidence of.** It records what the process emitted, not what anyone intended —
+which is precisely why it is worth joining to the plan. A plan read on its own agrees with itself,
+for the same reason a spec reconstructed from code agrees with the code: there is only one hand in
+the record. The history is the second hand, and consistency between two independent records is the
+whole mechanism, here as in 9.10.
+
+Two consequences follow, and both belong in the finding rather than in a footnote. A team whose
+process discards the record — squash-on-merge with one pull request per unit — is unmeasurable here,
+and that is scored as the gap it is: the next person to ask what was delivered in which order has no
+answer either. And what is scored is the **delivery inside the window, never the people in it**. A
+finding that names a developer has stopped measuring a practice and started doing something else.
+
 ### Adopting this category on an existing project
 
 A project that installs this framework in its third year has no history of specs and no way to
@@ -403,7 +632,8 @@ So the remediation runs forward, with a small bounded backfill. In this order:
    A tree with one true document in it scores.
 3. **Start specs at the next unit of work (0.3), never at the last one.** The practice begins with the
    next feature. Nothing shipped before that date gets a spec — demanding otherwise is what makes
-   teams abandon the practice inside a quarter.
+   teams abandon the practice inside a quarter. The first one to write is the step list (0.8): it is
+   the half of the spec that changes what happens this week rather than what is on record about it.
 4. **Backfill ADRs (0.7) only where all three hold:** the decision still constrains the code today; a
    new reader would not deduce it from the code; and somebody still on the team remembers the
    reasoning. Where the first two hold and the third does not, the honest record says so —
@@ -416,8 +646,9 @@ So the remediation runs forward, with a small bounded backfill. In this order:
 
 Steps 4 and 5 are the entire backfill. Everything else runs forward.
 
-**How this is scored.** 0.3, 0.4 and 0.5 are scored against the **units of delivery since the practice
-started**, not against the project's whole history — the same way coverage on a legacy codebase is
+**How this is scored.** 0.3, 0.4, 0.5 and 0.8 are scored against the **units of delivery since the
+practice started**, not against the project's whole history — and for 0.8 that date is the lower
+bound rather than the denominator, which is the rolling window of *The window* above — the same way coverage on a legacy codebase is
 measured on changed lines rather than on the whole tree, and for the same reason: a denominator
 nobody can move is not a measurement, it is a sentence.
 
@@ -2418,6 +2649,10 @@ Recovering from losing either of those is 9.10.*
 
 *This subcategory is most relevant for systems that must evolve over time — multi-tenant platforms, systems serving multiple markets, or codebases that will be extended by different teams.*
 
+*The plan that sequences a migration is scored in 0.8. What this subcategory measures is whether the
+architecture admits such a sequence at all — a system with no seams leaves no plan available but the
+cutover.*
+
 An evolutionary architecture is one that supports incremental, guided change across multiple dimensions simultaneously. The central idea (Fowler, Ford, Parsons) is that architecture fitness functions — automated checks that verify architectural properties — should be treated as first-class citizens alongside functional tests.
 
 **Strangler Fig pattern (Fowler):** When replacing a legacy subsystem, do not attempt a big-bang rewrite. Instead:
@@ -2886,6 +3121,18 @@ translating is usually the one whose meaning is least recoverable from the code 
 would have translated it already. `Fattura` becomes `Invoice` and both are wrong if the entity is
 actually a credit note.
 
+**How it is cut: one term per step, never the glossary in one change.** The step is mechanical and
+carries nothing else — no behaviour change rides along with a rename, because the moment one does,
+the property that made the diff reviewable at all, that every hunk is the same edit, is gone, and
+with it the only cheap verification the change had. The resolution sites the compiler cannot see
+become the step's checklist rather than its surprise: the container keys, the payloads already
+serialized, the ORM mapping, the catalog keys, the route names, the column a migration has to rename
+alongside the property. Per term that list is finite and can be walked to the end. Across forty terms
+at once it is the blast radius described above.
+
+This is also what makes the rename *ordered* rather than merely large: it does one thing many times.
+A change that does many things once is not a rename, however many identifiers it happens to touch.
+
 ### What the order does not gate
 
 - **New code.** Written to the full standard from the first line, in every phase. The order governs
@@ -2898,6 +3145,36 @@ actually a credit note.
 - **A gap whose fix is a line of configuration.** Enabling branch protection, adding a `.editorconfig`,
   pinning a dependency: no net is required to change something that cannot regress silently. Where
   the fix is genuinely that small and genuinely that contained, take it out of order and say so.
+
+### How remediation work is delivered
+
+The order decides which gap is closed and when. It says nothing about the shape of the change that
+closes it, and that is where a correctly ordered programme still fails — invisibly to the people
+inside it, because every decision they can name was the right one. The team picks the right gap, in
+the right phase, with the net in place, and ships it as one change across ninety files. Nothing in
+that quarter can be reverted without reverting all of it, and the first regression costs the whole
+sequence rather than the step that caused it.
+
+So: **remediation work is scored by 0.8 like any other work, and it is the work that needs 0.8
+most.** It touches code that already runs, where the only evidence of a mistake is a regression that
+may not arrive for a week. Three things follow.
+
+**A phase is a direction, not a change.** *Build the net* is a phase. It is not a commit, a branch,
+or a pull request. The unit of delivery inside a phase is the step of 0.8 — one change, the test
+that proves it, a state the system can be released in — and a phase ends when its categories reach
+the band target, which is a score and never a merge.
+
+**The audit's own recommendation names a first step.** A gap written at the altitude of its end
+state — *split the controller*, *rename the domain layer*, *extract the billing context* — is the
+artefact 0.8's bad list ends on, and an audit report is the likeliest document in a project to be
+handed to an agent verbatim. Where closing a gap takes more than one change, what the report owes
+its reader is the smallest change that settles the riskiest part of it, not the destination restated
+with an effort estimate beside it.
+
+**Size is not the test; uniformity is.** One large step is legitimate, and it is not a licence: a
+mechanical change that does one thing many times — see *The mass rename is the most ordered change
+of all*, which says how to cut it. Many things done once, in one change, is the cutover under
+another name, whatever the audit called it and however well ordered the phase it sits in.
 
 ### Recording the order in the audit
 
