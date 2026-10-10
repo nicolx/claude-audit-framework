@@ -10,6 +10,10 @@ A portable quality framework for Claude Code — travels with any project as a g
 - **A remediation order** — the phases a project closes gaps in, so that recorded intent and a working
   safety net come before refactoring, renaming or replacing a framework, and the band rule that keeps
   every category climbing together instead of one running ahead
+- **Plans scored against the history** — whether a unit of work arrived as a sequence of releasable
+  steps or as one flip, read from the git log and the CI runs rather than from the document that
+  described it. The one criterion a project cannot repair retroactively, and the framework holds its
+  own remediation output to it
 - **Skill commands**: `/project-audit`, `/dr-drill`, `/competency-review`, `/init-profile`
 
 ## Add to a project
