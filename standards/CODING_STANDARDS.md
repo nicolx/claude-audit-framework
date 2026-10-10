@@ -807,5 +807,6 @@ writing a feature — stating which, and why, keeps the table above honest inste
 | 7.1–7.7 tooling | Project infrastructure: configured once, not written per change |
 | 8.5 security headers | Configuration of the framework or web server, not of a feature |
 | 9.3 health endpoint, 9.7 data lifecycle | Built once as operational surface, then maintained |
+| 9.9 operational access, 9.10 disaster recovery | Access paths, credentials and backups are established by whoever operates the system; no change to a feature can open one or restore one |
 | 10.1–10.8, 10.10, 10.12, 10.13 | Pipeline, environment, and repository setup — outside any single change |
 | 5.1, 5.2, 5.4, 5.6, 5.7 | Principles 3, 4, 6 and 8 applied to JS. Stack-specific rules belong in the project's own `.claude/CODING_STANDARDS.md`, not in a language-agnostic document |

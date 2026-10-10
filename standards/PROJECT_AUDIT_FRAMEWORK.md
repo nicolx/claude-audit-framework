@@ -1895,7 +1895,9 @@ Evaluate the codebase against the current OWASP Top 10. Key items beyond the abo
 
 The core question: *if this system misbehaves at 3am, can the on-call engineer understand what happened and fix it without reading the source code?*
 
-And its companion, which is about operability rather than diagnosis: *will the system still be running at 3am, or will it have quietly filled its own disk?* Observability that costs unbounded storage eventually becomes the outage it was meant to diagnose.
+And its companion, which is about operability rather than diagnosis: *will the system still be running at 3am, or will it have quietly filled its own disk?* Observability that costs unbounded storage eventually becomes the outage it was meant to diagnose. And one step further out, where operability ends: *if the machine or the data is not there tomorrow morning, what comes back, and how long does that take?*
+
+And the question that decides whether the first two matter: *can whoever is on call — the engineer, or the agent they hand the problem to — reach those signals at 3am, without waking a second person to get in?* A dashboard one person can log into is a dashboard that is down whenever that person is.
 
 ### Subcriteria
 
@@ -2083,6 +2085,211 @@ it, whether the entries are attributable, or whether the slow paths are known. W
 access of precondition 4, score the configuration, say the rest is unverified, and cap the
 subcriteria at 8.
 
+#### 9.9 Operational access to the running system *(Operated services)*
+
+**Scope:** Applies wherever the team operates the thing it ships — servers, containers, an
+orchestrator, a managed platform. For a library, or an application that runs only on the user's
+device, this is N/A: the equivalent concern is crash reporting and release telemetry, scored in 9.2.
+
+Subcriteria 9.1 to 9.8 ask whether the system *produces* signals. This one asks who can reach them,
+how quickly, and with what. A Grafana nobody can log into, a log file one developer knows how to
+tail over SSH from one laptop, an uptime monitor on a trial account that stopped ingesting in March
+— each of those is a signal that exists and cannot be read at the moment it is needed.
+
+Three questions, scored as the weakest of them:
+
+1. **Do the mechanisms exist in production?** Logs readable away from the machine (hosted search, a
+   log drain, `journalctl` over a documented access path), a metrics dashboard (9.4), an uptime check
+   that alerts a person, the error tracker's own UI (9.2), and a documented way to see process,
+   container and deploy state.
+2. **Can more than one person reach each of them today, without asking anybody?** Named accounts,
+   and a runbook that gives the URL, the host, or the command for every signal above — not a
+   credential in a chat thread and a key on one laptop.
+3. **Can the agent working on the code reach the read-only half of it directly?** Through a declared
+   path: an SSH account restricted to reading, an MCP server for the observability platform, a
+   read-only API token, or a project command (`make prod-logs`) allow-listed in
+   `.claude/settings.json`. The declaration lives in the **Production access** section of
+   `.claude/PROJECT_AUDIT_FRAMEWORK.md`.
+
+The third question is scored rather than merely noted because diagnosis conducted through a human
+relay is diagnosis through a keyhole: the agent sees the excerpt it was pasted, not the surrounding
+lines, not the metric that moved first, and not the second occurrence last Tuesday. Every narrowing
+is invisible to it, so every conclusion it draws is conditioned on what someone already suspected.
+
+**The ceiling has a condition.** Reach is not control, and the top of this scale is access that is
+scoped, attributable and read-first — never root. An unrestricted `root` key, a shared `admin`
+login, or a production token committed to `.mcp.json` scores **below** a project with no agent access
+at all: it is reach the project cannot bound, attribute or revoke, and 8.x and 10.7 say the same
+thing about it from their own side.
+
+**What each band looks like here** (the anchors are the global ones; this is their shape for this
+criterion):
+
+| Score | Shape |
+|---|---|
+| 0–2 | No production signal is reachable without sitting at the machine, or the answer to "how do I see the logs?" is the name of a person |
+| 3–4 | Access exists but is precarious: one holder, nothing written down, credentials passed by hand, a dashboard on an account nobody owns, a log readable only on the box |
+| 5–6 | Documented and multi-person, but human-only: a runbook names the dashboards, hosts and commands, and every look is a manual one |
+| 7–8 | Reachable from the development loop: read-only credentials in the operator's environment, wrapped in project commands or an MCP server, so the agent reads logs, metrics and health itself. Anything that mutates production stays a human's action |
+| 9–10 | The agent can also carry out *named* operational procedures end to end — restart a service, tail and rotate a sink, trigger a rollback — each one an explicitly listed and individually approved action with a documented blast radius, leaving an attributable trail, and with the recovery path (10.6) not depending on that access |
+
+**Good:**
+
+- A runbook that, for each signal in question 1, names where it is, who can reach it, and how to get in
+- Read-only by default: the credential the agent holds reads logs, metrics and health and can do
+  nothing else; any mutating path is separate, explicitly granted, and separately approved
+- Access expressed as project commands (`make prod-logs SINCE=1h`, `make prod-health`) that are
+  allow-listed, so what the agent may do is a reviewable list in the repository rather than a shell
+- One named account per consumer — revocable individually, and its use attributable afterwards
+- Credentials read from the operator's environment or a secrets manager, never from the repository (10.7)
+- The observable test: in a session, the agent can answer *"what did production do in the last hour?"*
+  from the system itself
+
+**Bad:**
+
+- The only way to read a production log is `ssh root@server` with a key one developer holds
+- Grafana exists; its URL is in somebody's bookmarks and its password in a 2023 chat thread
+- Monitoring on a free tier that stopped ingesting months ago and was never noticed — a precarious
+  tool is worse than no tool, because it is believed
+- An MCP server configured with a production admin token committed alongside the code
+- Production incidents diagnosed by pasting a log excerpt into a chat window
+- Shared `admin` or `root` credentials: every action attributable to nobody, so an audit of what the
+  agent did is impossible even in principle
+
+**How to check:** ask for the list of production signals and, for each, the path that reaches it and
+who holds it. Then verify the declaration *resolves* — the host and dashboard exist, the credential
+source is named, the command is in the allow-list — rather than trusting it; a runbook entry pointing
+at a decommissioned host is the finding. Verification during an audit is read-only: never issue a
+mutating command to prove that access exists.
+
+**Access cannot outrun the signals behind it.** If 9.1, 9.2 and 9.4 are low, the reach is onto a
+system with nothing to say: score what is actually reachable and cap the subcriteria at 6. A shell on
+a box whose application logs are unstructured `echo` statements gives the operator a terminal, not an
+answer.
+
+#### 9.10 Disaster recovery *(Operated services)*
+
+**Scope:** Applies wherever the project owns production state or infrastructure — a database, an
+uploads directory, an object store, a configured host, a domain. For a library, or an application
+whose only artefact is a release someone else installs, this is N/A; the equivalent concern is build
+reproducibility (10.1).
+
+Start from the only question that matters: **what, if it disappeared tonight, could not be rebuilt
+from the repository?** The database, the files users uploaded, the secrets, the DNS zone, the TLS
+certificates, the hand-configured parts of a host, the provider account itself. That list is the
+scope of this criterion, and in most projects nobody has ever written it down — which is the first
+finding, because a backup plan can only cover the items somebody enumerated.
+
+**This is not 10.6.** Rollback undoes a *deployment*: the code was wrong, the previous version is
+still there, and the data is intact. Disaster recovery is for when the data or the machine is not
+there at all — a dropped table, a corrupted volume, a ransomware event, an expired card that
+terminated the account, an engineer who ran the right command against the wrong environment. The two
+are scored separately because the project that has one almost never has the other.
+
+**And it is the other half of 9.7.** Retention bounds what is kept; recovery guarantees that what is
+kept can come back. A purge job with no backup and a backup that has never restored are the same
+data loss at different speeds.
+
+What is scored:
+
+- **Coverage** — every item on the irreproducible list maps to a backup job, or is explicitly listed
+  as accepted loss. "The hosting provider takes snapshots" counts only if someone can say what they
+  contain, how far back they go, and how to get one back.
+- **Separation** — a copy sharing the fate of its original is not a backup. A snapshot on the same
+  host, in the same account, reachable with the same credential, dies with the thing it protects:
+  one compromised key, one `terraform destroy`, one closed account. At least one copy is somewhere
+  else, with its own credential, and is immutable or versioned so that corruption cannot propagate
+  into it.
+- **Proof** — a restore has actually been performed, end to end, into a clean environment, and the
+  date and duration are recorded. Until that has happened the backup is a hypothesis; the clean
+  environment is what makes it a proof, because a restore onto the original machine silently reuses
+  every undocumented thing that machine already had.
+- **RPO and RTO as stated numbers** — how much data the project accepts losing, and how long it
+  accepts being down — chosen from a requirement and actually implemented by the backup frequency
+  and the measured restore duration. Hourly backups with a twelve-hour restore do not meet a
+  four-hour RTO, and only the drill reveals that.
+- **Monitoring** — a backup job that fails is a backup job that fails *silently*. Last successful
+  run is a health signal (9.3) with an alert behind it, and the same applies to the drill.
+- **A runbook a second person can execute**, under pressure, without the author — including where
+  the restore credentials come from. A backup encrypted with a key that exists only inside the lost
+  system is not recoverable, and this is discovered exactly once.
+- **Who can reach it** — the restore path needs the access of 9.9. If one person holds the only
+  credential to the backup store, the recovery time is however long it takes to find that person.
+
+**Good:**
+
+- A written list of what cannot be rebuilt from the repository, each item mapped to the job that
+  backs it up, the destination, and the retention
+- At least one copy in another account or another provider, write-once or versioned, with its own
+  credential
+- A restore drill on a schedule, into a disposable environment, with the duration recorded and
+  compared against the stated RTO — and the drill result alerting when it fails, like any other job
+- Infrastructure reproducible from code (10.2), so recovery is restore-data-into-rebuilt-environment
+  rather than remembering how the server was configured in 2021
+- Non-production restores anonymised, so a drill does not spread production personal data into a
+  staging environment that is less protected than the system it came from (Cat 8)
+- What is deliberately *not* recovered written down, with the accepted loss — a decision, not a gap
+
+**Bad:**
+
+- No backup of the uploads directory, because the conversation only ever covered the database
+- A nightly dump written to the same volume as the database it dumps
+- A backup job whose last success was in March, in a project where nothing reports last-success
+- A documented restore procedure that nobody has executed, written by the one person who could
+  execute it
+- A "daily backup, 7 days retention" chosen from a tutorial rather than from how much data the
+  business can lose, and never reconciled with it
+- Backups the agent or the on-call engineer cannot reach without waking the person who holds the key
+- Recovery that depends on a single hand-configured machine nobody can rebuild — the backup restores
+  the data onto nothing
+
+**How to check:** ask for the irreproducible list and the backup jobs, and reconcile them — the gap
+is the finding. Then, for each job: where does it write, is that somewhere that survives the loss of
+the source, when did it last succeed, and **when was it last restored**. Where a production path is
+declared (9.9), the last-success timestamps can be read through it; where none is, score from the
+job configuration, the IaC and the runbook.
+
+##### How the restore is proven
+
+The difficult half of this criterion is not what the project does, it is what anyone can *know*. A
+drill that happened and left nothing behind is indistinguishable from a drill that did not happen —
+and not only to an auditor. The team that ran it has no duration to compare the next one against, no
+record of which assertions passed, and nothing to alert on when the result changes. The artifact is
+part of the practice, not a courtesy extended to the audit.
+
+So the evidence is scored by **what produced it**. These are ceilings on 9.10, applied after the
+properties above:
+
+| Evidence that a restore works | Ceiling |
+|---|---|
+| The procedure has never been exercised | 5 |
+| Somebody remembers doing it; nothing was recorded | 6 |
+| A receipt written by hand after the fact | 6 — a claim in the shape of evidence is still a claim |
+| A receipt emitted by a committed drill script: artifact restored and its age, target, duration, assertion results, outcome | 8 |
+| That same script run by a scheduler or CI, its result recorded automatically, its failure alerting like any other job | 10 |
+
+The step from 8 to 10 is not ceremony. A drill that runs because somebody remembered answers "did it
+work in June"; a scheduled one answers "does it work now", which is the only tense an RTO is written
+in. And its evidence is produced by a system whose output nobody types.
+
+**`exit 0` is not a restored system.** An empty backup restores perfectly and reports success. A
+drill proves something only where it asserts: row counts within an expected range of the source, a
+known canary record present, a checksum or manifest over the restored files, the application booting
+against the restored data with its health endpoint green (9.3), and the smoke tests of 10.8 run
+against the restored environment. Without assertions, what was measured is the restore *command*.
+
+**What an audit can and cannot verify.** A receipt can be typed by hand, and no amount of reading
+will reveal it. What an audit *can* do is check it against records written by a different hand: does
+the backup artifact it names exist in the store, does its duration appear in a CI run log, does the
+commit that added it date from when it claims, did the drill script exist in the repository on that
+date, does the receipt's shape match what that script emits. Consistency across independent records
+is the entire mechanism — it raises the cost of a fiction rather than removing the possibility — and
+a report says which of the two it is looking at instead of presenting a claim as an observation.
+
+Where the project drills with `/dr-drill`, the receipt is written by the run and never by hand,
+including when the run fails. A failed drill recorded is worth more than a successful one
+remembered: it names a defect while the system is still standing.
+
 ---
 
 ## Category 10 — CI/CD & Version Control Discipline
@@ -2183,6 +2390,9 @@ Every push to a shared branch triggers the full quality suite: static analysis, 
 
 - Rollback requires manually undoing database migrations with no documented procedure
 - Last known good artefact is not retained
+
+*Rollback is for a deployment that went wrong while the data and the machine are still there.
+Recovering from losing either of those is 9.10.*
 
 #### 10.7 Secrets in CI/CD
 

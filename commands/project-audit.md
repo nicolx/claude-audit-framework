@@ -139,10 +139,16 @@ Sanity-check the output: an empty or single-line slice means the awk ranges no l
 standard's headings, and an agent handed an empty slice will invent criteria rather than report the
 problem.
 
-### 1.5 — Capture database evidence (only if declared)
+### 1.5 — Capture declared access (only what is declared)
 
-Read the **Database access for query analysis** section of `.claude/PROJECT_AUDIT_FRAMEWORK.md`. If
-it is absent, note it in the report and skip this step — do not go looking for credentials.
+Two sections of `.claude/PROJECT_AUDIT_FRAMEWORK.md` grant access that configuration cannot
+substitute for. Each is read if present and skipped if not — their absence is itself reportable, and
+never a reason to go looking for credentials.
+
+#### Database — for 7.9 and 9.8
+
+Read the **Database access for query analysis** section. If it is absent, note it in the report and
+skip the rest of this block — do not go looking for credentials.
 
 If it is declared, append to `common.md`:
 
@@ -157,6 +163,26 @@ If it is declared, append to `common.md`:
 > **Never put application rows in the bundle.** This file is read by ten agents; row data in it is a
 > disclosure, not evidence. Schema, counts, statistics and plans only. The rules in
 > `INSTRUCTIONS.md` § *Database access* apply in full.
+
+#### Production — for 9.9
+
+Read the **Production access** section. If it is absent, record that in `common.md` — 9.9 is then
+scored on what a *person* can reach — and skip the rest of this block.
+
+If it is declared, append to `common.md`:
+
+- The declaration itself: each signal, the path that reaches it, which paths are open to a session,
+  and which actions are mutating. **Never the credentials** — name the variable, not its value
+- Whether each read-only path **resolves**: the host answers, the dashboard URL is live, the command
+  is in the Bash allow-list, the named environment variable is set. A declared path that no longer
+  resolves is the 9.9 finding, and worth more than the signal it was supposed to reach
+- At most one small read through each path — the current health response, the last few error-level
+  lines — as proof the signal is live. Redact identifiers, tokens and payloads before they land in
+  the file
+
+> **Read-only, always.** No restart, no rollback, no migration, no purge, not even one the section
+> allow-lists: an audit observes production, it does not operate it. Raw production log lines never
+> enter the bundle. The rules in `INSTRUCTIONS.md` § *Production access* apply in full.
 
 ### 1.6 — Write the source manifest
 
@@ -201,6 +227,11 @@ Before launching Phase 2, state explicitly:
   operators does not count. This is what decides 2.9 and 2.10; state it here so the Cat 2 agent does
   not have to reach the N/A call alone
 - Whether database evidence was captured — and if not, that 7.9 and 9.8 are capped at 8
+- Whether the project is an operated service at all, and if so whether a production path was
+  declared and resolved — and if not, that 9.9 is scored on human reach alone
+- What the project owns that the repository cannot rebuild — production data, uploads, secrets,
+  DNS, hand-configured infrastructure. This is the scope 9.10 is scored against, and naming it
+  before the agents launch is what stops the Cat 9 agent from scoring the database alone
 - Whether the project has a product documentation home, and what it contains. State it here, before
   the agents launch, because it decides how all eleven read an omission — an unimplemented spec and
   an unfinished feature look identical in the code and score very differently
@@ -275,7 +306,7 @@ recorded in the manifest.
 | 6 | Framework & Dependencies | Manifests, framework config and bootstrap, the entry points, and any place the framework is bypassed. For 6.9, the lockfile, `.gitmodules` and submodule pins, the declared runtime version, and any Renovate/Dependabot config — then ask the resolver which constraint blocks an upgrade rather than eyeballing version numbers |
 | 7 | Tooling & Quality Standards | Tooling config and the quality gate output in `common.md` — plus grep for suppression markers (`@ts-ignore`, `ignoreErrors`, `phpcs:disable`, `noqa`, `filterwarnings`). For 7.9, grep the test suite for query-count assertions and the bootstrap for a lazy-load guard. For 7.10, take the highest-traffic claims from `README.md` and `.claude/*` — the setup command, the quality gate command, the analyser level, the layer rules — and check each against the file that would prove it; then look for any CI job that ties documentation to reality |
 | 8 | Application Security | Input boundaries (controllers, request handling, deserialization), auth and authorisation, templates and output encoding, headers, and anywhere secrets are read |
-| 9 | Observability & Operability | Logger setup and call sites, error handling and reporting, health endpoints, metrics, log rotation and retention config. For 9.8, the database and ORM config (slow query threshold, statement logging) and whether anything reads it |
+| 9 | Observability & Operability | Logger setup and call sites, error handling and reporting, health endpoints, metrics, log rotation and retention config. For 9.8, the database and ORM config (slow query threshold, statement logging) and whether anything reads it. For 9.9, the **Production access** section of `.claude/PROJECT_AUDIT_FRAMEWORK.md`, the runbook or ops documentation, MCP server configuration and the Bash allow-list in `.claude/settings.json` — then check the declaration resolves (the host and dashboard are named and current, the credential source exists, the command is allow-listed) instead of trusting it. Verification is read-only: never run a mutating command against production to prove access. For 9.10, the backup jobs (cron, scheduler, IaC, provider configuration), where they write, the restore runbook, and the drill receipts — then reconcile the backed-up set against what the repository cannot rebuild (database, uploads, secrets, DNS, hand-configured hosts); the gap is the finding. Score the newest receipts by what emitted them, against the evidence ceilings in the slice, and cross-check one against records written elsewhere — the CI run log, the commit date, whether the drill script existed in the repository on the date claimed |
 | 10 | CI/CD & Version Control | CI config, migrations, deploy and rollback scripts, plus the git log and branch list in `common.md` |
 
 ---

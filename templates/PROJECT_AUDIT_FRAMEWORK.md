@@ -90,3 +90,48 @@ Quality gate command: `composer qa` — runs in sequence:
 
 [Optional: list security concerns that must be handled manually because no framework handles them automatically.
 Example: security headers, CSRF, input sanitisation — implemented in custom Router/middleware.]
+
+## Production access
+
+[Declares what 9.9 is scored against, and bounds what a session may do with it. List every production
+signal the project has and the path that reaches it; mark explicitly which of those paths Claude may
+use. Read-only is the default — a mutating path belongs here only if the team means it to be used,
+and only named action by named action.
+
+Example:
+
+| Field | Value |
+|---|---|
+| Logs | `make prod-logs SINCE=1h` — wraps `ssh observer@app-1 journalctl -u app`; account has no shell and no write |
+| Metrics | Grafana `https://grafana.example.com`, dashboard `app / oncall` — viewer role, SSO |
+| Errors | Sentry org `acme`, project `app` — MCP server `sentry`, read-scoped token |
+| Health | `make prod-health` — `/healthz` on every instance |
+| Agent path | the `make` targets above, allow-listed in `.claude/settings.json`. No interactive shell |
+| Credentials | `PROD_OBSERVER_KEY`, `SENTRY_TOKEN` in the operator's environment; never in the repo |
+| Mutating actions | none allow-listed — `make prod-restart` and `make prod-rollback` are run by a person |
+| Out of bounds | a shell on production, anything that writes, and reading application data out of the logs |
+
+If there is none: "Not available — no production path is open to a session; 9.9 is scored on what a
+person can reach."]
+
+## Disaster recovery drill
+
+[What `/dr-drill` is allowed to do, and the committed script it runs. Without this section the
+command refuses to start — a restore improvised against an undeclared target is the accident it was
+meant to rehearse for.
+
+Example:
+
+| Field | Value |
+|---|---|
+| Drill script | `ops/dr-drill.sh` — committed; the command runs it, never its own steps |
+| Source | the most recent artefact in `s3://acme-backups/prod/` — **read only**, never rotated or deleted by a drill |
+| Target | a `docker compose` stack created by the script and destroyed at the end. Disposable; named `dr-drill-*`; shares nothing with production |
+| Assertions | row counts within 2% of the recorded source counts, canary row `settings.dr_canary` present, uploads manifest checksum, app boots and `/healthz` returns 200, `make smoke` passes |
+| Personal data | the script anonymises on restore — production personal data never lands in an environment protected less than production |
+| Receipts | `docs/ops/dr-drills/YYYY-MM-DD.md`, committed |
+| RPO / RTO | 1 hour / 4 hours — what the drill's backup age and duration are compared against |
+| Scheduled by | nightly CI job `dr-drill`, failure alerts `#oncall`; the command is for re-running it by hand |
+
+If there is none: "Not declared — no drill target exists, and 9.10 is scored from configuration and
+the runbook alone."]

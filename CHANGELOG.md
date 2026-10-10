@@ -8,6 +8,176 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.13.0] — 2026-10-10
+
+Category 9 measured eight ways a system can produce signals and no way of reaching them. A project
+could score well across structured logging, error tracking, metrics and retention while the only
+person who could open the dashboard was on holiday, and the audit would have nothing to say about
+it — the signals were all there, behind a door with one key. The gap showed up most clearly in the
+sessions that follow an audit: asked to diagnose a production problem, Claude was reading a log
+excerpt somebody had pasted, which is the one piece of the log already filtered by what that person
+suspected.
+
+The same blind spot had a second half. Nothing in eleven categories asked whether the data survives
+the loss of the machine holding it: 9.7 scored what a project *deletes* on a schedule, 10.6 scored
+undoing a bad deploy, and a project with no backup at all could pass both.
+
+So Category 9 gains the two questions that come after "is it healthy?" — can anyone reach it, and
+what comes back if it is gone — and with them the rules for using an access the project chooses to
+open, and a command for rehearsing the recovery it claims to have.
+
+### Added
+
+- **Subcriteria 9.9 — Operational access to the running system.** Three questions, scored as the
+  weakest: do the production mechanisms exist (logs readable off the machine, a metrics dashboard,
+  an uptime check that alerts someone, process and deploy state), can more than one person reach
+  each of them today without asking, and can the agent working on the code reach the read-only half
+  directly. The bands run from "the answer to *how do I see the logs?* is a person's name" through
+  precarious single-holder access, documented human-only access, read-only reach from the
+  development loop, and at 9–10 an agent that can carry out *named* operational procedures with a
+  documented blast radius and an attributable trail.
+- **A ceiling condition, so the criterion cannot be gamed by granting more.** The top of the scale
+  is access that is scoped, attributable and read-first. An unrestricted `root` key, a shared admin
+  login, or a production token committed next to the code scores **below** having no agent access at
+  all: it is reach the project cannot bound, attribute or revoke, which is what 8.x and 10.7 already
+  say from their own side.
+- **A cap that ties 9.9 to the rest of the category.** Access cannot outrun the signals behind it —
+  where 9.1, 9.2 and 9.4 are low, 9.9 is capped at 6. A shell on a box whose application logs are
+  unstructured `echo` statements gives the operator a terminal, not an answer.
+- **A `## Production access` block in `templates/PROJECT_AUDIT_FRAMEWORK.md`** — the declaration
+  9.9 is scored against: every signal, the path that reaches it, which paths a session may use,
+  which actions mutate, and where the credentials come from. Read-only is its default.
+- **`INSTRUCTIONS.md` § *Production access*** — the operating rules for that grant, in the same
+  shape as the database ones: only declared paths, read-only unless the section names the action
+  *and* it is approved in the moment, say what you are about to run before running it, never widen
+  the grant to get an answer, never print a credential, and never let raw production log lines into
+  the repository or an evidence bundle. A credential that happens to work is not a grant — finding
+  one is a 9.9 finding to report.
+- **Subcriteria 9.10 — Disaster recovery.** It starts from the list most projects have never
+  written: *what, if it disappeared tonight, could not be rebuilt from the repository?* — database,
+  uploads, secrets, DNS zone, certificates, the hand-configured parts of a host, the provider
+  account. Every item maps to a backup job or is declared accepted loss; the gap between those two
+  lists is the first finding. Then separation (a copy sharing the fate of its original is not a
+  backup), RPO and RTO as stated numbers rather than inherited defaults, a failed backup that alerts
+  instead of failing silently, and a runbook a second person can execute without the author —
+  including where the restore credentials come from, since a backup encrypted with a key that lived
+  only inside the lost system is discovered exactly once.
+- **An evidence ladder, because the hard half of 9.10 is what anyone can *know*.** A restore that
+  happened and left nothing behind is indistinguishable from one that did not — and not only to an
+  auditor: the team has no duration to compare the next drill against and nothing to alert on. So
+  the evidence is scored by what produced it, as ceilings applied after the properties above: never
+  exercised **5**; somebody remembers doing it **6**; a receipt written by hand after the fact **6**,
+  because a claim in the shape of evidence is still a claim; a receipt emitted by a committed drill
+  script **8**; that script run by a scheduler or CI, recorded automatically and alerting on failure,
+  **10**. The step from 8 to 10 is not ceremony — a drill that runs because somebody remembered
+  answers "did it work in June", and an RTO is only ever written in the present tense.
+- **`exit 0` is not a restored system**, stated as a scoring rule: an empty backup restores perfectly
+  and reports success. A drill counts where it asserts — row counts against the recorded source, a
+  canary record, a checksum over restored files, the application booting with its health endpoint
+  green, the smoke tests of 10.8 against the restored environment. Without assertions what was
+  measured is the restore *command*, and the receipt's outcome is `unverified` rather than `pass`.
+- **What an audit can and cannot verify, said out loud.** A receipt can be typed by hand and no
+  amount of reading reveals it. What an audit can do is check it against records written by a
+  different hand — the artefact exists in the store, the duration appears in a CI run log, the commit
+  dates from when it claims, the drill script existed in the repository on that date, the receipt's
+  shape matches what the script emits. Consistency across independent records raises the cost of a
+  fiction without removing the possibility, and a report says which of the two it is looking at.
+- **`/dr-drill`** — a new command that rehearses the recovery 9.10 scores. It runs **the project's
+  committed drill script** against the disposable target declared in the new
+  `## Disaster recovery drill` section, and transcribes what that run reported. It refuses to start
+  without the declaration (a restore improvised against an undeclared target is the accident the
+  drill exists to rehearse for), stops if the target overlaps any production identifier, keeps the
+  backup store read-only, destroys the target afterwards, and writes a fixed-shape receipt — backup
+  age against RPO, duration against RTO, every assertion with its result, deviations, and what the
+  drill did *not* cover. `--dry-run` validates the setup without restoring.
+- **Two rules inside that command carry most of its value.** It never repairs a failing run to make
+  the drill pass: a drill that fails in rehearsal has done its job, and patching around the failure
+  converts the one useful output into a formality. And it never writes a receipt for a run that did
+  not happen, never edits a result, never fills a field by inference — writing one by hand cannot
+  raise the score, it only destroys the chance of ever measuring the real one.
+
+### Changed
+
+- **`/project-audit` step 1.5 is now "Capture declared access"**, with a Database block (unchanged,
+  for 7.9 and 9.8) and a Production block for 9.9. The production block records the declaration
+  without its credentials, checks that each read-only path still *resolves* — a runbook entry
+  pointing at a decommissioned host is the finding — and takes at most one small redacted read per
+  path as proof the signal is live. An audit observes production; it never operates it, not even
+  through an action the section allow-lists.
+- **Phase 1 preconditions state whether a production path was declared and resolved**, next to the
+  database line, so the Category 9 agent knows before it starts whether 9.9 has a human-only ceiling.
+- **Category 9's framing gains its third and fourth questions** — *can whoever is on call reach those
+  signals at 3am without waking a second person to get in?*, and *if the machine or the data is not
+  there tomorrow morning, what comes back, and how long does that take?*
+- **Two boundaries are now written down where they were previously assumed.** 10.6 carries a line
+  saying rollback is for a deployment that went wrong while the data and the machine are still
+  there, and that losing either is 9.10. And 9.10 names its tie to 9.7: retention bounds what is
+  kept, recovery guarantees it can come back — a purge job with no backup and a backup that has
+  never restored are the same data loss at different speeds.
+- **`/project-audit` preconditions state what the repository cannot rebuild**, next to the database
+  and production-path lines. Naming production data, uploads, secrets, DNS and hand-configured
+  infrastructure before the agents launch is what stops the Category 9 agent from scoring the
+  database alone and calling it disaster recovery.
+
+### Notes
+
+- **No new precondition.** Precondition 4 exists because without a database, 7.9 and 9.8 are scored
+  from intent; 9.9 and 9.10 are the opposite case — the absence of access, and the absence of a
+  drill, *are* the score, so a precondition would only have restated the criteria.
+- **The drill is a script, and the agent is not the drill.** `/dr-drill` runs what the repository
+  committed rather than composing a restore from what it can infer. A restore improvised afresh each
+  time is not comparable with the last one, cannot be handed to a person at 3am, and cannot be moved
+  into CI — and CI running the *same script* is what takes 9.10 from 8 to 10. The agent makes the
+  rehearsal cheap enough to actually perform; it does not make the rehearsal.
+- **No write-time principle for either.** `CODING_STANDARDS.md` is about what gets written, and
+  nothing in it grants an SSH account or takes a backup. Principle 16 keeps its existing mapping,
+  and both 9.9 and 9.10 are recorded in the *Criteria with no write-time principle* table with their
+  reason — they are established by whoever operates the system, and no change to a feature opens an
+  access path or restores a database.
+
+### Migration
+
+**One step is required, and it is the usual one.** This release adds a command, and commands are
+*copies* in `.claude/commands/` rather than links into the submodule — so a submodule bumped on its
+own leaves the project on 1.13.0 without `/dr-drill`:
+
+```bash
+cd .claude/framework && git fetch --tags && git checkout v1.13.0 && cd ../..
+bash .claude/framework/scripts/init-project.sh      # installs the new command
+bash .claude/framework/scripts/check-install.sh     # read-only: confirms it landed
+```
+
+`check-install.sh` reports the command as missing until the installer has run. That is the normal
+path for every release that adds one, not a special case for this one.
+
+**Nothing else is required, and no file of yours needs editing.** Both new subcriteria score without
+any change to the project: the next `/project-audit` reads 9.9 from what a person can reach and 9.10
+from the backup configuration, the runbook, and whether a restore has ever happened. Expect C9 to
+*drop* on that audit — it is measuring two more things, not measuring worse. `docs/audits/history.md`
+needs no migration either: no category was added, so no column changes, and prior C9 scores stay as
+they were measured.
+
+**Then two optional declarations, which decide how far 9.9 and 9.10 can be scored.** A project
+installing for the first time gets both blocks, with a worked example each, inside the
+`.claude/PROJECT_AUDIT_FRAMEWORK.md` the installer scaffolds. An *existing* project does not: that
+file belongs to the project, so `init-project.sh` leaves it exactly as it found it — copy the two
+blocks out of `.claude/framework/templates/PROJECT_AUDIT_FRAMEWORK.md` by hand. Both are worth
+reading before writing:
+
+- **`## Production access`** — the signals a session may reach and how. Without it, no production
+  path is open and 9.9 is scored on human reach alone, which caps it at 6. Declare only what you
+  mean to grant: the section *is* the boundary, nothing outside it is available to a session, and
+  read-only is its default. A project that genuinely has no reachable production is not failing this
+  criterion by declining to write the block — it is recording where it stands.
+- **`## Disaster recovery drill`** — the committed script, the disposable target, the assertions, the
+  receipts directory, and the RPO/RTO the drill is measured against. It is needed only to *run*
+  `/dr-drill`; the command refuses to start without it rather than improvising a restore. Writing the
+  script is the real work here, and it is also the step that moves 9.10 off the untested ceiling of
+  5: run it once by hand, keep the receipt, then move the same script into CI for the top band.
+
+**If you are upgrading from before 1.12.0**, read that entry too — Category 0 was added there, and
+`history.md` does gain a column.
+
 ## [1.12.1] — 2026-09-08
 
 The developer profile is one file per machine, at `~/.claude/context/user_profile.md`, shared by
