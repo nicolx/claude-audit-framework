@@ -8,6 +8,61 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.17.0] — 2026-10-10
+
+1.16.0 scored whether the work was cut into steps that could ship. It said nothing about whether they
+then *did* — and a step that works on a laptop has not been delivered, it has been written. Nothing
+in the framework scored work left uncommitted at the end of a session, a changelog swept together
+from the log the morning of a release, a tag sitting on a different commit from the version bump it
+justifies, or install instructions pinning the version before last. Categories 10.11 to 10.14 all
+measure the *quality* of an artifact; none of them asks whether the artifact exists.
+
+The other half of it is an agent problem, and this repo's own sessions are the evidence: a session
+with no statement of what it may do asks before every commit, every push and every tag. A hundred
+confirmations later the team has not gained any safety it did not have — the decision was always the
+same one — and has paid for the asking every time. The fix is not for the agent to be bolder. It is
+for the project to say, once and in writing, what *done* means here and how far a session may carry
+it.
+
+### Added
+
+- **`standards/PROJECT_AUDIT_FRAMEWORK.md` § *10.15 The definition of done is declared, and its
+  mechanical half is automated*.** Three questions: is it declared, is everything in it a machine
+  could check checked by one, and does the history conform. The shape is the team's and **more
+  ceremony is not a higher score** — a three-line convention fully automated scores above a
+  fifteen-step one enforced by review comments. The bad list leads with the failure that leaves no
+  artifact to find later: finished work nobody's definition of done required pushing.
+- **`standards/CODING_STANDARDS.md` § *25. A change is delivered, not finished*.** The step of
+  principle 24 ends in the state the project calls done. Where the declaration permits an action,
+  take it without asking — the declaration *is* the authorization — and report it in one line. Where
+  it does not, stop at the last permitted action and name what remains. Permissions are never
+  inferred from adjacent ones: commit does not imply push, a feature branch does not imply `main`,
+  neither implies a tag. With no declaration, prepare and ask, exactly as before.
+- **`templates/PROJECT_AUDIT_FRAMEWORK.md` § *Delivery convention*** — the fourth declaration block,
+  with two worked examples because the right answer depends on the team's size: a solo trunk-based
+  repository and a team of nine, both complete, neither scoring higher for being longer. It
+  enumerates what a session may do *and what it may not*, ref by ref.
+- **`INSTRUCTIONS.md` § *Delivering it: the convention is the authorization*** — where principle 25
+  lands in a session, including the once-per-session flag when the block is absent and the rule that
+  an absent declaration is never read as permission.
+- **An evidence focus for 10.15 in `/project-audit`** — read the declaration first, check each
+  mechanical claim resolves to a job that would actually fail, then read the log for the conformance
+  signature. Score the shape the team declared, never the length of it.
+
+- **This repo declares its own convention**, in its `CLAUDE.md`: trunk, gate green before the push,
+  version and changelog in the same commit, annotated tag on the commit that declares the version,
+  and a session that may release but may never rewrite published history. 10.15 asks every project
+  for this block; dogfooding it is how the framework finds out what the block costs to write.
+
+### Changed
+
+- **The principle count is 25**, and the README's declaration table has four rows.
+
+**If you are upgrading**, the new block is not scaffolded into an existing
+`.claude/PROJECT_AUDIT_FRAMEWORK.md` — `init-project.sh` never overwrites a file the project owns.
+Copy *Delivery convention* from the template and fill it in. Until you do, nothing changes: sessions
+keep asking before they commit, and 10.15 is scored on what the history already shows.
+
 ## [1.16.1] — 2026-10-10
 
 1.16.0 shipped with the README's counts and version pins updated and nothing in it saying what the

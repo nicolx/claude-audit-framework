@@ -5,7 +5,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 ## What it includes
 
 - **11-category quality framework** for code review and architecture evaluation (`/project-audit`), from product intent (Cat 0) to delivery pipeline (Cat 10)
-- **24 coding principles** applied automatically to every code proposal, traced to the audit criteria that measure them
+- **25 coding principles** applied automatically to every code proposal, traced to the audit criteria that measure them
 - **Developer profile system** — calibrates Claude's recommendations to each developer's skill level, and records the natural language they work in
 - **A remediation order** — the phases a project closes gaps in, so that recorded intent and a working
   safety net come before refactoring, renaming or replacing a framework, and the band rule that keeps
@@ -21,7 +21,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 ```bash
 # Add the submodule — pin a released version rather than tracking main
 git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-git -C .claude/framework checkout v1.16.1
+git -C .claude/framework checkout v1.17.0
 
 # Bootstrap: installs the commands, scaffolds the project files, records the version
 bash .claude/framework/scripts/init-project.sh
@@ -70,7 +70,7 @@ a framework that is present and doing nothing.
 bash .claude/framework/scripts/check-updates.sh
 
 # 2. Move to it
-cd .claude/framework && git fetch --tags && git checkout v1.16.1 && cd ../..
+cd .claude/framework && git fetch --tags && git checkout v1.17.0 && cd ../..
 
 # 3. Make the install conformant with the new version — migrations included
 bash .claude/framework/scripts/init-project.sh
@@ -78,7 +78,7 @@ bash .claude/framework/scripts/init-project.sh
 # 4. Verify, and read what it says
 bash .claude/framework/scripts/check-install.sh
 
-git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.16.1"
+git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.17.0"
 ```
 
 Three scripts, three questions, no overlap:
@@ -101,7 +101,7 @@ entries you need are named rather than hunted for. `init-project.sh` migrates ev
 automatically and is idempotent, so there is no version-by-version upgrade path to follow: you can
 go from any older version straight to the newest one.
 
-The conformance rules ship *inside* each version, so checking out `v1.16.1` gets you `v1.16.1`'s
+The conformance rules ship *inside* each version, so checking out `v1.17.0` gets you `v1.17.0`'s
 checks with no lookup table to keep in sync.
 
 ## Two halves: writing and measuring
@@ -111,7 +111,7 @@ works on both sides of that line.
 
 | | Write-time | Audit-time |
 |---|---|---|
-| **What** | 24 coding principles | 11 scored categories |
+| **What** | 25 coding principles | 11 scored categories |
 | **When** | Every code proposal, automatically | `/project-audit`, on demand |
 | **Where** | `standards/CODING_STANDARDS.md` | `standards/PROJECT_AUDIT_FRAMEWORK.md` |
 
@@ -185,7 +185,7 @@ After `init-project.sh`, customize:
 
 These files extend the global framework — they do not replace it.
 
-**Three blocks of `.claude/PROJECT_AUDIT_FRAMEWORK.md` are declarations rather than
+**Four blocks of `.claude/PROJECT_AUDIT_FRAMEWORK.md` are declarations rather than
 specializations**, and each one decides what an audit is able to verify rather than how it reads the
 code. Leaving one out is a legitimate answer; it just sets a ceiling:
 
@@ -193,6 +193,7 @@ code. Leaving one out is a legitimate answer; it just sets a ceiling:
 |---|---|
 | `Database access for query analysis` | 7.9 and 9.8 are scored from configuration, capped at 8 |
 | `Production access` | No production path is open to a session; 9.9 is scored on what a person can reach |
+| `Delivery convention` | A session prepares changes and asks before committing; 10.15 is scored on what the history shows |
 | `Disaster recovery drill` | `/dr-drill` has nothing to run, and 9.10 is scored from the runbook |
 
 The skeletons, with a worked example each, are in

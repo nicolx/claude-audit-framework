@@ -816,6 +816,53 @@ nobody will be able to verify until the end.
 
 ---
 
+## 25. A change is delivered, not finished
+
+Code that works and sits in a working tree has not been delivered; it has been written. The step of
+principle 24 ends in the state the project calls *done*, and what that state is is the project's to
+declare — committed and pushed on a solo repository, a reviewed pull request on a team, a tagged
+release where something downstream pins a version.
+
+**Read the declaration before the first commit of the session**, not after the work. It is the
+*Delivery convention* block of the project's `.claude/PROJECT_AUDIT_FRAMEWORK.md`, and it says what a
+finished change carries and which actions a session may take unattended.
+
+**Where it permits an action, take it without asking.** The declaration *is* the authorization, and
+asking again at each step is the friction the team removed by writing it down. Report what was done
+in one line — the commit, the branch, the pull request — so the action is visible rather than silent.
+
+**Where it does not cover an action, stop at the last one it permits** and say what remains, naming
+the command the developer would run. Never infer an adjacent permission: committing does not imply
+pushing, pushing a feature branch does not imply pushing `main`, and neither implies a tag, a
+release, or a published artifact. An agent's authority here is narrower than the team's by design.
+
+**Where there is no declaration**, prepare the change and ask, as before — and say once that the
+block is missing. A session that starts committing because nobody wrote down that it should not is
+the failure this principle is most likely to cause if read carelessly.
+
+**What rides along with the change.** The documents it invalidated are part of it, not a follow-up:
+principle 22 for what a document says about the system, 23 for what it says about itself, and — where
+the change is a release — the version, the changelog entry, and the install or upgrade steps that
+name a version, in the same commit. A changelog written afterwards from the log records what the
+commits said, which is the one thing a reader could already get from the commits.
+
+**What good looks like:**
+
+- Every session ends with the work in the state the declaration calls done, or with one line saying
+  which permitted action was the last one and what remains
+- Version, changelog and install instructions in the same commit as the change that made them wrong
+- A session that pushed says so, naming the ref it pushed to
+
+**Signals of drift:**
+
+- Work left uncommitted at the end of a session that nobody asked to leave uncommitted
+- *"Shall I commit this?"* asked every time in a project that already declared the answer
+- `docs: update changelog` as its own commit, two days after the feature
+- A tag created without the version bump that justifies it, or a version bump never tagged
+- A push to a ref the declaration does not name, or a permission inferred from an adjacent one
+
+---
+
 ## Traceability — where each principle is measured
 
 These principles are the write-time half of the framework; `PROJECT_AUDIT_FRAMEWORK.md` is the
@@ -851,6 +898,7 @@ can only be found in an audit, never written correctly the first time.
 | 22 | Documentation is part of the change that invalidated it | 7.10 |
 | 23 | A spec is delivered when its status says so | 0.3, 0.4, 0.5 |
 | 24 | Cut the work into steps that ship | 0.8, 10.9 |
+| 25 | A change is delivered, not finished | 10.14, 10.15 |
 
 ### Criteria with no write-time principle, and why
 

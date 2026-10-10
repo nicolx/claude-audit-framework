@@ -114,6 +114,42 @@ Example:
 If there is none: "Not available — no production path is open to a session; 9.9 is scored on what a
 person can reach."]
 
+## Delivery convention
+
+[Declares what a finished change carries in this project, and what a session may do unattended.
+Scored by 10.15, and read by every session before its first commit.
+
+The shape is the team's: a solo repository and a twelve-person one have different right answers and
+neither is a higher score. What is scored is that it is written, that the mechanical half is checked
+by a machine, and that the session's authority is enumerated rather than inferred.
+
+Example — solo project, trunk-based:
+
+| Field | Value |
+|---|---|
+| Branch policy | straight to `main`, no pull request |
+| Done means | committed, pushed, CI green |
+| Rides with a user-visible change | an entry under `## [Unreleased]` in `CHANGELOG.md` |
+| Release | `make release` — bumps `VERSION`, moves the Unreleased block, tags `vX.Y.Z` |
+| Checked by | CI job `version-changelog`: fails when `VERSION` and the newest changelog entry disagree, or when the README pins a version other than the current one |
+| Session may | commit, push `main` |
+| Session may not | tag, publish, force-push, rewrite history |
+
+Example — team of nine:
+
+| Field | Value |
+|---|---|
+| Branch policy | `feat/*` cut from `main`, pull request required, squash merge |
+| Done means | pull request open, green, one approval, squashed |
+| Rides with a user-visible change | the Conventional Commit footer `release-please` reads, and the spec's status marker moved (0.5) |
+| Release | automated — `release-please` opens the release pull request and tags on merge |
+| Checked by | `commitlint`, the `changelog` job, branch protection on `main` |
+| Session may | commit, push `feat/*`, open and update its own pull request |
+| Session may not | merge a pull request, push `main`, tag, release |
+
+If there is none: "Not declared — a session prepares changes and asks before committing; 10.15 is
+scored on what the history shows."]
+
 ## Disaster recovery drill
 
 [What `/dr-drill` is allowed to do, and the committed script it runs. Without this section the

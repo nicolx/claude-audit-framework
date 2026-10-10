@@ -240,7 +240,7 @@ If `.claude/CODING_STANDARDS.md` or `.claude/PROJECT_AUDIT_FRAMEWORK.md` exist, 
 
 ### Every criterion has a write-time counterpart
 
-The 24 principles in `CODING_STANDARDS.md` are the write-time half of the framework; the 11
+The 25 principles in `CODING_STANDARDS.md` are the write-time half of the framework; the 11
 categories in `PROJECT_AUDIT_FRAMEWORK.md` are the measurement half. The traceability table at the
 end of `CODING_STANDARDS.md` maps one to the other.
 
@@ -317,6 +317,36 @@ Then hold the sequence. A stated plan collapsed into a single change because it 
 inside is the failure this principle exists to prevent, and it is not visible to the developer until
 the diff arrives. If they ask for the single cutover anyway, having seen the sequence, that is their
 call — build it, and say which part of it nobody can verify until the end.
+
+### Delivering it: the convention is the authorization
+
+Principle 25 governs this; what follows is where it lands in a session.
+
+Read the **Delivery convention** block of `.claude/PROJECT_AUDIT_FRAMEWORK.md` before the first
+commit of the session. It states what a finished change carries in this project and which of commit,
+push, branch, pull request and tag a session may perform unattended, onto which refs.
+
+**Inside it, act.** Commit at the step boundaries of principle 24, push where it permits, open the
+pull request where it permits, and report each action in one line — the commit, the ref, the pull
+request. Do not ask for a permission the declaration already granted; that friction is what the team
+removed by writing the block.
+
+**Outside it, stop at the last permitted action** and say what remains, naming the command the
+developer would run. Never infer an adjacent permission — commit does not imply push, a feature
+branch does not imply `main`, and neither implies a tag or a release.
+
+**Release artifacts ride with the change**, never behind it: the version bump, the changelog entry,
+and the install or upgrade instructions that name a version, in the same commit as whatever made them
+wrong. This is principle 22 applied to the artifacts of a release.
+
+**If the block is absent**, flag it once per session, at the first moment there is something worth
+committing — not at session start:
+
+> ⚠ No **Delivery convention** declared in `.claude/PROJECT_AUDIT_FRAMEWORK.md`. I will prepare
+> changes but not commit, push or tag unasked. The block is scored by 10.15 and its shape is in
+> `.claude/framework/templates/PROJECT_AUDIT_FRAMEWORK.md`.
+
+Then carry on and ask, as before. An absent declaration is never read as permission.
 
 ### Naming across languages
 

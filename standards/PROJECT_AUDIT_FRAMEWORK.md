@@ -2838,6 +2838,84 @@ A version tag is a pointer from a human-readable name to a specific commit. It a
 
 **Automation with `semantic-release`:** Given Conventional Commits are enforced (10.11), the version bump and CHANGELOG generation can be fully automated: `feat:` → MINOR, `fix:` → PATCH, `BREAKING CHANGE:` footer → MAJOR. The CI pipeline tags the release, publishes the artefact, and updates the CHANGELOG without human intervention.
 
+#### 10.15 The definition of done is declared, and its mechanical half is automated
+
+Every other subcriteria in this category measures the quality of an artifact: the message (10.11),
+the pull request (10.12), the protection rule (10.13), the tag and its version (10.14). This one
+measures whether the artifact **reliably exists when a change is finished**, and what makes sure of
+it. Work that runs on a laptop has not been delivered; it has been written.
+
+**The shape is the project's, and more ceremony is not a higher score.** A solo repository where done
+means *committed to `main`, pushed, CI green* is a complete and legitimate answer that scores 9 when
+it is declared and checked. A twelve-person team where done means *branch, pull request, one
+approval, green, squash, changelog entry, release tag* is another. The framework does not pick
+between them and does not reward the longer list.
+
+What does not scale with the team is whether it is **written down**. An undeclared convention is one
+the newest member learns by having a pull request rejected, and one an agent cannot follow at all:
+it will ask at every step or guess, and the asking is what a team mistakes for caution until it has
+paid for it a hundred times.
+
+Three questions, in order.
+
+**1. Is it declared?** The *Delivery convention* block of `.claude/PROJECT_AUDIT_FRAMEWORK.md`: the
+branch policy, what *done* means, what rides along with a user-visible change, what triggers a
+release, and — separately — which of commit, push, branch, pull request and tag a session may do
+unattended, onto which refs. That last part is the project's standing authorization, and the reason
+an agent can stop asking.
+
+**2. Is the mechanical half mechanical?** Everything in the declaration a machine could check is
+checked by one. The version and the changelog's newest entry agree; every released version has a tag
+and the tag sits on the commit that declared it; the install and upgrade instructions pin the current
+version; the changelog has an entry for the release being cut. Each of those is a job that fails with
+the command that fixes it. Where the only thing making it happen is somebody remembering, what the
+project has is a norm, not a definition of done — and norms are observed in proportion to how recently
+someone was burned.
+
+**3. Does the history conform?** The artifacts arrive *with* the change, not after it. This is the
+question the first two cannot answer, and the log answers it without being asked.
+
+**Good:**
+
+- The convention is declared, at the size the team actually is, and the declaration names what a
+  session may do rather than leaving it to be inferred
+- The release-time documents ride with the change that invalidated them: the version bump, the
+  changelog entry, and the install or upgrade steps that name a version, in the same commit.
+  Principle 22's rule applied to the artifacts of a release; 7.10 scores the rest of the corpus
+- One check per mechanical claim, each failing with the command that fixes it
+- The release is reproducible from the repository — a script or a workflow, not a sequence in
+  somebody's notes, and not a sequence only one person has run
+- An agent's permissions are enumerated action by action and ref by ref, and the enumeration is
+  narrower than what the humans may do
+
+**Bad:**
+
+- No declaration. *"We all know how we work here"* is true of everyone who was in the room when it
+  was decided, and of nobody who arrived afterwards
+- Finished work left uncommitted or unpushed at the end of a session, because delivering it was
+  nobody's step. The most common failure in this subcriteria and the only one that leaves no
+  artifact at all to find later
+- A changelog written in a sweep before the release, from the log, by whoever is cutting it: it
+  records what the commits said, which is the one thing a reader could already get from the commits
+- The version bumped in one commit, tagged from another, the changelog updated in a third, and the
+  install instructions still pinning the version before last
+- A convention enforced by review comments — *"please add a changelog entry"* on every pull request
+  is a check being run by a person, at the price of a person, with a person's recall
+- A declaration that grants an agent everything, force-push and tagging included, because enumerating
+  was more work than allowing. The block is a boundary; one that excludes nothing is decoration
+
+**How to score:**
+
+- 0–2: Done is whatever the developer felt was enough. Nothing declared, nothing checked; work and
+  its documents arrive in unrelated commits, or do not arrive
+- 3–5: A convention exists in people's heads or in a contributing guide, and is enforced by review or
+  by memory. Release artifacts are a sweep before a tag
+- 6–7: Declared and largely followed, with the checks partial — the changelog is validated but the
+  install instructions are not, or the tag is manual and sometimes lands on the wrong commit
+- 8–10: Declared at the size the project is, every mechanical claim carried by a check that fails,
+  the history showing artifacts arriving with their change, and a session's authority enumerated.
+  A three-line convention fully automated scores above a fifteen-step one enforced by review
+
 ---
 
 ## How to conduct a quality evaluation

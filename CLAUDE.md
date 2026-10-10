@@ -31,7 +31,7 @@ A portable quality framework distributed to other projects as a git submodule at
 | `INSTRUCTIONS.md` | Consumer projects | The file `@`-included into a project's `CLAUDE.md`. Loaded into every session of every consuming project. |
 | `CLAUDE.md` | This repo | This file. Never travels into a consumer session. |
 | `standards/PROJECT_AUDIT_FRAMEWORK.md` | Consumer projects | The 11-category evaluation standard, numbered 0–10 — *what good is measured against*. |
-| `standards/CODING_STANDARDS.md` | Consumer projects | The 24 principles applied to every code proposal — *what good looks like*. |
+| `standards/CODING_STANDARDS.md` | Consumer projects | The 25 principles applied to every code proposal — *what good looks like*. |
 | `commands/*.md` | Consumer projects | Slash commands, **copied** into `.claude/commands/` by `init-project.sh`. |
 | `templates/*.md` | Consumer projects | Scaffolding for the project-level specialization files. |
 | `scripts/init-project.sh` | Operators | Installs and migrates a consumer project. The only mutating script. |
@@ -109,6 +109,25 @@ only way to catch the in-place text editing bugs: a BSD-vs-GNU `sed` difference 
 no-op, not an error.
 
 ---
+
+## Delivery convention
+
+This repo's own answer to 10.15, and the standing authorization for a session working on it. The
+consumer-facing shape of this block is in `templates/PROJECT_AUDIT_FRAMEWORK.md`; this is the same
+declaration for a repository whose `.claude/` belongs to the projects that install it.
+
+| Field | Value |
+|---|---|
+| Branch policy | straight to `main`, no pull request — one maintainer |
+| Done means | committed, pushed, `bash scripts/qa.sh` green **before** the push, never after |
+| Rides with a change to a shipped document | the `VERSION` bump and the `CHANGELOG.md` entry, in the same commit — rule 3 above states which changes require them |
+| Release | an annotated `vX.Y.Z` tag on the commit that declares that `VERSION`, pushed with `--follow-tags` |
+| Checked by | `scripts/check-consistency.sh` — check 7 (VERSION ↔ newest changelog entry ↔ the README's pinned version) and check 10 (every released version tagged, each tag on the commit that declared it) |
+| Session may | commit, push `main`, bump `VERSION`, write the changelog entry, tag the release, push with `--follow-tags` |
+| Session may not | force-push, rewrite published history, delete or move a tag, push any ref other than `main` |
+
+A session does not ask before any of the permitted actions; it reports each one in a line. The gate
+is the gate: a red `qa.sh` stops the push, and no permission in this table overrides it.
 
 ## Conventions
 
