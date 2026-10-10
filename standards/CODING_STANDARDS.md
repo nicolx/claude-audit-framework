@@ -916,6 +916,66 @@ commit as that change, with the change stated. Nothing else is a reason:
 
 ---
 
+## 27. Cleanup runs on a trigger, not on a reminder
+
+A repository accumulates. Every merge leaves a branch behind, every branch deleted upstream leaves a
+remote-tracking ref on a dozen clones, every build writes output next to the source, every release
+leaves a draft, a cache, an artifact. None of it is a defect on the day it appears — which is exactly
+why it is still there a year later. Nothing about it ever becomes urgent, so nothing about it ever
+gets done.
+
+The habit people reach for is the tidy-up: an afternoon of deleting branches, once the list has
+become unusable. It works, once. What it never becomes is a property of the repository, because what
+it runs on is somebody noticing — and noticing is the first thing the accumulation consumes.
+
+**Two triggers, and between them they cover all of it.**
+
+**1. The change removes what the change created.** The branch is deleted by the merge that consumed
+it — the host does this with one setting, so the correct form of the rule is *turn it on once*, not
+*remember every time*. The scratch file, the fixture copied in to reproduce something, the one-off
+script: out in the commit that stops needing them. Whatever the build produces is in the ignore file
+the day the build first produces it, and the check for that is one command — `git status` on a clean
+checkout after a full build and test run. If it lists anything, somebody will eventually commit it.
+
+**2. What no single change can reach runs on a schedule.** Remote-tracking refs for branches deleted
+upstream — `fetch.prune`, configured rather than typed by hand. Branches with no commit for months.
+CI caches, artifact retention, pre-release tags, draft releases. A job, on a trigger it does not
+share with anyone's memory, that reports what it removed somewhere with a reader.
+
+**The line automation does not cross.** Cleanup that destroys work is worse than the mess it removes,
+and this is the one place where conservative beats thorough:
+
+- **Nothing unmerged.** A branch holding commits that are not in the mainline is somebody's
+  unfinished work, whatever its date says. Age is evidence about attention, never about value
+- **Nothing that rewrites published history.** A 200MB fixture committed two years ago is a cost
+  every clone keeps paying, and removing it is a coordinated migration with a date and a notice —
+  never a line in a cleanup job
+- **No tags, no releases.** They are the answer to *what was running in March*; that question gets
+  asked years later
+- **Nothing silently, and nothing without a dry run.** A job whose output nobody reads is the same
+  thing as a job nobody can audit after it removes the wrong branch
+
+**What good looks like:**
+
+- The branch is gone when the pull request closes, and no one deleted it
+- Residue from a change leaves in the change: the fixture, the scratch script, the temporary flag
+- A new clone of a five-year-old repository is small, and `git status` is clean after a full build
+- The retention rule is written where the job is defined — *merged remote branches older than 90
+  days are deleted, unmerged ones are reported and never touched* — so the job can be read for what
+  it will do rather than watched for what it did
+
+**Signals of drift:**
+
+- A branch list long enough that nobody scans it, in which the three live branches are indistinguishable
+  from the fifty merged ones
+- `git fetch` printing refs for branches that stopped existing months ago, on every machine, forever
+- `.gitignore` entries that each arrived one commit after the file they ignore was committed by mistake
+- The cleanup lives in one developer's shell aliases: it works, and it leaves when they do
+- Tidying scheduled as a task — *clean up branches* on a board, moved forward every sprint. The task
+  is the admission that nothing runs
+
+---
+
 ## Traceability — where each principle is measured
 
 These principles are the write-time half of the framework; `PROJECT_AUDIT_FRAMEWORK.md` is the
@@ -953,6 +1013,7 @@ can only be found in an audit, never written correctly the first time.
 | 24 | Cut the work into steps that ship | 0.8, 10.9 |
 | 25 | A change is delivered, not finished | 10.14, 10.15 |
 | 26 | Every bug fix leaves a test behind | 4.7 |
+| 27 | Cleanup runs on a trigger, not on a reminder | 10.16 |
 
 ### Criteria with no write-time principle, and why
 

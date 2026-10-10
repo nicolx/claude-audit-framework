@@ -240,7 +240,7 @@ If `.claude/CODING_STANDARDS.md` or `.claude/PROJECT_AUDIT_FRAMEWORK.md` exist, 
 
 ### Every criterion has a write-time counterpart
 
-The 26 principles in `CODING_STANDARDS.md` are the write-time half of the framework; the 11
+The 27 principles in `CODING_STANDARDS.md` are the write-time half of the framework; the 11
 categories in `PROJECT_AUDIT_FRAMEWORK.md` are the measurement half. The traceability table at the
 end of `CODING_STANDARDS.md` maps one to the other.
 
@@ -347,6 +347,23 @@ committing — not at session start:
 > `.claude/framework/templates/PROJECT_AUDIT_FRAMEWORK.md`.
 
 Then carry on and ask, as before. An absent declaration is never read as permission.
+
+### After it lands: removing what the change left behind
+
+Principle 27 governs this; what follows is where it lands in a session.
+
+The session that made the change is the one that still knows which files were residue and which
+were the work. Before reporting it done, remove what this change created and no longer needs — the
+scratch file, the fixture copied in to reproduce a bug, the one-off script — and, where the delivery
+convention permits that ref, the branch once it is merged. Never a branch whose commits are not in
+the mainline, whatever its date says, and never a tag.
+
+**Finding yourself tidying by hand is itself the finding.** If the merge did not delete the branch,
+the host's auto-delete setting is off. If `git fetch` prints refs for branches that no longer exist,
+`fetch.prune` was never configured. If a full build leaves `git status` dirty, an ignore rule is
+missing. Say so once, naming the one-time setting that removes the step — doing the same manual
+cleanup a second time is the session accepting a job that should not have needed a person. The
+repository's side of this is scored by 10.16.
 
 ### Naming across languages
 

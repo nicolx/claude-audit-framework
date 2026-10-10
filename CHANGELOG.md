@@ -8,6 +8,45 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.19.0] — 2026-10-10
+
+A repository accumulates, and none of what it accumulates is a defect on the day it appears — which
+is why it is all still there a year later. The branch list that has sixty entries and three live
+ones. The `git fetch` that prints refs for branches deleted months ago, on every machine, every
+time. The `dist/` directory somebody committed once and nobody removed, now in every clone forever.
+Each of them is cheap to prevent at the moment it is created and expensive to undo afterwards, and
+each of them waits on the same thing: a person noticing. Noticing is the first resource the
+accumulation consumes.
+
+The framework had the practices that produce the residue — branching in 10.10, tags in 10.14, the
+pipeline in 10.3 — and nothing about removing it. So the criterion was passing projects that merge
+cleanly and leave the remains of every merge behind them.
+
+### Added
+
+- **Principle 27 — *Cleanup runs on a trigger, not on a reminder*.** Two triggers cover all of it:
+  the change removes what the change created — its branch via the host setting turned on once, its
+  scratch files in the commit that stops needing them, its build output in the ignore file the day
+  the build first writes it — and what no single change can reach runs on a schedule. Then the line
+  automation does not cross, because cleanup that destroys work is worse than the mess it removes:
+  nothing unmerged whatever its age, no tags, no rewritten history, nothing silent and nothing
+  without a dry run.
+- **Subcriteria 10.16 — *The repository cleans up after itself*.** 10.10 scores whether a branching
+  strategy exists; this scores whether the repository still looks like one after six months of a
+  team following it. Four commands carry it — merged remote branches, branches by age, refs whose
+  upstream is gone, repository size — plus the cheapest check in the category and the one least
+  often run: a clean checkout, a full build, `git status`. A job that deletes branches by age alone
+  scores *below* having no automation at all. A solo repository worked straight on `main` marks the
+  branch half N/A rather than scoring it zero.
+- **The session's half, in `INSTRUCTIONS.md`.** A change's residue leaves with the change, and
+  tidying by hand is read as a finding rather than as a chore: a branch that survived its merge
+  means the host setting is off, a noisy fetch means `fetch.prune` was never configured, a dirty
+  `git status` after a build means an ignore rule is missing. Each one gets named once, with the
+  one-time setting that removes the step.
+- **The `/project-audit` evidence slice for Category 10** sends the ref-and-size commands to the
+  live remote: `common.md`'s branch list is a snapshot with no ages in it, and says nothing about
+  refs that are already gone upstream.
+
 ## [1.18.0] — 2026-10-10
 
 The framework scored how well a suite covers the code as it stands and said nothing about the one

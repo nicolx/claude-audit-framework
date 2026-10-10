@@ -5,7 +5,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 ## What it includes
 
 - **11-category quality framework** for code review and architecture evaluation (`/project-audit`), from product intent (Cat 0) to delivery pipeline (Cat 10)
-- **26 coding principles** applied automatically to every code proposal, traced to the audit criteria that measure them
+- **27 coding principles** applied automatically to every code proposal, traced to the audit criteria that measure them
 - **Developer profile system** — calibrates Claude's recommendations to each developer's skill level, and records the natural language they work in
 - **A remediation order** — the phases a project closes gaps in, so that recorded intent and a working
   safety net come before refactoring, renaming or replacing a framework, and the band rule that keeps
@@ -14,6 +14,10 @@ A portable quality framework for Claude Code — travels with any project as a g
   steps or as one flip, read from the git log and the CI runs rather than from the document that
   described it. The one criterion a project cannot repair retroactively, and the framework holds its
   own remediation output to it
+- **Repository hygiene that runs on a trigger** — the branch deleted by the merge that consumed it,
+  dead remote refs pruned by configuration rather than by hand, everything outliving a single change
+  swept by a scheduled job with a written retention rule — and the line automation never crosses:
+  nothing unmerged, no tags, no rewritten history
 - **Skill commands**: `/project-audit`, `/dr-drill`, `/competency-review`, `/init-profile`
 
 ## Add to a project
@@ -21,7 +25,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 ```bash
 # Add the submodule — pin a released version rather than tracking main
 git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-git -C .claude/framework checkout v1.18.0
+git -C .claude/framework checkout v1.19.0
 
 # Bootstrap: installs the commands, scaffolds the project files, records the version
 bash .claude/framework/scripts/init-project.sh
@@ -70,7 +74,7 @@ a framework that is present and doing nothing.
 bash .claude/framework/scripts/check-updates.sh
 
 # 2. Move to it
-cd .claude/framework && git fetch --tags && git checkout v1.18.0 && cd ../..
+cd .claude/framework && git fetch --tags && git checkout v1.19.0 && cd ../..
 
 # 3. Make the install conformant with the new version — migrations included
 bash .claude/framework/scripts/init-project.sh
@@ -78,7 +82,7 @@ bash .claude/framework/scripts/init-project.sh
 # 4. Verify, and read what it says
 bash .claude/framework/scripts/check-install.sh
 
-git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.18.0"
+git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.19.0"
 ```
 
 Three scripts, three questions, no overlap:
@@ -101,7 +105,7 @@ entries you need are named rather than hunted for. `init-project.sh` migrates ev
 automatically and is idempotent, so there is no version-by-version upgrade path to follow: you can
 go from any older version straight to the newest one.
 
-The conformance rules ship *inside* each version, so checking out `v1.18.0` gets you `v1.18.0`'s
+The conformance rules ship *inside* each version, so checking out `v1.19.0` gets you `v1.19.0`'s
 checks with no lookup table to keep in sync.
 
 **One thing is never automatic: a declaration block added by a later version.** `init-project.sh`
@@ -118,7 +122,7 @@ works on both sides of that line.
 
 | | Write-time | Audit-time |
 |---|---|---|
-| **What** | 26 coding principles | 11 scored categories |
+| **What** | 27 coding principles | 11 scored categories |
 | **When** | Every code proposal, automatically | `/project-audit`, on demand |
 | **Where** | `standards/CODING_STANDARDS.md` | `standards/PROJECT_AUDIT_FRAMEWORK.md` |
 

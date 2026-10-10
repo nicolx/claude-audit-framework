@@ -2758,7 +2758,8 @@ A branching strategy is a team contract, not a technical setting. Any well-known
 **Signals of a healthy strategy:**
 
 - The strategy is written down (in `CONTRIBUTING.md`, a wiki, or a team agreement) — not just assumed
-- Every branch has a clear purpose and a clear owner; stale branches are deleted after merge
+- Every branch has a clear purpose and a clear owner (whether the deletion after merge actually
+  happens, and what makes it happen, is 10.16)
 - The main branch reflects production at all times (trunk-based) or a well-defined integration branch does (Git Flow `develop`)
 - Feature branches are short-lived: merged within days, not weeks
 
@@ -2981,6 +2982,85 @@ question the first two cannot answer, and the log answers it without being asked
 - 8–10: Declared at the size the project is, every mechanical claim carried by a check that fails,
   the history showing artifacts arriving with their change, and a session's authority enumerated.
   A three-line convention fully automated scores above a fifteen-step one enforced by review
+
+#### 10.16 The repository cleans up after itself
+
+10.10 scores whether a branching strategy exists and is named. This scores whether the repository
+still looks like that strategy after six months of a team following it — and the difference between
+the two is not discipline, it is whether anything runs on its own. Every practice in this category
+leaves residue: a branch per merge, a dead remote-tracking ref per deleted branch, an artifact per
+build, a draft release per tag. Residue is nobody's task right up until the list it lives in has
+stopped being readable, and by then the cleanup is an afternoon rather than a setting.
+
+*Dead code inside the source is 7.5 and a deprecated API past its deadline is 7.8. What this
+subcriteria measures is the repository and its host — refs, artifacts, ignore rules, size — not the
+code stored in them.*
+
+**The evidence is four commands, and none of them needs an opinion:**
+
+```bash
+# merged branches still on the remote, excluding the mainline itself
+git branch -r --merged origin/main | grep -vE 'origin/(main|HEAD)' | wc -l
+
+# every remote branch by last commit, oldest first — the age distribution is the finding
+git for-each-ref --sort=committerdate --format='%(committerdate:short) %(refname:short)' refs/remotes | head -20
+
+# refs this clone still carries for branches that no longer exist upstream
+git remote prune --dry-run origin
+
+# what the repository weighs, which is what every new clone downloads
+git count-objects -vH
+```
+
+Then one more, which is the cheapest check in this category and the one most often never run: a
+clean checkout, a full build and test run, and `git status`. Anything it lists is something the
+project's ignore rules do not cover and somebody will eventually commit.
+
+**Good:**
+
+- The host deletes the branch at merge — GitHub *Automatically delete head branches*, GitLab's
+  *delete source branch* default, the Bitbucket equivalent. One setting, on the repository, so no
+  author is ever the reason a branch survives
+- `fetch.prune` reaches every clone through a documented setup step or a bootstrap script, rather
+  than through each developer discovering it after a year of noisy fetches
+- The project ships the local-side command — a `make tidy` target, a checked-in script, a
+  documented alias — and it is safe by construction: merged branches only, never the checked-out
+  one, dry run by default
+- A scheduled job handles what no single change can reach, with its retention rule written where the
+  job is defined and a report naming what it removed
+- Artifact and cache retention is configured, not left at whatever the CI platform defaults to
+- The ignore rules arrived with the tool that made them necessary, and a fresh checkout is clean
+  after a full build
+
+**Bad:**
+
+- Sixty remote branches, fifty-five of them merged — the five that are not are invisible, which is
+  the actual cost; the storage never mattered
+- Every developer pruning refs by hand on the day the noise finally annoys them, forever, because
+  the configuration that would do it was never written down anywhere
+- `dist/`, `node_modules/`, a database dump or a `.env` in the history. Every clone pays for them
+  permanently, and the fix is a coordinated history rewrite rather than a cleanup
+- The sweep lives in one person's shell aliases and leaves with them
+- A scheduled job that deletes branches by age alone, merged or not. Automation that destroys
+  unfinished work scores **below** having none: the mess was recoverable, the branch was not
+- A *clean up branches* card moved forward every sprint. The card is the admission that nothing runs
+
+**N/A and partial scoring:** a repository worked straight on `main` by one person has no branch
+residue to remove; score the ignore rules, artifact retention and clone size, and mark the branch
+half N/A rather than scoring it zero. A project whose host offers no auto-delete setting is scored on
+what it put in place instead, not on the absence.
+
+**How to score:**
+
+- 0–2: nothing runs. Merged branches, dead refs and build output have accumulated since the first
+  commit, and every ignore rule arrived one commit after something was committed by mistake
+- 3–5: cleanup happens when somebody is annoyed enough to do it, by hand, alone. The repository was
+  last tidied the day a developer could not find their own branch
+- 6–7: the merge-time half is automatic — the host deletes the branch, build output is ignored —
+  and everything outliving a single change is still manual
+- 8–10: both triggers run. The change's residue leaves with the change, the rest leaves by a
+  scheduled job with a written retention rule and a readable report, the safety line is stated and
+  the job honours it, and a fresh clone of an old repository is small and clean after a build
 
 ---
 
