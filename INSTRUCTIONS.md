@@ -354,8 +354,9 @@ Principle 27 governs this; what follows is where it lands in a session.
 
 The session that made the change is the one that still knows which files were residue and which
 were the work. Before reporting it done, remove what this change created and no longer needs — the
-scratch file, the fixture copied in to reproduce a bug, the one-off script — and, where the delivery
-convention permits that ref, the branch once it is merged. Never a branch whose commits are not in
+scratch file, the fixture copied in to reproduce a bug, the one-off script, anything provisioned to
+make the change work (a scratch bucket, a throwaway environment, a token issued for one migration)
+— and, where the delivery convention permits that ref, the branch once it is merged. Never a branch whose commits are not in
 the mainline, whatever its date says, and never a tag.
 
 **Finding yourself tidying by hand is itself the finding.** If the merge did not delete the branch,

@@ -942,6 +942,21 @@ upstream — `fetch.prune`, configured rather than typed by hand. Branches with 
 CI caches, artifact retention, pre-release tags, draft releases. A job, on a trigger it does not
 share with anyone's memory, that reports what it removed somewhere with a reader.
 
+**The same two triggers, outside git — and the pattern to recognise.** Most of what accumulates in a
+system is the **second half of a two-phase change that nobody scheduled**. Expand without contract:
+the column added nullable, the old one never dropped. Deprecate without remove: the annotation
+written, the call sites never migrated. A flag shipped to roll a change out and never retired, so
+both behaviours stay reachable in production with only one of them exercised. A test skipped *for
+now*, which is a suite entry that counts and protects nothing. A resource provisioned for a demo, a
+key issued for one migration, with no date of death decided at creation.
+
+Each has the same shape: the first half is forced, because the work does not function without it,
+and the second half is a change whose entire visible effect is that something stops existing. Nobody
+is waiting for it, so it is never urgent, and *never urgent* is not a schedule. The rule is to decide
+the second half's trigger while writing the first — the condition that retires the flag, the release
+after which the column drops, the date the environment dies — because that is the only moment anyone
+knows what it was for.
+
 **The line automation does not cross.** Cleanup that destroys work is worse than the mess it removes,
 and this is the one place where conservative beats thorough:
 
@@ -1013,7 +1028,7 @@ can only be found in an audit, never written correctly the first time.
 | 24 | Cut the work into steps that ship | 0.8, 10.9 |
 | 25 | A change is delivered, not finished | 10.14, 10.15 |
 | 26 | Every bug fix leaves a test behind | 4.7 |
-| 27 | Cleanup runs on a trigger, not on a reminder | 10.16 |
+| 27 | Cleanup runs on a trigger, not on a reminder | 4.5, 7.8, 9.11, 10.4, 10.16 |
 
 ### Criteria with no write-time principle, and why
 
@@ -1028,5 +1043,5 @@ writing a feature — stating which, and why, keeps the table above honest inste
 | 8.5 security headers | Configuration of the framework or web server, not of a feature |
 | 9.3 health endpoint, 9.7 data lifecycle | Built once as operational surface, then maintained |
 | 9.9 operational access, 9.10 disaster recovery | Access paths, credentials and backups are established by whoever operates the system; no change to a feature can open one or restore one |
-| 10.1–10.8, 10.10, 10.12, 10.13 | Pipeline, environment, and repository setup — outside any single change |
+| 10.1–10.3, 10.5–10.8, 10.10, 10.12, 10.13 | Pipeline, environment, and repository setup — outside any single change |
 | 5.1, 5.2, 5.4, 5.6, 5.7 | Principles 3, 4, 6 and 8 applied to JS. Stack-specific rules belong in the project's own `.claude/CODING_STANDARDS.md`, not in a language-agnostic document |

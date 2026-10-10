@@ -8,6 +8,65 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.20.0] — 2026-10-10
+
+1.19.0 gave the framework a cleanup trigger and pointed it at git. The pattern it found there is not
+a git pattern. Almost everything a system accumulates is the **second half of a two-phase change
+that nobody scheduled**: the column added nullable and never dropped, the annotation written and the
+call sites never migrated, the flag shipped to roll a change out and never retired, the test skipped
+*for now*, the environment stood up for a demo and the key issued for one migration — both still
+valid two years later. The first half is always forced, because the work does not function without
+it. The second half is a change whose entire visible effect is that something stops existing, so
+nobody is waiting for it, and *never urgent* is not a schedule.
+
+The framework already scored four of those residues — dead code in 7.5, deprecations in 7.8,
+datasets in 9.7, logs in 9.6 — and had no place at all for what a project provisions outside its own
+repository. So the account was the one thing no criterion looked at, which is also where an unused
+credential lives: the full blast radius of a used one, and none of the attention, because nothing
+breaks when it is compromised.
+
+### Added
+
+- **Subcriteria 9.11 — *Orphaned infrastructure and unused access*** *(Operated services, N/A for a
+  library)*. Two accumulations, and only one is about money. Resources attached to nothing — where
+  the cost is not the bill but that nobody can tell the orphan from the load-bearing resource, and
+  the dangling DNS record is a subdomain takeover rather than a line item. And access: deploy keys
+  for archived repositories, tokens for providers the team left, identities from a finished
+  migration, a personal token belonging to someone who no longer works here. 8.6 scores how a secret
+  is stored; 9.11 scores whether it should still exist. Evidence starts with the two sources needing
+  no production path — the IaC plan against a clean checkout, and the cost report read per resource —
+  and caps at 7 where no read-only path is declared, because the repository can only show the
+  declared half. Enumerating and planning are read-only; deleting a resource or disabling a key is
+  never part of scoring it.
+
+### Changed
+
+- **Principle 27 names the pattern** rather than only its git case, and states the rule it implies:
+  decide the second half's trigger while writing the first — the condition that retires the flag,
+  the release after which the column drops, the date the environment dies — because that is the only
+  moment anybody knows what it was for.
+- **10.4 scores the contract phase**, not just the expand. Expand-contract is two deployments, and
+  scoring the first one rewards half a pattern. Two `pg_stat_*` queries for indexes never used and
+  tables never read, plus the migration directory read as a sequence: one that only ever adds is a
+  project that ran the expand half of every change it ever made. An abandoned column is a decision
+  every developer who touches that table has to make, and a retention obligation (9.7) where it held
+  personal data the application no longer uses.
+- **7.8 scores feature flags as deprecations with a different word.** A flag past its rollout is
+  deprecated code whose dead side is still *reachable in production* — selectable by a config value,
+  an environment variable or a stale row, while nobody has exercised it in a year. Same rule as a
+  `@deprecated` annotation: a removal condition decided when the flag is created. A deliberate kill
+  switch stays legitimate and belongs in the inventory *as* a kill switch, with its reason.
+- **4.5 scores whether a skip can end.** A suite's organisation includes which groups CI actually
+  runs, and that is where tests go to disappear: a skip added during a release crunch removes a test
+  from the suite without removing it from the repository, where it still counts in the total and
+  still looks like coverage. 4.4's runtime `markTestSkipped()` is the correct opposite case — it
+  lifts itself the moment its condition clears.
+- **The `/project-audit` evidence slice for Category 9** sends the no-access sources first and states
+  the read-only boundary explicitly, since this is the first criterion in the category whose evidence
+  lives in a provider account rather than in the repository.
+- **A session removes what it provisioned**, not only what it wrote: `INSTRUCTIONS.md` now names the
+  scratch bucket, the throwaway environment and the one-migration token alongside the scratch file.
+
 ## [1.19.0] — 2026-10-10
 
 A repository accumulates, and none of what it accumulates is a defect on the day it appears — which

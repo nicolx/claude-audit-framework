@@ -1300,6 +1300,26 @@ Tests that make real calls to external services to verify the API contract is st
 - All tests in a single file or directory
 - Tests that require reading the implementation to understand what they're testing
 
+**A skip is a deadline, not a state.** A suite's organisation includes which of its groups CI
+actually runs, and that is where tests go to disappear. A test skipped *for now* — a flaky one parked
+until someone has time, a group excluded while an environment was broken, an annotation added during
+a release crunch — is removed from the suite without being removed from the repository. It still
+appears in the test count, it still looks like coverage from the outside, and it protects nothing.
+4.4's `markTestSkipped()` for an unavailable external service is the opposite case and stays correct:
+it skips on a *condition evaluated at runtime*, so the test returns on its own the moment the
+condition clears.
+
+The distinction to score is whether a skip can end: a condition that lifts it by itself, or a
+recorded reason and an owner. Not an annotation whose only exit is somebody noticing.
+
+**Good:** `vendor/bin/phpunit --list-groups` (or the suite's equivalent) and the CI invocation agree
+on which groups run; every unconditional skip names a reason and an issue; the count of skipped
+tests is visible in CI output, so it has to go up in public.
+
+**Bad:** a skip annotation whose comment is `// flaky` and whose git blame is two years old. A group
+excluded in CI that no longer exists in anyone's mental model of the suite. A suite whose green run
+is green because forty of its tests do not execute, and whose summary line nobody reads to the end.
+
 #### 4.6 Test doubles used correctly
 
 Freeman & Pryce distinguish five types of test double, each with a specific role. Using them interchangeably produces tests that are either too brittle or too permissive.
@@ -1947,6 +1967,29 @@ When you deprecate your own methods or classes, the annotation is a commitment, 
 
 **Bad:** `@deprecated` with no replacement reference, no version, and the method has been there for two years with active call sites remaining.
 
+**Feature flags are deprecations with a different word.** A flag introduced to ship a change
+incrementally is a temporary fork in the system's behaviour, and the moment the rollout finishes one
+side of that fork is deprecated code with no annotation on it. What makes a flag worse than an
+ordinary deprecation is that the dead side stays *reachable in production*: a configuration value, an
+environment variable or a stale row can still select it, while nobody has exercised that path or
+written a test against it for a year.
+
+So a flag is scored by the same rule as a `@deprecated` annotation — **a removal condition, decided
+when the flag is created**, and audited against the same question: how many flags exist, and how many
+of them have outlived the rollout they were created for?
+
+**Good:** each flag carries its purpose and its retirement condition where it is declared (*remove
+once 100% of traffic has been on the new path for one release*); the flag inventory is short enough
+to read; retiring the flag and deleting the path it guarded is one commit, and that commit is what
+closes the rollout.
+
+**Bad:** a flag at 100% for two years, with both branches still compiled in and only one of them
+ever executed. A flag nobody can name the owner of. A flag whose "off" path is the one that would be
+taken if the configuration store were ever empty — which makes an abandoned flag an availability
+risk rather than a cleanliness one. A kill switch kept deliberately: legitimate, and it belongs in
+the inventory *as* a kill switch, with a stated reason, rather than sitting among the rollout flags
+that should have been removed.
+
 **Inclusion in the quality gate:** For projects above "early production" maturity, deprecation warnings should be surfaced in CI output even if they do not fail the build. For "established" and above, treating own-code deprecations as build failures (via PHPUnit's `convertDeprecationsToExceptions`, TypeScript's `noImplicitAny`, or equivalent) is a signal of mature deprecation discipline.
 
 **How to collect evidence for this criterion (tool-first):**
@@ -2193,6 +2236,9 @@ Evaluate the codebase against the current OWASP Top 10. Key items beyond the abo
 The core question: *if this system misbehaves at 3am, can the on-call engineer understand what happened and fix it without reading the source code?*
 
 And its companion, which is about operability rather than diagnosis: *will the system still be running at 3am, or will it have quietly filled its own disk?* Observability that costs unbounded storage eventually becomes the outage it was meant to diagnose. And one step further out, where operability ends: *if the machine or the data is not there tomorrow morning, what comes back, and how long does that take?*
+
+And the one nobody asks until the invoice or the breach asks it for them: *what is still
+running, and who still holds a valid key, for a reason that ended months ago?*
 
 And the question that decides whether the first two matter: *can whoever is on call — the engineer, or the agent they hand the problem to — reach those signals at 3am, without waking a second person to get in?* A dashboard one person can log into is a dashboard that is down whenever that person is.
 
@@ -2587,6 +2633,105 @@ Where the project drills with `/dr-drill`, the receipt is written by the run and
 including when the run fails. A failed drill recorded is worth more than a successful one
 remembered: it names a defect while the system is still standing.
 
+#### 9.11 Orphaned infrastructure and unused access *(Operated services)*
+
+**Scope:** applies wherever the project owns infrastructure or identities — a cloud account, a
+cluster, a DNS zone, CI integrations, keys issued to it or by it. For a library, or an application
+whose only artefact is a release someone else installs, this is N/A.
+
+Every other subcriteria in this category is about what the running system tells you. This one is
+about what stopped telling you anything: the resources and the credentials that are still
+provisioned, still billed, still valid, and attached to nothing.
+
+Two accumulations, and only one of them is about money.
+
+**Resources.** A volume detached from the instance it was made for. Snapshots and machine images
+from a migration that finished. An environment stood up for a demo in March. A DNS record pointing
+at an address that now answers to somebody else. A bucket, a queue, a load balancer with no targets.
+The bill is the small part. The real cost is that nobody can say which of the forty resources matter,
+so nobody touches any of them — an orphan nobody recognises is indistinguishable from a resource
+somebody depends on, and that ambiguity is what makes the list permanent. The dangling DNS record is
+not even a cost: it is a subdomain takeover waiting to be found by somebody who is looking.
+
+**Access.** The larger risk, and the one almost never swept. A deploy key for an archived
+repository. A CI token for a provider the team left. An identity created for a migration two years
+ago. A service account whose last use nobody remembers. A personal access token belonging to someone
+who no longer works here. 8.6 scores how a secret is stored; this scores whether it should still
+exist. An unused credential carries the full blast radius of a used one and none of the attention:
+nothing breaks when it is compromised, so nothing reveals that it was.
+
+*9.7 bounds data that grows; this bounds resources and identities that persist. 10.2's
+infrastructure-as-code is what makes the reconciliation below possible at all — with no declared
+state, there is nothing to compare the account against.*
+
+**The evidence, and the access it needs.** Where the **Production access** block of
+`.claude/PROJECT_AUDIT_FRAMEWORK.md` declares a read-only path, the provider answers most of it
+directly. AWS below; every provider has the equivalent call:
+
+```bash
+# resources attached to nothing
+aws ec2 describe-volumes --filters Name=status,Values=available
+aws ec2 describe-images --owners self --query 'Images[].[ImageId,CreationDate]'
+aws elbv2 describe-target-groups --query 'TargetGroups[?length(LoadBalancerArns)==`0`]'
+
+# credentials that are valid and unused — the column that decides this is the last-used date
+aws iam list-access-keys --user-name <user>
+aws iam get-access-key-last-used --access-key-id <id>
+gh api /repos/<owner>/<repo>/keys
+```
+
+Two more need no provider access at all, and they are the ones to run first: `terraform plan` (or
+the stack's equivalent) against a clean checkout — whatever it proposes to create or destroy *is*
+the drift between the declared account and the real one — and the monthly cost report read by
+resource rather than by total, where an orphan appears as a flat line nobody can attribute.
+
+**Reading is the whole audit.** Enumerating, planning and cost reporting are read-only; deleting a
+resource or disabling a key is not, and is never part of scoring this. Where no production path is
+declared, score from what the repository shows — the IaC state, the integrations listed in the CI
+configuration, the documented key inventory — and **cap at 7**: the repository can only show the
+declared half, and this subcriteria is precisely about the half nobody declared.
+
+**Good:**
+
+- The account is declared as code, and the reconciliation between declaration and reality runs as a
+  job rather than as an afternoon. Anything present but undeclared is either an orphan or an
+  undeclared dependency, and both are findings
+- Temporary things are created with a death date: a TTL tag on the demo environment, an expiry on
+  the migration key, a retention rule set when the first snapshot was taken rather than when the
+  bucket became expensive
+- Every long-lived credential has a named owner and a last-used date somebody looks at. Keys unused
+  past a stated threshold are **disabled first and deleted later**, so a wrong call is reversible
+- Cost is reviewed per resource by someone who can say what each line is for — the only review that
+  finds an orphan, because the total is stable while the composition rots
+- DNS records have owners, and a record whose target no longer resolves raises an alert
+
+**Bad:**
+
+- Nobody can produce a list of what the account contains. The question *which of these is
+  load-bearing?* has no answer, and that is the finding before any single resource is examined
+- Credentials that predate the current team, kept because nobody can prove what would break
+- Resources named `test`, `test2`, `new-prod` — 10.10's branch failure, one layer down, with a
+  monthly invoice
+- A demo environment from a sales call eighteen months ago, still running, still holding a copy of
+  production data: a 9.7 finding and an 8.6 finding arriving together
+- *"We will clean it up when the bill becomes a problem."* The bill is the cheapest of the three
+  costs and the only one that arrives on a schedule
+- A sweep done by hand by whoever feels confident, with no dry run and no record. An orphan sweep
+  that removes something load-bearing is worse than the orphans it removed
+
+**How to score:**
+
+- 0–2: no inventory. Resources and identities predating the current team, no owner, no expiry, and
+  the first enumeration of what the account holds would be the one this audit performs
+- 3–5: somebody knows most of it. Cleanup happens when a bill or an incident forces it; keys are
+  revoked when a person leaves, when that is remembered
+- 6–7: declaration and reality are reconciled periodically, by hand. Credentials are inventoried
+  with owners, temporary resources are still created without a death date
+- 8–10: the reconciliation is a job that reports, temporary things carry an expiry from the moment
+  they are created, unused credentials are disabled on a last-used threshold before deletion, and
+  the sweep's safety rules are written where the sweep is defined — dry run first, nothing deleted
+  that the declaration does not know about until its owner has been found
+
 ---
 
 ## Category 10 — CI/CD & Version Control Discipline
@@ -2659,6 +2804,35 @@ Every push to a shared branch triggers the full quality suite: static analysis, 
 - Manual SQL applied directly to production databases
 - Schema changes deployed simultaneously with code changes (downtime risk)
 - Migrations that cannot be rolled back
+
+**The contract phase is the half that does not happen.** Expand-contract is two deployments and
+scoring only the first one rewards half a pattern. The expand is forced — the feature does not work
+without it — while the contract is a deployment whose entire visible effect is that something stops
+existing. Nobody is waiting for it, so it is never urgent, and the schema ends up carrying both
+shapes permanently: the column left nullable "for now" three years ago, read by nothing and
+defensively handled everywhere; the table the old code wrote to; the index created for a query that
+was rewritten the following week.
+
+This is not tidiness. Every abandoned column is a field a developer must decide about when they
+touch that table, a column an ORM hydrates, a shape a migration has to carry forward, and — where it
+held personal data the application no longer uses — a retention obligation nobody is tracking (9.7).
+
+What to look for, and none of it needs an opinion:
+
+```sql
+-- indexes the planner has never used since statistics were last reset (PostgreSQL)
+SELECT relname, indexrelname, idx_scan FROM pg_stat_user_indexes WHERE idx_scan = 0;
+
+-- tables that are written and never read, or neither (PostgreSQL)
+SELECT relname, seq_scan, idx_scan, n_tup_ins FROM pg_stat_user_tables ORDER BY seq_scan + idx_scan;
+```
+
+Then read the migration directory as a sequence rather than a set: a project whose migrations only
+ever add is a project that has run the expand half of every change it ever made. **Good** is the
+contract migration arriving as a scheduled follow-up, written when the expand is written, with the
+condition for running it stated — *when no code path has read this column for one release* — and a
+query confirming the condition before it runs. **Bad** is a column whose comment says
+`-- TODO: drop after migration`, dated, and still there.
 
 #### 10.5 Zero-downtime deployment
 
