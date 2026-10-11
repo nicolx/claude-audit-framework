@@ -8,6 +8,41 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.24.0] — 2026-10-11
+
+A command is a script the session runs in its own context. It is the wrong shape for a reviewer,
+because a reviewer's value comes from what it is *not* allowed to do: a critic that can edit the
+file it is criticising will fix the thing instead of reporting it, and the finding is never written
+down. So this release opens `agents/` — subagents with their own mandate, their own tool grant, and
+their own isolated context, installed as copies the same way commands are.
+
+The first one is `pr-critic`, and its whole design is a set of refusals. It never edits. It never
+approves. It deletes a finding it cannot locate to a line rather than softening it into a sentence
+about the service layer. It marks what it actually traced apart from what merely looks wrong, which
+is the distinction a review loses first and the one that decides whether anybody acts on it.
+
+### Added
+
+- **`agents/` and `.claude/agents/`** — the framework now ships agents alongside commands.
+  `init-project.sh` copies them, always overwriting: they belong to the framework, and an agent the
+  project wrote under its own name is never touched. `uninstall.sh` removes the same list and leaves
+  a project-owned agent where it is, taking the directory only if it ends up empty.
+- **`agents/pr-critic.md`** — adversarial review of a diff or a pull request. Reads the branch
+  against the mainline with no network by default, or a numbered pull request through `gh`, in which
+  case it reads the existing comments first, because a finding somebody already made is noise rather
+  than a second opinion. Measures against the 27 principles, the 11 categories, the project's own
+  two files, and `.claude/audit-focus.md` where it exists — in that order, later overriding earlier.
+  Every finding carries where, what breaks, and which rule, and is marked CONFIRMED or PLAUSIBLE.
+- **Byte-for-byte verification of the agent copies** in `check-install.sh`, with the same reasoning
+  that covers commands: a hand-edited agent still answers, with rules this version no longer ships.
+  A framework checkout carrying no `agents/` at all is reported as incomplete rather than passing
+  vacuously against zero.
+
+### Changed
+
+- **`check-consistency.sh` check 5** now resolves `agents/...` paths cited in documents, so a moved
+  or renamed agent file fails the gate like any other load-bearing path.
+
 ## [1.23.0] — 2026-10-11
 
 *More than one person writes* puts 10.12 in play for a repository. It does not make a review

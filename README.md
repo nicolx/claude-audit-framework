@@ -20,6 +20,10 @@ A portable quality framework for Claude Code — travels with any project as a g
   outlived its rollout, the test skipped *for now*, the demo environment and the migration key still
   valid two years later. Plus the line automation never crosses — nothing unmerged, no tags, no
   rewritten history, nothing destructive without a dry run
+- **Review agents** — subagents with their own mandate and their own tool grant, installed as copies
+  in `.claude/agents/`. `pr-critic` reviews a diff or a pull request adversarially: every finding
+  carries a file and a line, the rule it breaks, and whether it was traced or merely suspected. It
+  never edits, and it never approves — the merge decision stays with the people who own the branch
 - **Skill commands**: `/project-audit`, `/dr-drill`, `/team-census`, `/competency-review`, `/init-profile`
 
 ## Add to a project
@@ -27,7 +31,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 ```bash
 # Add the submodule — pin a released version rather than tracking main
 git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-git -C .claude/framework checkout v1.23.0
+git -C .claude/framework checkout v1.24.0
 
 # Bootstrap: installs the commands, scaffolds the project files, records the version
 bash .claude/framework/scripts/init-project.sh
@@ -77,7 +81,7 @@ a framework that is present and doing nothing.
 bash .claude/framework/scripts/check-updates.sh
 
 # 2. Move to it
-cd .claude/framework && git fetch --tags && git checkout v1.23.0 && cd ../..
+cd .claude/framework && git fetch --tags && git checkout v1.24.0 && cd ../..
 
 # 3. Make the install conformant with the new version — migrations included
 bash .claude/framework/scripts/init-project.sh
@@ -85,7 +89,7 @@ bash .claude/framework/scripts/init-project.sh
 # 4. Verify, and read what it says
 bash .claude/framework/scripts/check-install.sh
 
-git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.23.0"
+git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.24.0"
 ```
 
 Three scripts, three questions, no overlap:
@@ -108,7 +112,7 @@ entries you need are named rather than hunted for. `init-project.sh` migrates ev
 automatically and is idempotent, so there is no version-by-version upgrade path to follow: you can
 go from any older version straight to the newest one.
 
-The conformance rules ship *inside* each version, so checking out `v1.23.0` gets you `v1.23.0`'s
+The conformance rules ship *inside* each version, so checking out `v1.24.0` gets you `v1.24.0`'s
 checks with no lookup table to keep in sync.
 
 **One thing is never automatic: a declaration block added by a later version.** `init-project.sh`
@@ -182,7 +186,9 @@ Pinning a tag means a framework update never changes your sessions until you cho
 
 The project's `CLAUDE.md` includes `@.claude/framework/INSTRUCTIONS.md`, which loads the quality
 framework into every Claude Code session. The commands are installed as copies in
-`.claude/commands/` by `init-project.sh`.
+`.claude/commands/` by `init-project.sh`, and the agents the same way in `.claude/agents/`. Both are
+framework-owned: `init-project.sh` overwrites them on every run, and anything you write under a name
+of your own in those directories is left alone.
 
 Each developer has their own profile at `~/.claude/context/user_profile.md` — see *Set up your
 developer profile* above for its scope. When it is missing, Claude suggests running `/init-profile`
@@ -223,8 +229,8 @@ are, and it is the one block an audit will contradict if it has gone stale.
 bash .claude/framework/scripts/uninstall.sh
 ```
 
-It removes only what it installed: framework commands (project-owned commands in
-`.claude/commands/` are left alone), the scaffolded specialization files, `.claude/audit-focus.md`,
+It removes only what it installed: framework commands and agents (anything project-owned in
+`.claude/commands/` or `.claude/agents/` is left alone), the scaffolded specialization files, `.claude/audit-focus.md`,
 the hook script, the `@`-include, and the `.gitattributes` entry. It keeps your developer profile
 and `docs/audits/` — the quality history belongs to the project, not to the framework. The script
 prints the three `git submodule` commands needed to finish.

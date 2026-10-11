@@ -38,6 +38,7 @@ framework_paths_init "$0"
 require_git_repo
 
 COMMANDS_DIR="$PROJECT_ROOT/.claude/commands"
+AGENTS_DIR="$PROJECT_ROOT/.claude/agents"
 VERSION_MARKER="$PROJECT_ROOT/.claude/.framework-version"
 HOOKS_DIR="$PROJECT_ROOT/.claude/hooks"
 SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
@@ -76,6 +77,21 @@ for command_file in "$FRAMEWORK_DIR"/commands/*.md; do
     target="$COMMANDS_DIR/$filename"
     cp "$command_file" "$target"
     echo "  ✓  Installed command: /$( basename "$filename" .md )"
+done
+
+echo ""
+
+# ── Step 1b — Install agents ────────────────────────────────────────────────────
+# Same discipline as commands: copied, always overwritten, framework-owned. An
+# agent file the project wrote under its own name is never touched — only the
+# names this framework ships are.
+
+mkdir -p "$AGENTS_DIR"
+for agent_file in "$FRAMEWORK_DIR"/agents/*.md; do
+    [ -e "$agent_file" ] || continue
+    filename=$(basename "$agent_file")
+    cp "$agent_file" "$AGENTS_DIR/$filename"
+    echo "  ✓  Installed agent: $(basename "$filename" .md)"
 done
 
 echo ""

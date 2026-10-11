@@ -52,6 +52,7 @@ fi
 framework_paths_init "$0"
 
 COMMANDS_DIR="$PROJECT_ROOT/.claude/commands"
+AGENTS_DIR="$PROJECT_ROOT/.claude/agents"
 VERSION_MARKER="$PROJECT_ROOT/.claude/.framework-version"
 SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
 HOOK_SCRIPT="$PROJECT_ROOT/.claude/hooks/on-file-edit.sh"
@@ -159,6 +160,45 @@ else
         "Commands are copies; updating the submodule does not refresh them." \
         "→ bash .claude/framework/scripts/init-project.sh"
     printf '%s\n' "$DETAIL" | sed '/^$/d; s/^/       /'
+fi
+
+# ── Agent copies: present, and byte-identical to this version ────────────────
+# Agents are copies for the same reason commands are, and go stale the same way.
+# An agent whose file drifted is worse than a missing one: it still answers, with
+# rules this version no longer ships.
+
+A_MISSING=0
+A_STALE=0
+A_TOTAL=0
+A_DETAIL=""
+for agent_file in "$FRAMEWORK_DIR"/agents/*.md; do
+    [ -e "$agent_file" ] || continue
+    A_TOTAL=$((A_TOTAL + 1))
+    target="$AGENTS_DIR/$(basename "$agent_file")"
+    name=$(basename "$agent_file" .md)
+    if [ ! -f "$target" ]; then
+        A_DETAIL="$A_DETAIL
+missing: $name"
+        A_MISSING=$((A_MISSING + 1))
+    elif ! cmp -s "$agent_file" "$target"; then
+        A_DETAIL="$A_DETAIL
+differs: $name"
+        A_STALE=$((A_STALE + 1))
+    fi
+done
+
+if [ "$A_TOTAL" -eq 0 ]; then
+    # Not a vacuous pass: this version ships agents, so finding none means the
+    # checkout is incomplete rather than that there is nothing to verify.
+    warn "The framework has no agents/ directory — the checkout is incomplete" \
+         "→ git submodule update --init --recursive"
+elif [ "$A_MISSING" -eq 0 ] && [ "$A_STALE" -eq 0 ]; then
+    ok "All $A_TOTAL agents installed and identical to this version"
+else
+    err "$A_MISSING agent(s) missing, $A_STALE differing from version $FRAMEWORK_VERSION" \
+        "Agents are copies; updating the submodule does not refresh them." \
+        "→ bash .claude/framework/scripts/init-project.sh"
+    printf '%s\n' "$A_DETAIL" | sed '/^$/d; s/^/       /'
 fi
 
 # ── Version marker ───────────────────────────────────────────────────────────

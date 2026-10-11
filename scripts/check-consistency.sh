@@ -145,8 +145,8 @@ BROKEN=0
 # SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split
 # into separate grep arguments; quoting them would pass one giant filename.
 # shellcheck disable=SC2086
-CITED=$(grep -rhoE '(^|[^A-Za-z0-9_./-])(\.github|standards|templates|commands|scripts)/[A-Za-z0-9_./*-]+' $DOCS 2>/dev/null |
-        grep -oE '(\.github|standards|templates|commands|scripts)/[A-Za-z0-9_./*-]+' |
+CITED=$(grep -rhoE '(^|[^A-Za-z0-9_./-])(\.github|standards|templates|commands|agents|scripts)/[A-Za-z0-9_./*-]+' $DOCS 2>/dev/null |
+        grep -oE '(\.github|standards|templates|commands|agents|scripts)/[A-Za-z0-9_./*-]+' |
         sed 's/[.,:;`)]*$//' |
         sort -u)
 

@@ -33,6 +33,7 @@ A portable quality framework distributed to other projects as a git submodule at
 | `standards/PROJECT_AUDIT_FRAMEWORK.md` | Consumer projects | The 11-category evaluation standard, numbered 0–10 — *what good is measured against*. |
 | `standards/CODING_STANDARDS.md` | Consumer projects | The 27 principles applied to every code proposal — *what good looks like*. |
 | `commands/*.md` | Consumer projects | Slash commands, **copied** into `.claude/commands/` by `init-project.sh`. |
+| `agents/*.md` | Consumer projects | Subagents, **copied** into `.claude/agents/` by `init-project.sh`. Each has its own mandate and its own tool grant — what it may *not* do is the design. |
 | `templates/*.md` | Consumer projects | Scaffolding for the project-level specialization files. |
 | `scripts/init-project.sh` | Operators | Installs and migrates a consumer project. The only mutating script. |
 | `scripts/check-install.sh` | Operators | Read-only conformance of an install against the version it has. Also used by `init-project.sh` for its verification step — the rules live here only. |
@@ -63,7 +64,7 @@ Run it before committing.
 ### 3. Version every change to a shipped document
 
 A consumer project pins or pulls this repo by git ref. A change to anything under `standards/`,
-`commands/`, `templates/`, or to `INSTRUCTIONS.md`, is a change to their sessions.
+`commands/`, `agents/`, `templates/`, or to `INSTRUCTIONS.md`, is a change to their sessions.
 
 - Bump `VERSION` (semver) and add a `CHANGELOG.md` entry **in the same commit** as the change
 - **Major** — a consumer must edit their own files to keep working (e.g. the `@`-include split)

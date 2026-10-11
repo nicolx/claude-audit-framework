@@ -39,6 +39,7 @@ framework_paths_init "$0"
 require_git_repo
 
 COMMANDS_DIR="$PROJECT_ROOT/.claude/commands"
+AGENTS_DIR="$PROJECT_ROOT/.claude/agents"
 
 # strip_line <file> <extended-regex> — delete matching lines in place.
 # Temp file + mv: portable across BSD (macOS) and GNU sed, unlike `sed -i`.
@@ -101,6 +102,48 @@ if [ -d "$COMMANDS_DIR" ]; then
     fi
 else
     echo "  ↩  .claude/commands/ not found (skipped)"
+fi
+
+# ── Installed agents ────────────────────────────────────────────────────────────
+# Same rule as commands: only the files this framework installed. An agent the
+# project wrote lives under its own name and is left where it is.
+
+if [ -d "$AGENTS_DIR" ]; then
+    REMOVED=0
+    if [ -d "$FRAMEWORK_DIR/agents" ]; then
+        for agent_file in "$FRAMEWORK_DIR"/agents/*.md; do
+            [ -e "$agent_file" ] || continue
+            target="$AGENTS_DIR/$(basename "$agent_file")"
+            if [ -f "$target" ]; then
+                rm "$target"
+                echo "  ✓  Removed agent: $(basename "$agent_file" .md)"
+                REMOVED=$((REMOVED + 1))
+            fi
+        done
+    else
+        # Submodule already gone — fall back to the known agent names.
+        # A variable rather than a literal list: it holds one name today and grows
+        # with each agent the framework ships. Written as a one-word literal, the
+        # loop reads to the linter as one somebody forgot to finish writing.
+        KNOWN_AGENTS="pr-critic"
+        for name in $KNOWN_AGENTS; do
+            if [ -f "$AGENTS_DIR/$name.md" ]; then
+                rm "$AGENTS_DIR/$name.md"
+                echo "  ✓  Removed agent: $name"
+                REMOVED=$((REMOVED + 1))
+            fi
+        done
+    fi
+
+    [ "$REMOVED" -eq 0 ] && echo "  ↩  No framework agents found in .claude/agents/ (skipped)"
+
+    if rmdir "$AGENTS_DIR" 2>/dev/null; then
+        echo "  ✓  Removed empty .claude/agents/"
+    else
+        echo "  ℹ  .claude/agents/ kept — it still contains project-owned agents"
+    fi
+else
+    echo "  ↩  .claude/agents/ not found (skipped)"
 fi
 
 # ── Specialization files ──────────────────────────────────────────────────────

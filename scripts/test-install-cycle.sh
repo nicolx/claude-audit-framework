@@ -87,9 +87,10 @@ new_submodule_project() {
     git init -q "$up"
     git -C "$up" config user.email test@example.com
     git -C "$up" config user.name Test
-    mkdir -p "$up/scripts" "$up/commands" "$up/templates" "$up/standards"
+    mkdir -p "$up/scripts" "$up/commands" "$up/agents" "$up/templates" "$up/standards"
     cp -R "$FRAMEWORK_SRC/scripts/." "$up/scripts/"
     cp -R "$FRAMEWORK_SRC/commands/." "$up/commands/"
+    cp -R "$FRAMEWORK_SRC/agents/." "$up/agents/"
     cp -R "$FRAMEWORK_SRC/templates/." "$up/templates/"
     cp -R "$FRAMEWORK_SRC/standards/." "$up/standards/"
     cp "$FRAMEWORK_SRC/INSTRUCTIONS.md" "$FRAMEWORK_SRC/CHANGELOG.md" "$up/"
@@ -140,6 +141,7 @@ expect_file "$PROJ/CLAUDE.md"
 expect_file "$PROJ/.claude/PROJECT_AUDIT_FRAMEWORK.md"
 expect_file "$PROJ/.claude/CODING_STANDARDS.md"
 expect_file "$PROJ/.claude/commands/project-audit.md"
+expect_file "$PROJ/.claude/agents/pr-critic.md"
 expect_file "$PROJ/.claude/.framework-version"
 expect_count "$PROJ/CLAUDE.md" "@.claude/framework/INSTRUCTIONS.md" 1
 expect_grep "$PROJ/.claude/.framework-version" "version=1" "version marker records a version"
@@ -165,6 +167,8 @@ expect_grep "$PROJ/CLAUDE.md" "# My Project" "existing project content preserved
 
 new_case "Uninstall: removes only framework files"
 echo "project's own command" > "$PROJ/.claude/commands/deploy.md"
+mkdir -p "$PROJ/.claude/agents"
+echo "project's own agent" > "$PROJ/.claude/agents/house-style.md"
 (cd "$PROJ" && bash .claude/framework/scripts/uninstall.sh >/dev/null 2>&1)
 expect_absent "$PROJ/.claude/commands/project-audit.md"
 expect_absent "$PROJ/.claude/commands/competency-review.md"
@@ -172,6 +176,9 @@ expect_absent "$PROJ/.claude/PROJECT_AUDIT_FRAMEWORK.md"
 expect_absent "$PROJ/.claude/.framework-version"
 expect_file "$PROJ/.claude/commands/deploy.md"
 expect_dir "$PROJ/.claude/commands"
+expect_absent "$PROJ/.claude/agents/pr-critic.md"
+expect_file "$PROJ/.claude/agents/house-style.md"
+expect_dir "$PROJ/.claude/agents"
 expect_missing_line "$PROJ/CLAUDE.md" "@.claude/framework/"
 expect_grep "$PROJ/CLAUDE.md" "# My Project" "project content survived uninstall"
 expect_absent "$PROJ/.gitattributes"
@@ -179,11 +186,12 @@ rm -rf "$PROJ"
 
 # ── Case 5 — uninstall with nothing project-owned ────────────────────────────
 
-new_case "Uninstall: removes the commands directory when it ends up empty"
+new_case "Uninstall: removes the commands and agents directories when they end up empty"
 PROJ=$(new_project)
 (cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
 (cd "$PROJ" && bash .claude/framework/scripts/uninstall.sh >/dev/null 2>&1)
 expect_absent "$PROJ/.claude/commands"
+expect_absent "$PROJ/.claude/agents"
 rm -rf "$PROJ"
 
 # ── Case 6 — hooks are opt-in ────────────────────────────────────────────────
@@ -321,6 +329,31 @@ echo "# edited by hand" >> "$PROJ/.claude/commands/project-audit.md"
 run_check "$PROJ"
 case "$check_out" in
     *"differs: /project-audit"*) pass "content comparison catches what the version marker cannot" ;;
+    *) fail "expected a 'differs' line:"; indent "$check_out" ;;
+esac
+if [ "$check_code" -eq 1 ]; then
+    pass "exits 1"
+else
+    fail "expected exit 1, got $check_code"
+fi
+rm -rf "$PROJ"
+
+# ── A hand-edited agent copy must be caught the same way a command is ───────
+# The failure this guards against is quiet: an agent file edited in the project
+# keeps working, so nothing surfaces that it is running an older version's rules.
+
+new_case "check-install.sh: a hand-edited agent copy is detected"
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
+run_check "$PROJ"
+case "$check_out" in
+    *"agents installed and identical"*) pass "verifies the agent copies byte-for-byte" ;;
+    *) fail "agent comparison missing from output:"; indent "$check_out" ;;
+esac
+echo "# edited by hand" >> "$PROJ/.claude/agents/pr-critic.md"
+run_check "$PROJ"
+case "$check_out" in
+    *"differs: pr-critic"*) pass "content comparison catches the edited agent" ;;
     *) fail "expected a 'differs' line:"; indent "$check_out" ;;
 esac
 if [ "$check_code" -eq 1 ]; then
