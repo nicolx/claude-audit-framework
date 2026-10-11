@@ -131,6 +131,10 @@ Count people, not identities: a bot, an agent or a shared account is somebody's 
 somebody is the contributor. An identity nobody could resolve gets a row of its own rather than
 being left out of the count — precondition 5 keeps the subcriteria it would have excused in play.
 
+The **Knowledge concentration** row is about the repository, not about the people in it: it names the areas where a change
+has no available reviewer, which is what decides whether 10.12 is satisfiable where it applies.
+Never record anything about a contributor's ability — the history measures territory, not skill.
+
 Example — one developer, deployed continuously:
 
 | Field | Value |
@@ -141,6 +145,7 @@ Example — one developer, deployed continuously:
 | May merge to `main` | the maintainer |
 | Releases | no release step — `main` deploys on green |
 | Consumes a version | nobody; rollback names a commit |
+| Knowledge concentration | every area has one author — the concentration is the team |
 | Census date | 2026-10-11 |
 | next_review_date | 2027-04-11 |
 
@@ -154,6 +159,7 @@ Example — nine developers, published package:
 | May merge to `main` | anyone with an approval — branch protection enforces it |
 | Releases | `release-please` on merge; the tech lead cuts anything out of band |
 | Consumes a version | 4 internal services pin the published package; the changelog has readers |
+| Knowledge concentration | 14 directories, 3 with a single author ever — `src/Billing/Dunning`, `src/Legacy/Import`, `ops/terraform`; all three still active |
 | Census date | 2026-10-11 |
 | next_review_date | 2027-04-11 |
 

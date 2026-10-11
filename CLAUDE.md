@@ -123,6 +123,7 @@ The consumer-facing shape of this block is in `templates/PROJECT_AUDIT_FRAMEWORK
 | May merge to `main` | the maintainer, directly |
 | Releases | the maintainer, by hand: `VERSION`, changelog entry, annotated tag |
 | Consumes a version | yes — every consumer project pins this repo by tag, which is why 10.14 is in play here and a solo repository does not automatically escape it |
+| Knowledge concentration | every directory has one author — with a single writer there is nothing to concentrate, and 10.12 is N/A rather than unreachable |
 | Census date | 2026-10-11 |
 | next_review_date | 2027-04-11 |
 

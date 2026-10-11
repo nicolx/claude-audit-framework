@@ -8,6 +8,41 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.23.0] — 2026-10-11
+
+*More than one person writes* puts 10.12 in play for a repository. It does not make a review
+available everywhere inside it, and the gap between those two is invisible in every artifact the
+subcriteria looks at: the pull request opens, somebody approves, the branch protection records an
+approval. What it does not record is that the approver had never been in that directory.
+
+The same data that answers *who writes here* answers *where could anybody review this*, and it is
+the one reading of a commit history that is about the repository rather than about the people in it.
+The other reading — inferring a developer's competence from their commits — stays out of the
+framework, and now says so in writing: the history records which parts of the tree somebody was
+assigned, and territory is not ability.
+
+### Added
+
+- **Per-area review reachability**, in Category 10's proportionality section. A directory one person
+  has ever touched has no reviewer, and raising the required approval count does not reach it
+  because the missing thing is not a rule. **The finding is the concentration**, and it lands on the
+  criteria that would have made the knowledge available to a second person — the *why* written down
+  (0.1) and onboarding that is a document rather than a conversation (7.10). 10.12 is scored on the
+  changes that could be reviewed.
+- **The evidence, as one `awk` over `git log`**: distinct authors per directory, lowest first, with
+  a tunable depth for deep trees. Read each single-author area against its last commit date — two
+  years of silence is dormant code and a question for 7.5, last week is the live half worth
+  reporting — and check `CODEOWNERS` against the active author list, because an owner who has not
+  committed in a year is review routed to nobody with the routing still on display.
+- **A `Knowledge concentration` row** in the Team census block, and the fourth question in
+  `/team-census`: is a single-author area ownership somebody chose, or simply where nobody else has
+  had reason to go? A chosen owner needs the knowledge written down; an accidental one needs a
+  second person in there. Only a person knows which.
+- **The boundary, stated once in the standard.** Nothing in the framework scores an individual's
+  competence from a log, and a reading of the history that produces one is outside it. The
+  competency profile is self-declared, per machine, and never committed — that is what makes it both
+  safe and accurate, and a teammate who wants one runs `/init-profile` themselves.
+
 ## [1.22.0] — 2026-10-11
 
 1.21.0 made Category 10 proportional to who works on a project, and answered *who writes here* with

@@ -2835,6 +2835,46 @@ deployed continuously from the mainline and a rollback names a commit.
 The subcriteria not in the table are scored for every project. 10.11 and 10.15 always apply; 10.16
 carries its own partial-scoring clause for a repository with no branch residue to remove.
 
+**The same question again, per area.** *More than one person writes* puts 10.12 in play for the
+repository; it does not make a review available everywhere inside it. A directory one person has
+ever touched has no reviewer — the pull request opens, somebody approves what they are not equipped
+to evaluate, and the gate records a review that did not happen. Raising the required approval count
+does not reach that, because the missing thing is not a rule. **The finding is the concentration**,
+and it lands on the criteria that would have made the knowledge available to a second person: the
+*why* written down rather than held (0.1), and onboarding that is a document rather than a
+conversation (7.10). Score 10.12 on the changes that could be reviewed, and report the areas where
+no approval is available as what they are.
+
+```bash
+# distinct authors per directory, lowest first — the 1s are the finding
+# raise depth on a deep tree; 2 suits src/Domain-shaped layouts
+git log --no-merges --format='@%an' --name-only HEAD |
+awk -v depth=2 '
+  /^@/ { a = substr($0, 2); next }
+  NF { n = split($0, p, "/")
+       if (n == 1) { d = "(root)" }
+       else { k = (n - 1 < depth ? n - 1 : depth); d = p[1]; for (i = 2; i <= k; i++) d = d "/" p[i] }
+       if (!((d SUBSEP a) in seen)) { seen[d SUBSEP a] = 1; authors[d]++ } }
+  END { for (d in authors) printf "%d\t%s\n", authors[d], d }' | sort -n
+
+# for an area that comes back 1: who, and whether the area is still alive
+git log --no-merges --format='%an' HEAD -- <path> | sort -u
+git log -1 --format='%ad' --date=short HEAD -- <path>
+```
+
+Read the two together before calling anything a finding. An area with one author and no commit in
+two years is dormant code, and the question it raises is whether it should still be there (7.5). An
+area with one author and a commit last week is the live half of the same observation, and the one
+worth acting on. A `CODEOWNERS` entry naming somebody who has not committed in a year is the third
+shape: review routed to nobody, with the routing still displayed as if it worked.
+
+**This is a property of the repository, never of a person.** It names the area nobody else has been
+in; it does not rank the people in it. Commit history measures territory — which parts of the tree
+somebody was assigned — and territory is not ability: the developer who only ever appears in the
+oldest module may be the strongest engineer on the team, placed where the work was hardest. Nothing
+in this document scores an individual's competence from a log, and a reading of the history that
+produces one is outside the framework.
+
 Three things this rule is not:
 
 - **Not a discount for small teams.** 10.1–10.9 are untouched by who writes the code: build

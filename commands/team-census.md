@@ -42,7 +42,7 @@ hand produces a file the next `init-project.sh` will not recognise:
 **`BLOCK_EXISTS`:** this is a refresh. Read the block in full and say what it currently claims,
 including its `next_review_date`. Then run Steps 2 and 3 and present the evidence *against* the existing
 block — the useful output of a refresh is the difference, not a fresh interview. If nothing has
-changed, say so and move the review date; do not re-ask the four questions to write the same table back.
+changed, say so and move the review date; do not re-ask the five questions to write the same table back.
 
 **`BLOCK_MISSING`:** a first census. If the file predates the block entirely, note it once — the
 template now carries it, and `bash .claude/framework/scripts/check-install.sh` is what lists any
@@ -73,7 +73,34 @@ find . -maxdepth 2 -name CODEOWNERS -not -path './.git/*' -exec cat {} +
 
 # whether anything downstream could pin a version of this project
 git tag -l | tail -5
+
+# distinct authors per directory, lowest first — the 1s are the areas with no reviewer
+# raise depth on a deep tree; 2 suits src/Domain-shaped layouts
+git log --no-merges --format='@%an' --name-only HEAD |
+awk -v depth=2 '
+  /^@/ { a = substr($0, 2); next }
+  NF { n = split($0, p, "/")
+       if (n == 1) { d = "(root)" }
+       else { k = (n - 1 < depth ? n - 1 : depth); d = p[1]; for (i = 2; i <= k; i++) d = d "/" p[i] }
+       if (!((d SUBSEP a) in seen)) { seen[d SUBSEP a] = 1; authors[d]++ } }
+  END { for (d in authors) printf "%d\t%s\n", authors[d], d }' | sort -n
+
+# for each area that came back 1: who, and whether it is still alive
+git log --no-merges --format='%an' HEAD -- <path> | sort -u
+git log -1 --format='%ad' --date=short HEAD -- <path>
 ```
+
+The area reading is the one most easily misused, so be exact about what it says. It names
+**directories nobody else has been in**, which is where a pull request has no available reviewer and
+where the knowledge exists in one head. It says nothing about anyone's ability: the history records
+which parts of the tree somebody was assigned, and the developer who only appears in the oldest
+module may be the strongest engineer on the team. Never write a line about a contributor's skill
+into this block, and never offer one in the conversation — that inference is outside the framework.
+
+Read each single-author area together with its last commit date. One with nothing for two years is
+dormant code, and the question it raises belongs to 7.5. One touched last week is live, and is the
+half worth reporting. Then check `CODEOWNERS` against the active author list: an owner who has not
+committed in a year is review routed to nobody, with the routing still displayed as if it worked.
 
 Two readings that change a number before it reaches the table:
 
@@ -158,7 +185,7 @@ not an absence of evidence about who does.
 
 ## Step 4 — Ask only what the history cannot know
 
-Four questions, one at a time, waiting for each answer. Lead each with what the history already
+Five questions, one at a time, waiting for each answer. Lead each with what the history already
 suggested, so the developer is correcting a draft rather than filling in a form.
 
 1. **Who is still on this project, and who is behind the identities Step 3 could not resolve?** "The
@@ -170,7 +197,11 @@ suggested, so the developer is correcting a draft rather than filling in a form.
    and does not enforce it is a legitimate answer — it is scored in 10.13, not here.
 3. **Who releases?** "Who cuts a release, and is it a person, a command, or something that runs on
    merge?" If nothing is released — the mainline deploys — say so in the row; that is an answer.
-4. **Does anything consume a version?** This is the question that decides 10.14, so do not accept a
+4. **Is the concentration deliberate?** For each single-author area: "`<path>` has one author ever
+   and was last touched *date*. Is that ownership somebody chose, or is it simply where nobody else
+   has had reason to go?" The two have different answers — a chosen owner needs the knowledge written
+   down, an accidental one needs somebody else in there — and only a person knows which it is.
+5. **Does anything consume a version?** This is the question that decides 10.14, so do not accept a
    yes or a no on its own. Ask what would consume one: another service pinning this package, a
    deployed artifact identified by version, a changelog with readers outside the team, a customer
    with a support contract on a version. If a rollback names a commit and nothing pins, the answer is
@@ -185,6 +216,12 @@ scoring — derived from the proportionality rule, never invented here:
 
 > With this shape, Category 10 is scored as: 10.12 *(reason)*, 10.13 *(reason)*, 10.14 *(reason)*.
 > Everything else in the category is scored as written.
+
+Where the area reading found live single-author directories, report them as their own line — not as
+a score, as the thing that makes one unreachable:
+
+> *N* areas have no available reviewer: `<paths>`. 10.12 is scored on the changes that could be
+> reviewed; these raise what 0.1 and 7.10 have to carry, because the knowledge is in one head.
 
 Then two checks, both of which are findings rather than edits:
 
