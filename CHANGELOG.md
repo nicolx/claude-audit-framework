@@ -8,6 +8,48 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.26.0] — 2026-10-11
+
+Two more agents, and between them they cover the two moments a change is cheapest to get right:
+before it is written, and before it meets volume.
+
+`architect` exists for the failure nobody sees at the time — a change that works, ships, and quietly
+fixes a decision nobody knew they were making. It answers five questions in writing, and the third
+one does most of the work: *what does it cost to reverse?* An hour, a migration, or a coordinated
+release with a consumer. That number decides how much evidence the decision deserves, and whether it
+earns an ADR. It never writes code and never writes a file; the ADR is drafted as text and belongs
+in the change that enacts the decision.
+
+`scalability-devops` refuses to say "this might not scale". It names the dimension — rows, requests,
+concurrency, payload, fan-out, retention — the thing that breaks first, and roughly the multiple at
+which it breaks. Where the project has declared a read-only database or a production path it
+measures; where it has not, it reasons from the code and says which numbers are inferred. It never
+generates load, because the one reliable way to turn a scalability review into an outage is to run
+one.
+
+### Added
+
+- **`agents/architect.md`** — reads the product documentation home, the ADRs and what already exists
+  before proposing anything (principle 14), then answers what the change commits the system to,
+  which seam it crosses, what it costs to reverse, which assumption is most likely wrong, and how
+  the shape evolves. Always two routes with the simpler one first (principle 12) **and a
+  recommendation** — a menu with no recommendation hands the hard part back. The deliverable is the
+  step list of principle 24, whose first step settles the assumption rather than being the easiest
+  file. Calibrated by `~/.claude/context/user_profile.md` on delivery only: a `Base *` competency is
+  named in the step that needs it and built jointly, never routed around.
+- **`agents/scalability-devops.md`** — principle 21 as a checklist, plus what principle 21 does not
+  cover: state that does not survive a second instance, retries without idempotency, caches that
+  stampede, metric labels with unbounded cardinality, a log line per item in a loop, and what
+  accumulates with nothing deleting it (9.6, 9.7, 9.11). Bounded by the **Database access** and
+  **Production access** declarations, which it reads before using and never widens — being unable to
+  reach something is reported as a finding, not routed around.
+
+### Changed
+
+- **The routing table is in lifecycle order** — `architect` before the work, `scalability-devops`
+  across it, `pr-critic` after. Two agents on one change is normal when they meet it at different
+  moments; two at the same moment is the duplication the section already forbids.
+
 ## [1.25.0] — 2026-10-11
 
 An agent nobody dispatches is a file. 1.24.0 shipped `pr-critic` and left the question of when to

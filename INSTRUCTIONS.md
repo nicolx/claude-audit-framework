@@ -522,9 +522,17 @@ not here. This section answers the only question the files cannot: which one, an
 is done by this session. An agent costs a second context reading real files, so routing to one is a
 decision, not a reflex.
 
+The table is in the order a change meets them, not in order of importance:
+
 | Agent | Route to it when | It returns |
 |---|---|---|
+| `architect` | Before writing anything larger than a fix — a feature, a migration, a new integration, a restructure. A request that names an end state (*rewrite the importer*, *move everything to the new client*) names a destination, and this is what produces the route | The five evolution questions answered, two routes with the cheaper one first and a recommendation, and the ordered step list of principle 24 — plus a drafted ADR when the decision is expensive to reverse |
+| `scalability-devops` | A change touches data access, a queue, a cache, an external call, or anything else that runs in production under load | Per dimension — rows, requests, concurrency, payload, fan-out, retention — what breaks first and at roughly what multiple |
 | `pr-critic` | A change is finished and somebody is about to merge it: *review this*, *look over the diff*, a pull request number | Ranked findings with file, line, rule, and whether each was traced or suspected |
+
+Two of them on one piece of work is normal when they meet it at different moments — `architect`
+before it is written, `pr-critic` after. Two at the same moment is the duplication the last rule
+below forbids.
 
 **Say which one you picked, in one line, before it runs.** A session that silently delegates has
 moved the work somewhere the developer cannot see it, and the answer that comes back reads as yours.
