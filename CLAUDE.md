@@ -151,6 +151,20 @@ declaration for a repository whose `.claude/` belongs to the projects that insta
 A session does not ask before any of the permitted actions; it reports each one in a line. The gate
 is the gate: a red `qa.sh` stops the push, and no permission in this table overrides it.
 
+## Fast-lane gate
+
+This repo's own answer to the block of the same name, and the one the `hotfix` agent would read if
+this repository installed itself. The consumer-facing shape is in
+`templates/PROJECT_AUDIT_FRAMEWORK.md`.
+
+| Field | Value |
+|---|---|
+| Qualifies | a wording, spelling or formatting correction to a shipped document that changes no rule; a path fix caught by check 4 or 5; a changelog or README correction; a script fix with a case in `test-install-cycle.sh` that fails before it |
+| Never qualifies | adding, removing or rewording a subcriteria or a principle — a criterion's wording *is* the criterion; `scripts/lib/framework-paths.sh`, which is where the path-confinement guard lives; the file lists in `init-project.sh`, `uninstall.sh` and `check-install.sh`, because those three have to agree; a new declaration block; anything that changes what a consumer must do on upgrade |
+| Carries anyway | the `VERSION` bump and the `CHANGELOG.md` entry in the same commit whenever a shipped document changed — rule 3 above, which the fast lane does not suspend; `bash scripts/qa.sh` green before the push |
+| Falls out of the lane when | the correction turns out to change a rule rather than its phrasing, or the fix needs a check that does not exist yet — a missing check is the finding, and it is not fast-lane work |
+| Checked by | `scripts/qa.sh` — check 7 catches a version bump that was skipped, check 10 catches a release that was never tagged. The line budget and the never-qualifies list are not mechanically enforced: one maintainer, and a list short enough to hold in the head. Declared as unchecked rather than left blank |
+
 ## Conventions
 
 - **Language:** all shipped documents are written in English, regardless of the conversation language

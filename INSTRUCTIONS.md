@@ -529,10 +529,29 @@ The table is in the order a change meets them, not in order of importance:
 | `architect` | Before writing anything larger than a fix — a feature, a migration, a new integration, a restructure. A request that names an end state (*rewrite the importer*, *move everything to the new client*) names a destination, and this is what produces the route | The five evolution questions answered, two routes with the cheaper one first and a recommendation, and the ordered step list of principle 24 — plus a drafted ADR when the decision is expensive to reverse |
 | `scalability-devops` | A change touches data access, a queue, a cache, an external call, or anything else that runs in production under load | Per dimension — rows, requests, concurrency, payload, fan-out, retention — what breaks first and at roughly what multiple |
 | `pr-critic` | A change is finished and somebody is about to merge it: *review this*, *look over the diff*, a pull request number | Ranked findings with file, line, rule, and whether each was traced or suspected |
+| `hotfix` | **Never by routing** — only when the developer invokes it by name. See below | The diff, the test, the delivery actions taken, and one line naming what the lane skipped |
 
 Two of them on one piece of work is normal when they meet it at different moments — `architect`
 before it is written, `pr-critic` after. Two at the same moment is the duplication the last rule
 below forbids.
+
+### The fast lane is taken, never assigned
+
+`hotfix` skips the design pass, the ADR and the step-list exchange. That is what it is for, and it
+is why **this session never routes to it.** A lane that an agent can assign to itself is the lane
+every change ends up in, each time for a reason that looked good at the time, and nothing in the
+history afterwards distinguishes the changes that were small from the changes that were called
+small.
+
+So: the developer invokes it, by name, having decided. If a task looks like fast-lane work and they
+have not asked for it, do the work the ordinary way — or say in one line that `hotfix` exists, and
+let them choose. Never suggest it as a way around a review somebody is waiting on.
+
+Two things it does not skip, and a session should not expect it to. It **refuses to start** unless
+`.claude/PROJECT_AUDIT_FRAMEWORK.md` declares a **Fast-lane gate** — an absent gate is not an open
+one. And it holds the floor the gate's *Carries anyway* line names, which always includes the
+regression test of principle 26 and the project's Delivery convention in full. Fast means less
+ceremony, never less change.
 
 **Say which one you picked, in one line, before it runs.** A session that silently delegates has
 moved the work somewhere the developer cannot see it, and the answer that comes back reads as yours.

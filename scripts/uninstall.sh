@@ -125,7 +125,7 @@ if [ -d "$AGENTS_DIR" ]; then
         # A variable rather than a literal list: it holds one name today and grows
         # with each agent the framework ships. Written as a one-word literal, the
         # loop reads to the linter as one somebody forgot to finish writing.
-        KNOWN_AGENTS="pr-critic scalability-devops architect"
+        KNOWN_AGENTS="pr-critic scalability-devops architect hotfix"
         for name in $KNOWN_AGENTS; do
             if [ -f "$AGENTS_DIR/$name.md" ]; then
                 rm "$AGENTS_DIR/$name.md"

@@ -8,6 +8,46 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.27.0] — 2026-10-11
+
+The fourth agent is the one that needed the gate built first.
+
+`hotfix` skips the design pass, the ADR and the step-list exchange, which is exactly what makes it
+dangerous: a lane that skips the ceremony is the lane every change ends up in, each time for a
+reason that looked good at the time, and nothing in the history afterwards tells the changes that
+were small apart from the changes that were *called* small.
+
+Two things stop that. **The gate is the project's, not the agent's** — a new `Fast-lane gate` block
+declares what qualifies, what never does, and what the change carries anyway, written once by the
+team in the calm rather than by whoever is under pressure at 6pm about the change they are under
+pressure to ship. **An absent block is not an open gate**: with no declaration, `hotfix` refuses to
+start and the change goes the ordinary route. And this session never routes to it — the developer
+invokes it by name, having decided, because a lane an agent can assign to itself has no gate at all.
+
+Fast means less ceremony. It never means less change: the regression test of principle 26, the
+boundary of 15 and 16, the document of 22 and the project's Delivery convention in full all ride
+with a fast-lane change, and the agent says out loud what the lane skipped so the next reader can
+tell this change from a reviewed one.
+
+### Added
+
+- **The `Fast-lane gate` declaration block**, in `templates/PROJECT_AUDIT_FRAMEWORK.md` with two
+  worked examples, and in this repo's own `CLAUDE.md`. Five fields: what qualifies in terms somebody
+  can check against a diff, what never qualifies (absolute — a one-line change to an authorization
+  check is not a small change, it is a one-line change), what the change carries anyway, what makes
+  it fall out of the lane, and what checks it. `check-install.sh` already compares the template's
+  blocks against the project's, so existing installs will be told the block exists without a line of
+  new code.
+- **`agents/hotfix.md`** — reads the gate before touching a file, names the line it matched, and
+  treats borderline as a stop rather than a lean. Falling out of the lane mid-fix is a correct
+  outcome: it reports, leaves the tree readable, and hands back to `architect` instead of finishing
+  it anyway, because a change that grew past the gate has had neither the fast lane's honesty nor
+  the slow lane's review.
+- **`### The fast lane is taken, never assigned`** in `INSTRUCTIONS.md` — `hotfix` is the one agent
+  routing never selects. If a task looks like fast-lane work and the developer has not asked, do it
+  the ordinary way or mention in one line that the agent exists. Never offer it as a way around a
+  review somebody is waiting on.
+
 ## [1.26.0] — 2026-10-11
 
 Two more agents, and between them they cover the two moments a change is cheapest to get right:

@@ -202,6 +202,48 @@ Example — team of nine:
 If there is none: "Not declared — a session prepares changes and asks before committing; 10.15 is
 scored on what the history shows."]
 
+## Fast-lane gate
+
+[Declares what qualifies as small enough to skip the design pass in this project, and what never
+does. Read by the `hotfix` agent, which refuses to start without it.
+
+A fast lane with no gate is not a fast lane, it is the lane everybody takes. The point of writing it
+down is that *small* gets defined once, by the team, in the calm — rather than by whoever is under
+pressure at 6pm, about the change they are under pressure to ship.
+
+Three things to get right, and the second is the one that matters:
+
+- **Qualifies** — in terms somebody can check against a diff, not a feeling
+- **Never qualifies** — the paths where there is no such thing as a small change in this system.
+  This list is absolute: a one-line change to an authorization check is not a small change, it is a
+  one-line change
+- **Carries anyway** — the floor that does not drop because the lane is fast. Skipping the design
+  pass is not skipping the test
+
+Example — a web application with a billing module:
+
+| Field | Value |
+|---|---|
+| Qualifies | a fix whose cause is already understood, under ~30 changed lines across at most 3 files; a copy or label change; a config value; a dependency patch bump |
+| Never qualifies | anything under `src/Billing/` or `src/Auth/`; a schema change or migration; a change to a public API response shape; concurrency, locking or transaction boundaries; a new external call |
+| Carries anyway | the regression test that fails before and passes after (principle 26); validation and a log line on any boundary it touches (15, 16); the document the change invalidated, in the same commit (22); the project's Delivery convention in full |
+| Falls out of the lane when | the cause turns out not to be understood, the fix needs a second file nobody expected, the test is hard to write, or the right fix is structural — at which point it stops and hands back to `architect` rather than growing |
+| Checked by | CI job `fast-lane`: fails a commit labelled `hotfix:` whose diff touches a never-qualifies path or exceeds the line budget |
+
+Example — a solo library:
+
+| Field | Value |
+|---|---|
+| Qualifies | a fix with a failing test already written; a documentation or comment correction; a patch bump of a dev dependency |
+| Never qualifies | anything that changes the public API surface, including a type signature; anything in the serialisation format |
+| Carries anyway | the failing test comes first and stays; the changelog entry in the same commit |
+| Falls out of the lane when | the fix would change a signature, or the test cannot be written without a new fixture |
+| Checked by | nothing mechanical — one maintainer, and the `Never qualifies` list is short enough to hold in the head. Declared as unchecked rather than left blank |
+
+If there is none: "Not declared — `hotfix` does not start, and every change goes the ordinary route."
+That is a legitimate answer and costs nothing except the fast lane itself. An absent block is never
+read as an open gate.]
+
 ## Disaster recovery drill
 
 [What `/dr-drill` is allowed to do, and the committed script it runs. Without this section the

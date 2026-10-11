@@ -28,7 +28,10 @@ A portable quality framework for Claude Code — travels with any project as a g
   a path and saying so where it did not. `pr-critic` reviews the finished diff adversarially, every
   finding carrying a file, a line, the rule it breaks, and whether it was traced or merely
   suspected. None of the three edits anything, and none gives a verdict — the decision stays with
-  the people who own the branch.
+  the people who own the branch. The fourth, `hotfix`, is the fast lane: it skips the design pass
+  for a fix whose cause is already understood, holds the floor that does not drop (the regression
+  test, the boundary, the document, the delivery convention), and refuses to start unless the
+  project has declared what counts as small. Routing never selects it — the developer does
   `INSTRUCTIONS.md` carries the routing: which agent a session reaches for, and the two rules that
   bound all of them — an agent is a lens rather than a permission upgrade, and it returns evidence
   rather than a decision
@@ -39,7 +42,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 ```bash
 # Add the submodule — pin a released version rather than tracking main
 git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-git -C .claude/framework checkout v1.26.0
+git -C .claude/framework checkout v1.27.0
 
 # Bootstrap: installs the commands, scaffolds the project files, records the version
 bash .claude/framework/scripts/init-project.sh
@@ -89,7 +92,7 @@ a framework that is present and doing nothing.
 bash .claude/framework/scripts/check-updates.sh
 
 # 2. Move to it
-cd .claude/framework && git fetch --tags && git checkout v1.26.0 && cd ../..
+cd .claude/framework && git fetch --tags && git checkout v1.27.0 && cd ../..
 
 # 3. Make the install conformant with the new version — migrations included
 bash .claude/framework/scripts/init-project.sh
@@ -97,7 +100,7 @@ bash .claude/framework/scripts/init-project.sh
 # 4. Verify, and read what it says
 bash .claude/framework/scripts/check-install.sh
 
-git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.26.0"
+git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.27.0"
 ```
 
 Three scripts, three questions, no overlap:
@@ -120,7 +123,7 @@ entries you need are named rather than hunted for. `init-project.sh` migrates ev
 automatically and is idempotent, so there is no version-by-version upgrade path to follow: you can
 go from any older version straight to the newest one.
 
-The conformance rules ship *inside* each version, so checking out `v1.26.0` gets you `v1.26.0`'s
+The conformance rules ship *inside* each version, so checking out `v1.27.0` gets you `v1.27.0`'s
 checks with no lookup table to keep in sync.
 
 **One thing is never automatic: a declaration block added by a later version.** `init-project.sh`
@@ -213,9 +216,9 @@ After `init-project.sh`, customize:
 
 These files extend the global framework — they do not replace it.
 
-**Five blocks of `.claude/PROJECT_AUDIT_FRAMEWORK.md` are declarations rather than
-specializations**, and each one decides what an audit is able to verify rather than how it reads the
-code. Leaving one out is a legitimate answer; it just sets a ceiling:
+**Six blocks of `.claude/PROJECT_AUDIT_FRAMEWORK.md` are declarations rather than
+specializations**, and each one decides what an audit is able to verify, or what a session may do,
+rather than how it reads the code. Leaving one out is a legitimate answer; it just sets a ceiling:
 
 | Block | Without it |
 |---|---|
@@ -224,6 +227,7 @@ code. Leaving one out is a legitimate answer; it just sets a ceiling:
 | `Team census` | The team shape is read from the git history, which knows who committed and not who is still here |
 | `Delivery convention` | A session prepares changes and asks before committing; 10.15 is scored on what the history shows |
 | `Disaster recovery drill` | `/dr-drill` has nothing to run, and 9.10 is scored from the runbook |
+| `Fast-lane gate` | The `hotfix` agent does not start, and every change goes the ordinary route |
 
 The skeletons, with a worked example each, are in
 `.claude/framework/templates/PROJECT_AUDIT_FRAMEWORK.md`. Declare only what you mean to grant: a
