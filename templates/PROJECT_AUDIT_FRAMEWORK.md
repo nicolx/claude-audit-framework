@@ -205,7 +205,11 @@ scored on what the history shows."]
 ## Fast-lane gate
 
 [Declares what qualifies as small enough to skip the design pass in this project, and what never
-does. Read by the `hotfix` agent, which refuses to start without it.
+does. Read by the `hotfix` agent, which refuses to start without it, and by 10.15, which reads the
+history against the convention *including this exception* — a departure inside a declared gate is
+conformance, one with no gate declared is a breach. Declaring none is a complete answer and costs
+nothing: it means every change goes the ordinary route, and 10.15 then expects the history to show
+exactly that.
 
 A fast lane with no gate is not a fast lane, it is the lane everybody takes. The point of writing it
 down is that *small* gets defined once, by the team, in the calm — rather than by whoever is under

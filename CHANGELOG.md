@@ -8,6 +8,39 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.28.0] — 2026-10-11
+
+1.27.0 added the `Fast-lane gate` and left it the only declaration block no subcriteria read. The
+obvious fix was a new one — 10.17, *the fast lane is bounded*. It would have been the wrong fix: it
+would have scored the same deviation, from the same log and the same convention block, that 10.15
+question 3 already scores. One fact in two places is this framework's most frequent defect, and
+adding a number is the easiest way to commit it.
+
+The actual defect was in 10.15, and it is a measurement error rather than a gap. Question 3 could
+read a departure from the convention only as a breach. So a team with a written emergency path, used
+three times in a year, each time inside its bounds and each time with the regression test, scored
+level with a team that departs whenever it feels like it — and below a team that has simply never
+had an emergency. That is the measurement backwards: it penalises the team that wrote down when the
+ceremony may be shortened, which is the only one of the three that can be held to anything.
+
+### Changed
+
+- **10.15 question 3 now reads the history against the convention *including its declared
+  exception*.** Four readings, stated: a departure inside a declared gate carrying what the gate says
+  it carries is conformance, not an exception to be forgiven; a departure with no gate declared is a
+  breach whatever reason the commit gives, because the reason is always good at the time and that is
+  why the bound is written in advance; a gate whose bounds the diffs contradict is worse than no
+  gate, since the declaration is now evidence the team knew; and declaring no gate at all is a
+  complete answer that costs nothing, scored on whether the history agrees.
+- **10.15's good, bad and scoring notes** gained the corresponding entries — among them the two
+  failure modes the block exists to prevent: a fast lane with no floor, where *small* comes to mean
+  the test and the log line can wait as well as the review, and a `Never qualifies` list the diffs
+  contradict. **The band is neither raised by declaring a gate nor lowered by leaving one out**;
+  what moves is the reading of the departures the log already contains.
+- **`templates/PROJECT_AUDIT_FRAMEWORK.md`, `INSTRUCTIONS.md` and the README** now name 10.15 where
+  they introduce the block, the way every other declaration block names the subcriteria that reads
+  it.
+
 ## [1.27.0] — 2026-10-11
 
 The fourth agent is the one that needed the gate built first.

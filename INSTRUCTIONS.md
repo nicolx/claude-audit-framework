@@ -549,7 +549,8 @@ let them choose. Never suggest it as a way around a review somebody is waiting o
 
 Two things it does not skip, and a session should not expect it to. It **refuses to start** unless
 `.claude/PROJECT_AUDIT_FRAMEWORK.md` declares a **Fast-lane gate** — an absent gate is not an open
-one. And it holds the floor the gate's *Carries anyway* line names, which always includes the
+one, and the block is read by 10.15 as well, which scores a departure inside a declared gate as
+conformance and one with no gate as a breach. And it holds the floor the gate's *Carries anyway* line names, which always includes the
 regression test of principle 26 and the project's Delivery convention in full. Fast means less
 ceremony, never less change.
 

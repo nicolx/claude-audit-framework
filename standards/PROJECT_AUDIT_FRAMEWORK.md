@@ -3264,6 +3264,27 @@ someone was burned.
 **3. Does the history conform?** The artifacts arrive *with* the change, not after it. This is the
 question the first two cannot answer, and the log answers it without being asked.
 
+**And it is read against the convention *including its declared exception*.** Every convention is
+departed from eventually — the production incident at 2am, the one-character fix on a Friday — and a
+reading that counts each departure as a breach scores the team that wrote down when it is allowed
+below the team that has never had an emergency, and level with the team that departs whenever it
+feels like it. That is the measurement backwards.
+
+So the *Fast-lane gate* block of `.claude/PROJECT_AUDIT_FRAMEWORK.md` is part of what question 3
+reads. It declares what qualifies as small enough to shorten the ceremony, what never qualifies
+however small it looks, and what the change carries anyway. Then:
+
+- **A departure inside a declared gate, carrying what the gate says it carries, is conformance.**
+  It is the convention working, not an exception to it. Score it as such.
+- **A departure with no gate declared is a breach**, whatever reason the commit message gives. The
+  reason is always good at the time; that is precisely why the bound is written in advance.
+- **A gate whose bounds are not observed is worse than no gate**, because the declaration is now
+  evidence the team knew and went anyway. Read the *Never qualifies* list against the diffs that
+  actually took the lane.
+- **Declaring no gate at all is a complete answer** and costs nothing here. It means every change
+  goes the ordinary route, and the history should show exactly that. What is scored is the agreement
+  between the two, never the presence of a fast lane.
+
 **Good:**
 
 - The convention is declared, at the size the team actually is, and the declaration names what a
@@ -3276,6 +3297,11 @@ question the first two cannot answer, and the log answers it without being asked
   somebody's notes, and not a sequence only one person has run
 - An agent's permissions are enumerated action by action and ref by ref, and the enumeration is
   narrower than what the humans may do
+- Where the ceremony can be shortened, the bound is written before it is needed: what qualifies in
+  terms somebody can check against a diff, what never qualifies however small it looks, and the
+  floor the change still carries. Used a handful of times a year, each time inside those bounds, each
+  time with the test that proves the fix — a convention with a declared exception that is observed is
+  a stronger result than one with no exception that is quietly broken twice a quarter
 
 **Bad:**
 
@@ -3292,6 +3318,14 @@ question the first two cannot answer, and the log answers it without being asked
   is a check being run by a person, at the price of a person, with a person's recall
 - A declaration that grants an agent everything, force-push and tagging included, because enumerating
   was more work than allowing. The block is a boundary; one that excludes nothing is decoration
+- No declared exception path, and a history that departs from the convention every few weeks anyway.
+  Each departure had a reason, nobody wrote the reasons down, and the convention now describes how
+  the team works on calm days only
+- A fast lane with no floor — *small* taken to mean the test, the log line and the document can wait
+  as well as the review. Less ceremony is the point; less change never was, and the fix that came
+  back is the one that shipped without the regression test
+- A *Never qualifies* list the diffs contradict. A one-line change to an authorization check is not a
+  small change; it is a one-line change, and a lane that accepted it was not a gate
 
 **How to score:**
 
@@ -3304,6 +3338,12 @@ question the first two cannot answer, and the log answers it without being asked
 - 8–10: Declared at the size the project is, every mechanical claim carried by a check that fails,
   the history showing artifacts arriving with their change, and a session's authority enumerated.
   A three-line convention fully automated scores above a fifteen-step one enforced by review
+
+**On the exception path, at every band:** a project that declares none and departs from its
+convention anyway is scored on the departures, which is where it already was. A project that declares
+one is scored on whether the history stays inside it — never on having one. The band is not raised by
+writing a *Fast-lane gate* and not lowered by leaving it out; what moves is the reading of the
+departures the log already contains.
 
 #### 10.16 The repository cleans up after itself
 
