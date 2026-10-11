@@ -8,6 +8,59 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.21.0] — 2026-10-11
+
+Category 10 was written as though every project were a team with releases. Four of its subcriteria
+measure practices that exist because of *other people* — a pull request carries a review between two
+of them, a protected branch stops a change arriving unseen, a tag names a version somebody
+downstream runs — and a one-developer repository deployed continuously from `main` was being scored
+against all four. It lost points for not holding reviews with itself, and the honest fix was always
+available to it: adopt the ceremony, score higher, protect nobody. A standard that can be satisfied
+that way teaches projects to perform compliance, which is the one outcome worse than a low score.
+
+The missing piece was never a rule, it was an input. *How many people write here, and does anything
+consume a version* are facts about a project, observable in its history and its deployment, and
+nothing in the framework asked. So this release adds the question, the block that answers it, and
+the one place where the answer is allowed to change what gets scored.
+
+### Added
+
+- **Precondition 5 — *The team must be declared, or read from the history***. Four things to
+  establish before Category 10 is scored: who writes, who reviews, who releases, who consumes a
+  version. Declared in the new **Team census** block, or read from `git shortlog` and said to be —
+  with the limit of the log stated, because it knows who committed and not who is still here. A
+  declaration the history contradicts is a finding, reported like a production path that no longer
+  resolves.
+- **The proportionality rule at the top of Category 10.** Two questions — *who writes* and *who
+  consumes a version* — decide which practices are load-bearing. 10.12 is **N/A** where a review
+  crosses nobody, and what it asks of the change itself survives in 10.11. 10.13 splits: the approval
+  half is N/A with one writer, the gate half (status checks, no force-push, linear history, signed
+  commits) protects a lone developer from their own worst afternoon and is scored. 10.14 is **N/A**
+  until something pins a version. 10.10 is never N/A — *"trunk, straight to `main`"* is a complete
+  strategy once it is written down; what that subcriteria fails is silence, not simplicity. The rule
+  states three things it is not: not a discount on 10.1–10.9, which do not care who writes the code;
+  not permanent, because a census has a date and a project that gained a second writer gained two
+  subcriteria back; and not an argument a project makes for itself — *we are small* is not a
+  structural condition, and the N/A doctrine already refuses it.
+- **The `Team census` declaration block**, fifth in `.claude/PROJECT_AUDIT_FRAMEWORK.md`, with a
+  worked example for a solo repository and for a team of nine. It is the only one of the five that
+  grants nothing: it states who the project's people are. Existing installs see it through
+  `check-install.sh`, which compares the template's blocks against the project's and needs no
+  migration to do it.
+- **`/team-census`** — drafts the block from the history (`shortlog` over a year, who merges, each
+  author's last commit, `CODEOWNERS`) and asks only the four things the log cannot answer. It reads
+  bots out of the contributor count, because `dependabot[bot]` as a second writer would put 10.12
+  back in play for a repository where nobody reviews anything, and it proposes a `.mailmap` when one
+  person appears under three addresses. A refresh presents the difference against the existing block
+  rather than re-running the interview. It names contradictions — a census of one beside a delivery
+  convention requiring an approval — and resolves none of them.
+
+### Fixed
+
+- **`uninstall.sh` left `/dr-drill` behind** when the submodule was already gone. The fallback list of
+  command names, used only on that path, had not been updated since the command was added; it now
+  carries every shipped command.
+
 ## [1.20.0] — 2026-10-10
 
 1.19.0 gave the framework a cleanup trigger and pointed it at git. The pattern it found there is not

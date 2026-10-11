@@ -62,6 +62,44 @@ evidence cell that the finding is unverified against a database, and **do not aw
 unverified claim is not comprehensive evidence. Recording the limit is the point: a score that hides
 it is worse than a lower score that explains itself.
 
+### 5. The team must be declared, or read from the history
+
+Category 10 measures practices that exist because of other people. A pull request is how a review
+crosses between two of them; a protected branch is what stops a change arriving unseen; a tag is how
+somebody downstream names the version they are running. Where the person the practice protects does
+not exist, the practice is not a gap — and scoring it as one teaches a one-developer repository to
+install ceremony that protects nobody, which is the fastest way to make a quality framework
+something a project works around.
+
+So establish four things before scoring Category 10: **who writes, who reviews, who releases, and
+who consumes a version.** What they decide is the proportionality rule at the top of that category.
+
+**What to declare** in `.claude/PROJECT_AUDIT_FRAMEWORK.md`: the **Team census** block — the
+contributors active now and their roles, who may approve and who may release, and whether anything
+downstream pins a version of this project. `/team-census` drafts it from the history and asks for
+the rest.
+
+**If it is not declared**, read the shape from the history rather than assuming a team or assuming a
+solo developer:
+
+```bash
+# who has written code in the last year, and how much — the census's first draft
+git shortlog -sne --since='12 months ago' --no-merges
+
+# who merges, which is rarely the same list, and is the review question
+git log --merges --since='12 months ago' --format='%an' | sort | uniq -c | sort -rn
+```
+
+A shape read from the log is evidence like any other and scores the same. Say that is where it came
+from, because of the one thing the log cannot tell you: who is still on the project. Four names in
+the last year is four contributors or one plus three leavers, and those are different projects.
+
+**A declaration the history contradicts is a finding, not a shortcut.** Three active contributors in
+the log against a census naming one is either a census nobody updated or a shape chosen to escape a
+criterion; report it either way, exactly as a production path that no longer resolves is reported
+under 9.9. The conditions in the proportionality rule are structural and observable — *we are small*
+and *we move fast* are not among them.
+
 ---
 
 ## How to use this document
@@ -2740,6 +2778,48 @@ declared half, and this subcriteria is precisely about the half nobody declared.
 
 *Decision records are scored in 0.7, with the rest of the planning documentation. What this
 category measures is the pipeline and the repository, not the reasoning behind them.*
+
+### Proportionality — which practices are load-bearing here
+
+Every practice below exists to solve a problem, and not every project has every problem. Score the
+practice against the problem rather than against the ceremony: **a project that does not have the
+problem scores full marks without the practice**, and one that adopts the practice anyway has bought
+friction and called it quality. This is the only place in the framework where the project's own shape
+changes which subcriteria are in play, and it is confined to this category because this is where the
+practices are about people rather than about code.
+
+Two questions decide. Precondition 5 is where their answers come from — the **Team census** block,
+or the git history where there is none.
+
+**Who writes?** One person, or more than one.
+
+**Who consumes a version?** Somebody who pins one, rolls back to one, or deploys one by name — a
+library consumer, a release artifact, a changelog with readers. Or nobody, because the service is
+deployed continuously from the mainline and a rollback names a commit.
+
+| Subcriteria | Load-bearing when | Otherwise |
+|---|---|---|
+| 10.10 Branching strategy | always — every project has a mainline | Never N/A. *"Trunk, straight to `main`, merged the day it is started"* is a complete strategy and scores as one **once it is written down**. What this subcriteria fails is silence, not simplicity |
+| 10.12 Pull requests | more than one person writes | **N/A.** A review that crosses nobody is a form filled in for the file. What the subcriteria asks of the change itself — one coherent concern, the *why* recorded, small enough to read in one sitting — survives without it and is scored in 10.11 |
+| 10.13 Branch protection | always, in two halves | The **approval** half — require a review, dismiss stale approvals, no self-merge — is **N/A** with a single writer. The **gate** half is not: required status checks, no force-push to the mainline, linear history, signed commits. Those protect a lone developer from their own worst afternoon, and nothing about being alone makes them unavailable |
+| 10.14 Tagging and semantic versioning | something consumes a version | **N/A.** A service deployed from `main` whose rollback names a commit already answers *what was running on 15 March* — `git log` does — and a tag nothing reads is a ritual. The day anything pins a version, this returns and is scored in full, including the changelog that comes with it |
+
+The subcriteria not in the table are scored for every project. 10.11 and 10.15 always apply; 10.16
+carries its own partial-scoring clause for a repository with no branch residue to remove.
+
+Three things this rule is not:
+
+- **Not a discount for small teams.** 10.1–10.9 are untouched by who writes the code: build
+  reproducibility, environment separation, the CI gate, migrations, rollback, secrets, smoke tests. A
+  one-person service in production is scored against every one of them exactly as a team's is, and
+  the N/A column above never reaches them
+- **Not permanent.** The shape belongs to a census, and a census has a date. A project that was one
+  developer last year and is three now has 10.12 and 10.13's approval half back, and the first
+  release somebody pins brings 10.14 with it. Discovering any of that during an audit is a finding
+  about the census, reported as one
+- **Not an argument a project makes for itself.** The conditions are structural and observable — a
+  second contributor in the log, a consumer that pins — and the N/A rule earlier in this document
+  already refuses the rest: N/A is for a concern that is absent, never for one that is inconvenient
 
 ### Subcriteria
 

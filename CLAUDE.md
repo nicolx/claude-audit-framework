@@ -110,6 +110,26 @@ no-op, not an error.
 
 ---
 
+## Team census
+
+This repo's own answer to precondition 5, and the reason Category 10 is scored here the way it is.
+The consumer-facing shape of this block is in `templates/PROJECT_AUDIT_FRAMEWORK.md`.
+
+| Field | Value |
+|---|---|
+| Contributors | 1 — the maintainer: writes, reviews, releases |
+| Evidence | `git shortlog -sne --since='12 months ago' --no-merges` — one author |
+| Review | none; no second writer. The reviewable-change rules apply to the commit |
+| May merge to `main` | the maintainer, directly |
+| Releases | the maintainer, by hand: `VERSION`, changelog entry, annotated tag |
+| Consumes a version | yes — every consumer project pins this repo by tag, which is why 10.14 is in play here and a solo repository does not automatically escape it |
+| Census date | 2026-10-11 |
+| next_review_date | 2027-04-11 |
+
+So in this repository 10.12 is N/A, 10.13 is scored on its gate half alone, and 10.14 is scored in
+full. A project with the same headcount and no consumer would be scored differently, which is the
+whole point of the block.
+
 ## Delivery convention
 
 This repo's own answer to 10.15, and the standing authorization for a session working on it. The

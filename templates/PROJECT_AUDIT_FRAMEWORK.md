@@ -114,6 +114,48 @@ Example:
 If there is none: "Not available — no production path is open to a session; 9.9 is scored on what a
 person can reach."]
 
+## Team census
+
+[Who writes, who reviews, who releases, and who consumes a version of this project. Required by
+precondition 5, and read by the proportionality rule at the top of Category 10 — it is what decides
+whether 10.12, 10.13 and 10.14 are in play at all. `/team-census` drafts it from the git history and
+asks only for what the history cannot know.
+
+This is not a competency profile. That one is `~/.claude/context/user_profile.md`, lives on each
+developer's machine and is never committed; this one belongs to the project and is.
+
+Record what is true today rather than the org chart, and keep the evidence row — a census nobody can
+check against the log is a claim.
+
+Example — one developer, deployed continuously:
+
+| Field | Value |
+|---|---|
+| Contributors | 1 — the maintainer: writes, deploys, operates |
+| Evidence | `git shortlog -sne --since='12 months ago' --no-merges` — 1 author, 312 commits |
+| Review | none — no second writer. The reviewable-change rules apply to the commit (10.11) |
+| May merge to `main` | the maintainer |
+| Releases | no release step — `main` deploys on green |
+| Consumes a version | nobody; rollback names a commit |
+| Census date | 2026-10-11 |
+| next_review_date | 2027-04-11 |
+
+Example — nine developers, published package:
+
+| Field | Value |
+|---|---|
+| Contributors | 9 — 5 backend, 2 frontend, 1 SRE, 1 tech lead |
+| Evidence | `git shortlog -sne --since='12 months ago' --no-merges` — 11 authors; 2 left in March |
+| Review | pull request, 1 approval, `CODEOWNERS` routes by directory |
+| May merge to `main` | anyone with an approval — branch protection enforces it |
+| Releases | `release-please` on merge; the tech lead cuts anything out of band |
+| Consumes a version | 4 internal services pin the published package; the changelog has readers |
+| Census date | 2026-10-11 |
+| next_review_date | 2027-04-11 |
+
+If there is none: "Not declared — the team shape is read from the git history, and a subcriteria
+whose condition the history cannot settle is scored rather than marked N/A."]
+
 ## Delivery convention
 
 [Declares what a finished change carries in this project, and what a session may do unattended.

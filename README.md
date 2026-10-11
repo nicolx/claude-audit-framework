@@ -20,14 +20,14 @@ A portable quality framework for Claude Code — travels with any project as a g
   outlived its rollout, the test skipped *for now*, the demo environment and the migration key still
   valid two years later. Plus the line automation never crosses — nothing unmerged, no tags, no
   rewritten history, nothing destructive without a dry run
-- **Skill commands**: `/project-audit`, `/dr-drill`, `/competency-review`, `/init-profile`
+- **Skill commands**: `/project-audit`, `/dr-drill`, `/team-census`, `/competency-review`, `/init-profile`
 
 ## Add to a project
 
 ```bash
 # Add the submodule — pin a released version rather than tracking main
 git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-git -C .claude/framework checkout v1.20.0
+git -C .claude/framework checkout v1.21.0
 
 # Bootstrap: installs the commands, scaffolds the project files, records the version
 bash .claude/framework/scripts/init-project.sh
@@ -62,6 +62,7 @@ Most of it is competency levels. One block is not: the natural language you work
 |---|---|
 | `/init-profile` | One-time developer profile setup for this machine (~5 min) |
 | `/project-audit` | Full 11-category quality evaluation with 11 parallel agents; writes a dated report and score history to `docs/audits/`. `--summary` / `--deep` change how much of the result is printed — never what is measured |
+| `/team-census` | Records who writes, reviews, releases and consumes a version of this project, into the **Team census** block. Drafts it from the git history and asks only what the history cannot know. It is what makes Category 10 proportional — a practice that protects nobody is not scored as a gap |
 | `/competency-review` | Quarterly review and update of your developer profile |
 | `/dr-drill` | Runs the project's committed disaster-recovery drill against the disposable target declared in `.claude/PROJECT_AUDIT_FRAMEWORK.md`, verifies the restore actually restored something, and writes a receipt for 9.10. Refuses to start without that declaration; read-only against production and the backup store; `--dry-run` checks the setup without restoring |
 
@@ -76,7 +77,7 @@ a framework that is present and doing nothing.
 bash .claude/framework/scripts/check-updates.sh
 
 # 2. Move to it
-cd .claude/framework && git fetch --tags && git checkout v1.20.0 && cd ../..
+cd .claude/framework && git fetch --tags && git checkout v1.21.0 && cd ../..
 
 # 3. Make the install conformant with the new version — migrations included
 bash .claude/framework/scripts/init-project.sh
@@ -84,7 +85,7 @@ bash .claude/framework/scripts/init-project.sh
 # 4. Verify, and read what it says
 bash .claude/framework/scripts/check-install.sh
 
-git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.20.0"
+git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.21.0"
 ```
 
 Three scripts, three questions, no overlap:
@@ -107,7 +108,7 @@ entries you need are named rather than hunted for. `init-project.sh` migrates ev
 automatically and is idempotent, so there is no version-by-version upgrade path to follow: you can
 go from any older version straight to the newest one.
 
-The conformance rules ship *inside* each version, so checking out `v1.20.0` gets you `v1.20.0`'s
+The conformance rules ship *inside* each version, so checking out `v1.21.0` gets you `v1.21.0`'s
 checks with no lookup table to keep in sync.
 
 **One thing is never automatic: a declaration block added by a later version.** `init-project.sh`
@@ -198,7 +199,7 @@ After `init-project.sh`, customize:
 
 These files extend the global framework — they do not replace it.
 
-**Four blocks of `.claude/PROJECT_AUDIT_FRAMEWORK.md` are declarations rather than
+**Five blocks of `.claude/PROJECT_AUDIT_FRAMEWORK.md` are declarations rather than
 specializations**, and each one decides what an audit is able to verify rather than how it reads the
 code. Leaving one out is a legitimate answer; it just sets a ceiling:
 
@@ -206,12 +207,15 @@ code. Leaving one out is a legitimate answer; it just sets a ceiling:
 |---|---|
 | `Database access for query analysis` | 7.9 and 9.8 are scored from configuration, capped at 8 |
 | `Production access` | No production path is open to a session; 9.9 is scored on what a person can reach |
+| `Team census` | The team shape is read from the git history, which knows who committed and not who is still here |
 | `Delivery convention` | A session prepares changes and asks before committing; 10.15 is scored on what the history shows |
 | `Disaster recovery drill` | `/dr-drill` has nothing to run, and 9.10 is scored from the runbook |
 
 The skeletons, with a worked example each, are in
-`.claude/framework/templates/PROJECT_AUDIT_FRAMEWORK.md`. Declare only what you mean to grant: each
-block *is* the boundary of what a session may do, and read-only is the default in all three.
+`.claude/framework/templates/PROJECT_AUDIT_FRAMEWORK.md`. Declare only what you mean to grant: a
+block that opens a path *is* the boundary of what a session may do with it, and read-only is the
+default in every one of them. `Team census` grants nothing — it states who the project's people
+are, and it is the one block an audit will contradict if it has gone stale.
 
 ## Removing the framework
 
