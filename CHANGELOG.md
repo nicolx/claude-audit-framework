@@ -8,6 +8,35 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.25.0] — 2026-10-11
+
+An agent nobody dispatches is a file. 1.24.0 shipped `pr-critic` and left the question of when to
+reach for it to whoever remembered it existed, which under pressure is nobody.
+
+So INSTRUCTIONS.md now carries the routing — and, deliberately, only the routing. What an agent does
+stays in its own file; this section answers the one question a file cannot answer about itself,
+which is when to prefer it over the session already running. The default is still none: an agent
+costs a second context reading real files, and that is a decision rather than a reflex.
+
+The two rules worth more than the table: **an agent is a lens, not a permission upgrade** — a
+subagent is a session, bounded by the same declaration blocks as any other, and routing is never how
+a grant gets widened — and **an agent does not decide**. It returns evidence or a plan. Merge, change
+course, accept the risk: still the developer's.
+
+### Added
+
+- **`## Which agent, and when` in `INSTRUCTIONS.md`** — the routing table, the rule that a session
+  names the agent it picked before it runs, and what routing never does: widen a grant, settle a
+  decision, or buy a second opinion on something already established.
+- **Check 11 in `check-consistency.sh`** — the routing table and `agents/` must agree in both
+  directions. An agent shipped without a row is never dispatched; a row without a file sends a
+  session to a name Claude Code cannot resolve. Neither is visible from inside either file, and the
+  check fails on each independently.
+- **What to do when an agent is wrong for a project** — say so, as a finding about the framework.
+  The copy is overwritten on the next `init-project.sh` run and reported as drift by
+  `check-install.sh` until then, so editing it buys an agent that silently reverts. A project's own
+  agent goes under its own name, where nothing the framework does will touch it.
+
 ## [1.24.0] — 2026-10-11
 
 A command is a script the session runs in its own context. It is the wrong shape for a reviewer,

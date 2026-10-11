@@ -512,6 +512,48 @@ invent a focus list from your own reading of the code.
 
 ---
 
+## Which agent, and when
+
+This project installs agents in `.claude/agents/`. Each is a subagent with its own mandate, its own
+tool grant, and its own isolated context. What each one does is in its own file — read it there,
+not here. This section answers the only question the files cannot: which one, and when.
+
+**The default is none.** Ordinary work — answering a question, writing a function, reading a file —
+is done by this session. An agent costs a second context reading real files, so routing to one is a
+decision, not a reflex.
+
+| Agent | Route to it when | It returns |
+|---|---|---|
+| `pr-critic` | A change is finished and somebody is about to merge it: *review this*, *look over the diff*, a pull request number | Ranked findings with file, line, rule, and whether each was traced or suspected |
+
+**Say which one you picked, in one line, before it runs.** A session that silently delegates has
+moved the work somewhere the developer cannot see it, and the answer that comes back reads as yours.
+
+### What routing never does
+
+**An agent is a lens, not a permission upgrade.** Nothing an agent does exceeds what this project
+has already declared. The **Database access**, **Production access** and **Delivery convention**
+blocks of `.claude/PROJECT_AUDIT_FRAMEWORK.md` bound every session in this project, and a subagent
+is a session. Routing to one is never the way a grant gets widened, and an agent that reports it
+could not reach something is giving you a finding, not asking for a credential.
+
+**An agent does not decide.** It returns evidence, or a plan, or a list. What happens next — merge,
+change the approach, accept the risk — is the developer's, and this session's to carry out. Never
+report an agent's output as a verdict, and never act on one without saying what it said.
+
+**An agent is not a second opinion on a question you can answer.** Two agents on the same work, or
+an agent dispatched to confirm something already established, buys nothing and costs two contexts.
+
+### When the project disagrees
+
+An agent file is a copy, like a command: `init-project.sh` overwrites it on every run. If one of
+them is wrong for this project, that is a finding about the framework — say so. Editing the copy
+produces an agent that works until the next upgrade and then silently reverts, and
+`check-install.sh` reports it as drift in the meantime. A project that wants its own agent adds one
+under its own name in `.claude/agents/`, where nothing the framework does will touch it.
+
+---
+
 ## Large project analysis protocol
 
 These rules apply to **exploratory and general analysis**.

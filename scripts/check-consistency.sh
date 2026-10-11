@@ -328,6 +328,50 @@ else
     fi
 fi
 
+# ── 11. Every shipped agent is routed, and every routed agent exists ─────────
+# An agent is two artifacts that have to agree: the file, which says what it does,
+# and the routing table in INSTRUCTIONS.md, which says when to reach for it. Ship
+# the file without the row and nothing ever dispatches it; write the row without
+# the file and a session delegates to a name Claude Code cannot resolve. Neither
+# failure is visible from inside either file.
+
+start "Agent routing"
+
+ROUTED=$(awk '
+    /^## Which agent, and when$/ { inside = 1; next }
+    /^## / { inside = 0 }
+    inside && /^\| `[a-z][a-z0-9-]*` \|/ {
+        match($0, /`[a-z][a-z0-9-]*`/)
+        print substr($0, RSTART + 1, RLENGTH - 2)
+    }
+' INSTRUCTIONS.md | sort -u)
+
+SHIPPED=$(for f in agents/*.md; do
+    [ -e "$f" ] || continue
+    basename "$f" .md
+done | sort -u)
+
+if [ -z "$SHIPPED" ]; then
+    fail "agents/ holds no agent files"
+elif [ -z "$ROUTED" ]; then
+    fail "INSTRUCTIONS.md has no routing table under '## Which agent, and when'"
+else
+    UNROUTED=$(comm -23 <(printf '%s\n' "$SHIPPED") <(printf '%s\n' "$ROUTED"))
+    PHANTOM=$(comm -13 <(printf '%s\n' "$SHIPPED") <(printf '%s\n' "$ROUTED"))
+
+    if [ -n "$UNROUTED" ]; then
+        fail "agents shipped but absent from the routing table in INSTRUCTIONS.md — nothing will dispatch them"
+        indent "$UNROUTED"
+    fi
+    if [ -n "$PHANTOM" ]; then
+        fail "agents routed in INSTRUCTIONS.md with no file in agents/ — a session would delegate to a name that does not resolve"
+        indent "$PHANTOM"
+    fi
+    if [ -z "$UNROUTED" ] && [ -z "$PHANTOM" ]; then
+        pass "$(echo "$SHIPPED" | wc -l | tr -d ' ') shipped agent(s) routed, and every routed name has a file"
+    fi
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""
