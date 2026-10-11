@@ -8,6 +8,55 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.22.0] — 2026-10-11
+
+1.21.0 made Category 10 proportional to who works on a project, and answered *who writes here* with
+`git shortlog`. That answer counts **identities**, and the census needs **people**. Between the two
+sit a bot, an agent, a shared deploy account and a web interface, and the instruction 1.21.0 gave —
+*exclude the bots* — was the wrong one in the most common case: a bot's commits are somebody's work,
+and dropping them drops a writer.
+
+The two errors are not symmetric. Counting one person's four identities as four people costs a
+project some N/A it had earned. Counting four people behind one `deploy-bot` as one writer removes
+10.12 from the audit entirely, and the framework then certifies a team that reviews nothing. So the
+resolution rule runs one way.
+
+### Added
+
+- **Identity resolution in precondition 5.** An identity in the log is a credential, not a person,
+  and the mapping breaks in both directions. The rule that follows is one-directional: **an
+  unresolved identity is never resolved downward** — record it as unresolved, keep scoring the
+  subcriteria it would otherwise have excused, because marking 10.12 N/A needs a positive finding
+  that nobody else writes here, not an absence of evidence about who does.
+- **An AI co-author is a tool, not a contributor.** A commit authored by a developer and trailed by
+  `Co-authored-by: Claude …` has one writer. Nor does a human approving an agent's diff satisfy
+  10.12: that subcriteria asks for a review by somebody who did not write the change, and a
+  developer directing an agent is its author. The reverse shape — an agent identity on the commit,
+  a person in the trailer — makes the person in the trailer the writer.
+- **`/team-census` Step 3 — the resolution ladder**, five rungs, stop at the first that answers:
+  author against committer (two identities per commit, and `shortlog` shows only the first); the
+  commit trailers; the account id encoded in a `…+name@users.noreply.github.com` address, including
+  what a `[bot]` suffix means — an app acting for an installation, with the human in the host's
+  audit log; the signature, which outranks any name field, except the host's web-flow key that
+  signs everything committed through the web interface; and the pull request the commit arrived in.
+  Plus the honest limit: **who pushed is not in the repository at all**, so an identity that
+  survives all five is a question for a person. A timezone-spread check is offered for the dangerous
+  case, a single identity carrying an improbable share of the history.
+
+### Fixed
+
+- **`git shortlog` without a revision argument hangs.** With no revision and a non-terminal stdin it
+  reads standard input, which is exactly the shape of an agent session — so the command shipped in
+  1.21.0's precondition 5, census block and `/team-census` would have waited forever rather than
+  answering. Every occurrence now passes `HEAD`.
+- **`check-consistency.sh` could not see a document before it was staged.** `git ls-files` lists
+  tracked files only, so a newly written command file was invisible to every path check — and
+  1.21.0 shipped a broken path reference through a gate that ran green on it. The file lists now
+  include `--others --exclude-standard`.
+- **A consumer-project path cited as a framework path.** `/team-census` named `.github/CODEOWNERS`,
+  which exists in the project being censused and not in this repository; it now finds the file
+  wherever the host accepts it.
+
 ## [1.21.0] — 2026-10-11
 
 Category 10 was written as though every project were a team with releases. Four of its subcriteria

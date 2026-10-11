@@ -105,7 +105,9 @@ small and every agent reads all of it:
   Capture the output verbatim, including failures. If no gate exists, record that as the finding it is.
 - `git log --oneline -20`, `git branch -a`, and `git log -1 --format=%cd` (last commit date)
 - The team shape: the **Team census** block of `.claude/PROJECT_AUDIT_FRAMEWORK.md` if it exists,
-  and in either case `git shortlog -sne --since='12 months ago' --no-merges` with bots excluded.
+  and in either case `git shortlog -sne --since='12 months ago' --no-merges HEAD`, read as identities
+  rather than as people — a bot or a shared account is somebody's work, and precondition 5 is the rule
+  for one nobody can resolve.
   Precondition 5 — it decides which of 10.12, 10.13 and 10.14 the Cat 10 agent scores at all, and
   a census the shortlog contradicts is itself a finding
 - The product documentation index: `ls -R docs/ 2>/dev/null | head -60`, plus every status marker

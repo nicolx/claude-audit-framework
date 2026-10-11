@@ -84,11 +84,39 @@ solo developer:
 
 ```bash
 # who has written code in the last year, and how much — the census's first draft
-git shortlog -sne --since='12 months ago' --no-merges
+# (the revision argument is required: without it shortlog reads standard input and hangs)
+git shortlog -sne --since='12 months ago' --no-merges HEAD
 
 # who merges, which is rarely the same list, and is the review question
 git log --merges --since='12 months ago' --format='%an' | sort | uniq -c | sort -rn
 ```
+
+**An identity in the log is a credential, not a person**, and the mapping between the two breaks in
+both directions. One person commits from a laptop, from CI, through the web interface and through an
+agent acting for them — four identities, one writer. One identity covers a shared deploy account, a
+team bot, or an agent run by whoever is on duty — one identity, several writers.
+
+Those two errors are not symmetric, and only one of them is dangerous here. Overstating the team
+costs the project some N/A it was entitled to. **Understating it removes subcriteria that should
+apply** — a shared `deploy-bot` behind which four people work makes 10.12 look structurally absent,
+and the framework would then certify a team that reviews nothing. So the rule is one-directional:
+
+> **An unresolved identity is never resolved downward.** Where an identity cannot be tied to a
+> person, record it in the census as unresolved and keep scoring the subcriteria it would otherwise
+> have made N/A. Marking one N/A requires a positive finding that nobody else writes here — never an
+> absence of evidence about who does.
+
+Resolving one is a procedure, not a guess, and `/team-census` runs it: author against committer,
+the commit's trailers, the account the noreply address encodes, the signature, and the pull request
+the commit arrived in. What no repository holds is **who pushed** — that lives in the host's audit
+log — so an identity that survives all five is a question for a person, not a shape to infer.
+
+**An AI co-author is a tool, not a contributor.** A commit authored by a developer and trailed by
+`Co-authored-by: Claude …` has one writer: the developer. Nor does a human approving an agent's diff
+before it lands satisfy 10.12 — that subcriteria asks for a review by somebody who did not write the
+change, and a developer directing an agent is its author. Where the authorship is the other way
+round, an agent identity on the commit and a person in the trailer, the person in the trailer is the
+writer.
 
 A shape read from the log is evidence like any other and scores the same. Say that is where it came
 from, because of the one thing the log cannot tell you: who is still on the project. Four names in

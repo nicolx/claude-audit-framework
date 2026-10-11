@@ -127,12 +127,16 @@ developer's machine and is never committed; this one belongs to the project and 
 Record what is true today rather than the org chart, and keep the evidence row — a census nobody can
 check against the log is a claim.
 
+Count people, not identities: a bot, an agent or a shared account is somebody's work, and that
+somebody is the contributor. An identity nobody could resolve gets a row of its own rather than
+being left out of the count — precondition 5 keeps the subcriteria it would have excused in play.
+
 Example — one developer, deployed continuously:
 
 | Field | Value |
 |---|---|
 | Contributors | 1 — the maintainer: writes, deploys, operates |
-| Evidence | `git shortlog -sne --since='12 months ago' --no-merges` — 1 author, 312 commits |
+| Evidence | `git shortlog -sne --since='12 months ago' --no-merges HEAD` — 1 author, 312 commits |
 | Review | none — no second writer. The reviewable-change rules apply to the commit (10.11) |
 | May merge to `main` | the maintainer |
 | Releases | no release step — `main` deploys on green |
@@ -145,7 +149,7 @@ Example — nine developers, published package:
 | Field | Value |
 |---|---|
 | Contributors | 9 — 5 backend, 2 frontend, 1 SRE, 1 tech lead |
-| Evidence | `git shortlog -sne --since='12 months ago' --no-merges` — 11 authors; 2 left in March |
+| Evidence | `git shortlog -sne --since='12 months ago' --no-merges HEAD` — 11 authors; 2 left in March |
 | Review | pull request, 1 approval, `CODEOWNERS` routes by directory |
 | May merge to `main` | anyone with an approval — branch protection enforces it |
 | Releases | `release-please` on merge; the tech lead cuts anything out of band |

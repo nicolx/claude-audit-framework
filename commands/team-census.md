@@ -40,9 +40,9 @@ hand produces a file the next `init-project.sh` will not recognise:
 > with this block and the other declarations in it.
 
 **`BLOCK_EXISTS`:** this is a refresh. Read the block in full and say what it currently claims,
-including its `next_review_date`. Then run Step 2 and present the evidence *against* the existing
+including its `next_review_date`. Then run Steps 2 and 3 and present the evidence *against* the existing
 block — the useful output of a refresh is the difference, not a fresh interview. If nothing has
-changed, say so and move the review date; do not re-ask four questions to write the same table back.
+changed, say so and move the review date; do not re-ask the four questions to write the same table back.
 
 **`BLOCK_MISSING`:** a first census. If the file predates the block entirely, note it once — the
 template now carries it, and `bash .claude/framework/scripts/check-install.sh` is what lists any
@@ -56,10 +56,10 @@ Do not ask any of this. Run it.
 
 ```bash
 # who has written code in the last year, and how much
-git shortlog -sne --since='12 months ago' --no-merges
+git shortlog -sne --since='12 months ago' --no-merges HEAD
 
 # the same over the whole history, to see who has left
-git shortlog -sne --no-merges | head -20
+git shortlog -sne --no-merges HEAD | head -20
 
 # who merges — rarely the same list, and it is the review question
 git log --merges --since='12 months ago' --format='%an' | sort | uniq -c | sort -rn
@@ -68,18 +68,15 @@ git log --merges --since='12 months ago' --format='%an' | sort | uniq -c | sort 
 git log --since='24 months ago' --no-merges --format='%aI %aE' \
   | sort -t' ' -k2 | awk '{ last[$2] = $1 } END { for (a in last) print last[a], a }' | sort -r
 
-# who the host thinks reviews what
-cat CODEOWNERS .github/CODEOWNERS docs/CODEOWNERS 2>/dev/null
+# who the host thinks reviews what — the file is valid in any of three locations
+find . -maxdepth 2 -name CODEOWNERS -not -path './.git/*' -exec cat {} +
 
 # whether anything downstream could pin a version of this project
 git tag -l | tail -5
 ```
 
-Three things to read carefully before they become a number in the table:
+Two readings that change a number before it reaches the table:
 
-- **Bots are not contributors.** `dependabot[bot]`, `github-actions[bot]`, `renovate[bot]` and the
-  project's own CI identity commit, and counting one as a second writer would put 10.12 back in play
-  for a repository where nobody reviews anything. Exclude them, and say that you did.
 - **One person can be several email addresses.** A developer who has committed from a laptop, a
   server and a CI job appears three times in `shortlog`. If the list looks inflated that way, say so
   and propose a `.mailmap` — it fixes every future reading of the history, not just this one.
@@ -89,13 +86,85 @@ Three things to read carefully before they become a number in the table:
 
 ---
 
-## Step 3 — Ask only what the history cannot know
+## Step 3 — Resolve every identity to a person
+
+`shortlog` counts identities. The census counts people, and the two differ whenever a bot, an agent,
+a shared account or a web interface sits between the two. Do not drop a bot from the list — **find
+who is behind it**: its commits are somebody's work, and that somebody is a writer.
+
+Walk the ladder in order and stop at the first rung that answers.
+
+**1. Author against committer.** Every commit carries two identities and `shortlog` shows only the
+first:
+
+```bash
+git log --since='12 months ago' --format='%an <%ae>  ||  %cn <%ce>' | sort | uniq -c | sort -rn
+```
+
+The author is whose work it is; the committer is what put it there. A merge made through a web
+interface commits as the host with the human as author; a bot that rebases or amends is the
+committer over somebody else's authorship. `git shortlog -sce HEAD` gives the committer view of the
+same history.
+
+**2. The trailers**, which is where the second party is recorded:
+
+```bash
+git log --since='12 months ago' \
+  --format='%h | A=%an | CO=[%(trailers:key=Co-authored-by,valueonly,separator=%x3B)]'
+```
+
+A developer as author with `Co-authored-by: Claude …` is **one writer** — the developer. The reverse
+shape, an agent identity as author with a person in the trailer, makes the person in the trailer the
+writer. `Signed-off-by` names whoever vouched for the change.
+
+**3. The address encodes an account.** `12345+alice@users.noreply.github.com` carries both the
+numeric account id and the login, and `49699333+dependabot[bot]@…` does the same for an app. A
+`[bot]` suffix means an application acting for an installation: the human who triggered it is in the
+host's audit log and never in the commit. Where the project is on GitHub and `gh` is available,
+`gh api /user/<id>` turns the id into an account.
+
+**4. The signature**, which is stronger than any name field:
+
+```bash
+git log --since='12 months ago' --format='%h %G? %GS' | sort -k2 | uniq -c -f1 | head
+```
+
+A commit authored under a bot identity but signed with a person's key was made with that person's
+key. The host's own web-flow key is the exception — it signs everything committed through the web
+interface, so it proves the route and not the author.
+
+**5. The pull request it arrived in.** A squash commit ends in `(#123)`; a merge commit names the
+branch. `gh pr view 123 --json author,mergedBy,reviews` turns that into accounts, and it is the most
+reliable bridge from a bot commit to the people on either side of it.
+
+**What no repository holds is who pushed.** That is in the host's audit log, not in the object graph,
+and a clone cannot reach it. An identity that survives all five rungs is a question for a person —
+ask it in Step 4 rather than inferring a shape around it.
+
+One hint worth running when a single identity carries a suspiciously large share of the history,
+because a shared account is the error that matters:
+
+```bash
+# several timezone offsets under one address is travel, or it is several people
+git log --since='12 months ago' --format='%ae %ai' | awk '{print $1, $NF}' | sort -u
+```
+
+Then apply the rule from precondition 5, which runs one way only: **an unresolved identity is never
+resolved downward.** Record it in the census as unresolved and keep scoring the subcriteria it would
+otherwise have made N/A. Marking 10.12 N/A needs a positive finding that nobody else writes here —
+not an absence of evidence about who does.
+
+---
+
+## Step 4 — Ask only what the history cannot know
 
 Four questions, one at a time, waiting for each answer. Lead each with what the history already
 suggested, so the developer is correcting a draft rather than filling in a form.
 
-1. **Who is still on this project?** "The log shows *N* authors in the last year — *names*. Which of
-   those are still contributing, and is anybody writing code here who has not committed yet?"
+1. **Who is still on this project, and who is behind the identities Step 3 could not resolve?** "The
+   log shows *N* identities in the last year — *names* — which resolve to *M* people. Which of them
+   are still contributing, is anybody writing code here who has not committed yet, and who is behind
+   *the unresolved identity*?"
 2. **Who reviews, and what enforces it?** "Does a change reach the mainline through someone else's
    approval, and is that enforced by branch protection or by agreement?" A team that agrees on review
    and does not enforce it is a legitimate answer — it is scored in 10.13, not here.
@@ -109,7 +178,7 @@ suggested, so the developer is correcting a draft rather than filling in a form.
 
 ---
 
-## Step 4 — Propose the block, with what it changes
+## Step 5 — Propose the block, with what it changes
 
 Present the filled table in the shape the template defines, followed by what this shape means for
 scoring — derived from the proportionality rule, never invented here:
@@ -131,7 +200,7 @@ Ask for confirmation before writing anything.
 
 ---
 
-## Step 5 — Write it
+## Step 6 — Write it
 
 Replace the existing `## Team census` block, or insert one immediately before `## Delivery
 convention` if there is none. Set:
@@ -149,7 +218,7 @@ it, exactly like any other change.
 
 ---
 
-## Step 6 — Report
+## Step 7 — Report
 
 Three lines at most:
 

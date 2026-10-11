@@ -49,8 +49,12 @@ indent() {
 # script forbids elsewhere:
 #   CHANGELOG.md          — a historical record; it names retired paths on purpose
 #   check-consistency.sh  — this file; it defines the forbidden patterns
-DOCS=$(git ls-files '*.md' | grep -v '^CHANGELOG\.md$')
-SCRIPTS=$(git ls-files 'scripts/*.sh' | grep -v 'check-consistency\.sh$')
+# --others --exclude-standard, not --cached alone: a document written and not yet
+# staged is exactly when its paths are most likely wrong, and `git ls-files` on its
+# own cannot see it. v1.21.0 shipped a broken path reference for that reason — the
+# gate ran green against a command file git did not know about yet.
+DOCS=$(git ls-files --cached --others --exclude-standard '*.md' | sort -u | grep -v '^CHANGELOG\.md$')
+SCRIPTS=$(git ls-files --cached --others --exclude-standard 'scripts/*.sh' | sort -u | grep -v 'check-consistency\.sh$')
 
 echo "────────────────────────────────────────────────"
 echo "🔍 claude-audit-framework consistency check"

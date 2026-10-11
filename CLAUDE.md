@@ -118,7 +118,7 @@ The consumer-facing shape of this block is in `templates/PROJECT_AUDIT_FRAMEWORK
 | Field | Value |
 |---|---|
 | Contributors | 1 — the maintainer: writes, reviews, releases |
-| Evidence | `git shortlog -sne --since='12 months ago' --no-merges` — one author |
+| Evidence | `git shortlog -sne --since='12 months ago' --no-merges HEAD` — one author |
 | Review | none; no second writer. The reviewable-change rules apply to the commit |
 | May merge to `main` | the maintainer, directly |
 | Releases | the maintainer, by hand: `VERSION`, changelog entry, annotated tag |
