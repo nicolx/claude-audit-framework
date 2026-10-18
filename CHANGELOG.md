@@ -8,6 +8,28 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.30.0] — 2026-10-18
+
+1.29.0 changed the composition of five categories and told consumers to read the next audit as a new
+baseline for them — advice the audit itself could not follow, because `history.md` never recorded
+which version of the framework produced a score. A category that dropped a point after an upgrade
+was indistinguishable from one that dropped a point because the code got worse, and the trend line
+reported both as regression.
+
+### Added
+
+- **`history.md` gains a `Framework` column** — the version the scores were measured against, read
+  from the framework's `VERSION` file, the checkout actually loaded, rather than from the install
+  marker. An existing file gets the column with `—` in every earlier row: those versions were never
+  recorded, and guessing them from the date would put a fiction into the column that exists to
+  prevent one.
+- **The comparison reads it.** When the previous entry at the same scope was scored against another
+  version, `/project-audit` reads the changelog entries in between, and every category whose
+  subcriteria changed in that span is shown with the reason beside its movement and treated as a new
+  baseline — never as progress or regression. Categories the changelog does not touch compare as
+  before.
+- **The project snapshot** names the framework version the audit was scored against.
+
 ## [1.29.0] — 2026-10-18
 
 1.28.1 named the framework's sources. This release takes from them what the framework was missing —

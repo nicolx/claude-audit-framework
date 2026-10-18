@@ -73,6 +73,7 @@ Defaults: level `--standard`, scope the whole project. Below, they are *the leve
 AUDIT_DIR=$(mktemp -d "${TMPDIR:-/tmp}/audit-XXXXXX")
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 FRAMEWORK_DIR="$PROJECT_ROOT/.claude/framework"
+FRAMEWORK_VERSION=$(tr -d '[:space:]' < "$FRAMEWORK_DIR/VERSION" 2>/dev/null)
 SCOPE="."   # ← the validated directory from the parse above, or "." for the whole project
 mkdir -p "$AUDIT_DIR/cat"
 echo "$AUDIT_DIR"
@@ -344,6 +345,15 @@ full-project audit are not comparable, and presenting a delta between them would
 Show per-category movement as `7.0 → 8.0 ▲`, `8.0 → 8.0 =`, `8.0 → 6.5 ▼`. With no comparable
 prior entry, state `baseline — first audit at this scope`.
 
+**A delta is only a trend if the ruler did not change.** Compare the `Framework` column of that entry
+with `$FRAMEWORK_VERSION`. Where they differ, read the entries of `$FRAMEWORK_DIR/CHANGELOG.md`
+between the two versions and list the categories whose subcriteria were added, removed or re-worded
+in that span. For each of those, show the movement with the reason beside it —
+`7.0 → 6.0 ▼ (framework 1.28.1 → 1.29.0: 1.6–1.8 added)` — and do not count it as progress or
+regression anywhere in the report: it is a new baseline for that category. Categories the changelog
+does not touch compare normally. Where the previous entry's `Framework` is `—`, its version was never
+recorded: say so once, and compare as before, because nothing better is available.
+
 ### 3.3 — Compose the report
 
 Seven sections, in this order. **The level decides where it stops** — each level prints everything
@@ -363,7 +373,8 @@ The summary table comes before the per-category evidence rather than after it, w
 used to sit: the verdict is what a reader wants first, and it is what makes truncating at section 3
 a coherent report rather than a report with its conclusion cut off.
 
-**1. Project snapshot** — stack, maturity with reasoning, scope, remediation band and phase with
+**1. Project snapshot** — stack, maturity with reasoning, scope, the framework version it was scored
+against, remediation band and phase with
 reasoning, quality gate result (with the failing lines if not green), and any of these warnings that
 apply:
 
@@ -497,12 +508,20 @@ both are identical either way, and a field nothing reads is a field that goes st
 ```markdown
 # Audit score history
 
-| Date | Scope | Maturity | C0 | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | C9 | C10 | Avg |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 2026-09-03 | full | Established | 5.0 | 8.0 | 7.5 | 8.0 | 6.0 | N/A | 7.0 | 6.5 | 7.0 | 5.5 | 6.5 | 6.7 |
+| Date | Scope | Maturity | Framework | C0 | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | C9 | C10 | Avg |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-09-03 | full | Established | 1.29.0 | 5.0 | 8.0 | 7.5 | 8.0 | 6.0 | N/A | 7.0 | 6.5 | 7.0 | 5.5 | 6.5 | 6.7 |
 ```
 
-`Avg` excludes `N/A` categories.
+`Avg` excludes `N/A` categories. `Framework` is `$FRAMEWORK_VERSION` — the version the scores were
+measured against, read from the framework's own `VERSION` file rather than from the install marker,
+because the checkout is what was actually loaded. A score is a reading on a ruler, and a ruler that
+changes between two readings is the one thing the trend cannot show on its own.
+
+**If `history.md` exists without a `Framework` column**, add it after `Maturity` in the header and the
+separator row, and fill every existing row with `—`. The version those audits used was never
+recorded, and guessing it from the date would put a fiction into the column that exists to prevent
+one. Say in the report that the column was added.
 
 **If `history.md` exists without a `C0` column**, it predates Category 0. Add the column to the header
 and to the separator row, and fill every existing row with `—` — those audits did not measure it, and
