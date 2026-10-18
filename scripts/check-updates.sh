@@ -25,9 +25,6 @@ for arg in "$@"; do
     esac
 done
 
-# pwd -P: on macOS a path through a symlink (/tmp, /var/folders) keeps its logical
-# form here while `git rev-parse` returns the physical one, and the two would not
-# compare equal — the scripts then refused to work in a perfectly valid checkout.
 SCRIPT_BOOTSTRAP_DIR=$(cd "$(dirname "$0")" && pwd)
 if [ ! -f "$SCRIPT_BOOTSTRAP_DIR/lib/framework-paths.sh" ]; then
     echo "❌ $SCRIPT_BOOTSTRAP_DIR/lib/framework-paths.sh is missing."
@@ -109,20 +106,9 @@ else
     echo "  ⚠  Could not reach origin — comparing against tags already fetched"
 fi
 
-# Tag names come from the remote, and git permits / $ ( ) { } ; | # in a refname.
-# An earlier version interpolated one into a sed address, and de-fanging that single
-# line left the same value reaching `git log` argv (a tag named `--output=<path>` is
-# parsed as an option) and the commands the operator is told to paste.
-#
-# So validation is at the point of capture, not at each use: after this, the tag
-# variables can only hold a well-formed release tag. is_release_tag uses `case`
-# rather than `grep -qE` for the reason stated in the library — grep matches if any
-# *line* matches, which made the old check safe by git's refname rules rather than
-# by its own.
-#
-# Escapes are the separate half: an allowlisted tag is safe, but commit subjects,
-# the VERSION file and the branch name are remote too and go through
-# sanitize_display before they are printed.
+# Tag names come from the remote and may hold / $ ( ) { } ; | # or start with `--`.
+# They are validated here, at capture: past this point a tag variable holds only a
+# well-formed release tag. Other remote text goes through sanitize_display.
 CURRENT_TAG=$(git -C "$FRAMEWORK_DIR" describe --tags --exact-match HEAD 2>/dev/null || true)
 if ! is_release_tag "$CURRENT_TAG"; then
     # Not at a release tag — which is also what a malformed or hostile tag means here.
@@ -158,12 +144,8 @@ elif [ -z "$CURRENT_TAG" ]; then
 elif [ "$CURRENT_TAG" = "$LATEST_TAG" ]; then
     echo "  ✓  Pinned at $CURRENT_TAG, the latest release"
 else
-    # CURRENT_TAG comes from refs just fetched from the remote, and git allows
-    # / $ ( ) { } ; \ | # in a ref name. Interpolated into a sed *address* those
-    # close the address and can reach GNU sed's `e` command, which runs a shell.
-    # Match the tag as a fixed whole line instead: no regex, no interpreter.
-    # Same allowlist as the capture above: this list is printed to the operator's
-    # terminal, which is the paste vector — a tag name is never echoed unfiltered.
+    # Compared as fixed strings, never as a regex, and filtered by the same allowlist:
+    # this list reaches the operator's terminal.
     BEHIND=""
     SEEN_CURRENT=0
     while IFS= read -r candidate; do
@@ -176,9 +158,8 @@ else
     echo "     Releases since: $BEHIND"
     echo ""
     echo "     What changed (read before upgrading — a major means you must act):"
-    # Commit subjects are remote-controlled and were printed raw. \033[1A\033[2K
-    # moves the cursor up and erases the line above, letting an attacker forge a
-    # line directly over the block of commands printed below.
+    # Commit subjects are remote-controlled: unsanitised, an escape sequence could
+    # overwrite the commands printed below.
     git -C "$FRAMEWORK_DIR" log --no-merges --format='%s' "$CURRENT_TAG..$LATEST_TAG" 2>/dev/null |
         head -15 | while IFS= read -r subject; do
             printf '       %s\n' "$(sanitize_display "$subject")"

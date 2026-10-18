@@ -11,9 +11,8 @@
 #                      version I already have?
 #   init-project.sh    make it conformant.                   (mutates)
 #
-# The conformance rules live here rather than in a per-version migration matrix,
-# because this script ships *with* the version whose requirements it encodes.
-# Checking out v1.6.0 gets you v1.6.0's checks, for free and without a lookup.
+# The conformance rules ship with the version whose requirements they encode, so
+# no per-version migration matrix is needed.
 #
 # Run from anywhere in the project:
 #   bash .claude/framework/scripts/check-install.sh
@@ -24,8 +23,7 @@ set -uo pipefail
 
 # --compare-from <version>: report breaking changes since this version instead of
 # since the recorded marker. init-project.sh passes the marker it is about to
-# overwrite, so the report survives the documented upgrade order — running the
-# installer first would otherwise leave nothing to compare against.
+# overwrite, because it runs before this check in the documented upgrade order.
 COMPARE_FROM=""
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -36,9 +34,6 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-# pwd -P: on macOS a path through a symlink (/tmp, /var/folders) keeps its logical
-# form here while `git rev-parse` returns the physical one, and the two would not
-# compare equal — the scripts then refused to work in a perfectly valid checkout.
 SCRIPT_BOOTSTRAP_DIR=$(cd "$(dirname "$0")" && pwd)
 if [ ! -f "$SCRIPT_BOOTSTRAP_DIR/lib/framework-paths.sh" ]; then
     echo "❌ $SCRIPT_BOOTSTRAP_DIR/lib/framework-paths.sh is missing."
@@ -66,9 +61,8 @@ ERRORS=0
 WARNINGS=0
 
 # ── Is the submodule actually checked out? ───────────────────────────────────
-# `git clone` without --recurse-submodules leaves .claude/framework an empty
-# directory. Every check below would then pass vacuously — zero commands compare
-# equal to zero commands — and report a broken install as conformant.
+# `git clone` without --recurse-submodules leaves .claude/framework empty, and
+# every check below would pass vacuously.
 
 FRAMEWORK_HAS_COMMANDS=0
 for f in "$FRAMEWORK_DIR"/commands/*.md; do
@@ -83,8 +77,7 @@ if [ "$FRAMEWORK_HAS_COMMANDS" -eq 0 ]; then
     echo "       bash .claude/framework/scripts/init-project.sh"
     echo ""
     echo "────────────────────────────────────────────────"
-    # 2, not 1: the header reserves 2 for "cannot tell", and that is exactly this
-    # case — nothing about conformance can be assessed against an empty framework.
+    # Exit 2, "cannot tell": an empty framework has no conformance to assess.
     echo "❌ Cannot verify: the framework itself is missing."
     exit 2
 fi
@@ -101,8 +94,7 @@ echo "────────────────────────�
 echo ""
 
 # ── The @-include: the single point of failure ───────────────────────────────
-# Everything the framework does in a session flows through this one line. A
-# submodule updated without it is a submodule that does nothing at all.
+# Without this line the framework loads nothing in a session.
 
 if [ ! -f "$PROJECT_ROOT/CLAUDE.md" ]; then
     err "No CLAUDE.md at the project root" \
@@ -150,9 +142,7 @@ differs: $name"
     fi
 done
 
-# The detail lines are collected rather than printed as they are found: printed
-# inline they appeared above the ✗ they belong to, and read as continuation of
-# whatever finding came before.
+# Detail lines are collected so they print under the ✗ they belong to.
 if [ "$MISSING" -eq 0 ] && [ "$STALE" -eq 0 ]; then
     ok "All $TOTAL commands installed and identical to this version"
 else
@@ -163,9 +153,8 @@ else
 fi
 
 # ── Agent copies: present, and byte-identical to this version ────────────────
-# Agents are copies for the same reason commands are, and go stale the same way.
-# An agent whose file drifted is worse than a missing one: it still answers, with
-# rules this version no longer ships.
+# A drifted agent is worse than a missing one: it still answers, with rules this
+# version no longer ships.
 
 A_MISSING=0
 A_STALE=0
@@ -188,8 +177,7 @@ differs: $name"
 done
 
 if [ "$A_TOTAL" -eq 0 ]; then
-    # Not a vacuous pass: this version ships agents, so finding none means the
-    # checkout is incomplete rather than that there is nothing to verify.
+    # This version ships agents, so finding none means an incomplete checkout.
     warn "The framework has no agents/ directory — the checkout is incomplete" \
          "→ git submodule update --init --recursive"
 elif [ "$A_MISSING" -eq 0 ] && [ "$A_STALE" -eq 0 ]; then
@@ -230,8 +218,7 @@ for spec in PROJECT_AUDIT_FRAMEWORK.md CODING_STANDARDS.md; do
 done
 
 # ── Hook coherence ───────────────────────────────────────────────────────────
-# A wired hook whose script is gone is a dead entry: harmless, because the
-# command ends in `|| true`, but it is not doing the job it was added for.
+# A wired hook whose script is gone fails silently: its command ends in `|| true`.
 
 if grep -qF "on-file-edit.sh" "$SETTINGS_FILE" 2>/dev/null; then
     if [ ! -f "$HOOK_SCRIPT" ]; then
@@ -265,14 +252,9 @@ else
 fi
 
 # ── Declaration blocks the template offers and this project does not carry ───
-# A release can add a declaration block — the one thing init-project.sh must not
-# write for you, because it is a grant of authority or a statement of access that
-# only the developer can make. The breaking-change range below does not surface
-# one: a new block is additive, so its release correctly has no `### Breaking`
-# section, and v1.17.0's `Delivery convention` arrived announced in the changelog
-# and nowhere a tool would say it. Comparing the template against the project is
-# version-independent, so every future block surfaces without being documented
-# release by release.
+# init-project.sh never writes a declaration block: it is a grant of authority only
+# the developer can make. A new block is additive, so no `### Breaking` section
+# announces it; comparing the template against the project surfaces every one.
 
 TEMPLATE_SPEC="$FRAMEWORK_DIR/templates/PROJECT_AUDIT_FRAMEWORK.md"
 PROJECT_SPEC="$PROJECT_ROOT/.claude/PROJECT_AUDIT_FRAMEWORK.md"
@@ -301,9 +283,8 @@ EOF
 fi
 
 # ── Breaking changes between the recorded install and this version ───────────
-# init-project.sh migrates what it can. What it cannot — a new declaration, a
-# decision only the developer can make — lives in the changelog, and this is
-# where the relevant range gets surfaced instead of being hoped for.
+# What init-project.sh cannot migrate — a decision only the developer can make —
+# is in the changelog; this surfaces the relevant range.
 
 FROM_VERSION="${COMPARE_FROM:-$INSTALLED_VERSION}"
 

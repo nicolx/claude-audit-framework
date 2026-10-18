@@ -20,10 +20,7 @@ for arg in "$@"; do
     esac
 done
 
-# Two lines of bootstrap, then the shared logic. The library cannot locate itself,
-# so this much must be here — and it is logical (`cd`, not `cd -P`) for the reason
-# framework-paths.sh explains at length: the physical path says where the framework
-# lives, not which project asked.
+# Logical path (`cd`, not `cd -P`): see framework-paths.sh.
 SCRIPT_BOOTSTRAP_DIR=$(cd "$(dirname "$0")" && pwd)
 if [ ! -f "$SCRIPT_BOOTSTRAP_DIR/lib/framework-paths.sh" ]; then
     echo "❌ $SCRIPT_BOOTSTRAP_DIR/lib/framework-paths.sh is missing."
@@ -44,10 +41,9 @@ HOOKS_DIR="$PROJECT_ROOT/.claude/hooks"
 SETTINGS_FILE="$PROJECT_ROOT/.claude/settings.json"
 
 INCLUDE_LINE="@.claude/framework/INSTRUCTIONS.md"
-LEGACY_INCLUDE_LINE="@.claude/framework/CLAUDE.md"   # pre-1.0 installs
+LEGACY_INCLUDE_LINE="@.claude/framework/CLAUDE.md"
 
-# An uninitialised submodule leaves the directory present but empty, which used to
-# surface as a raw `cp: ... No such file or directory` with no explanation.
+# An uninitialised submodule leaves the directory present but empty.
 FRAMEWORK_HAS_COMMANDS=0
 for f in "$FRAMEWORK_DIR"/commands/*.md; do
     [ -e "$f" ] && FRAMEWORK_HAS_COMMANDS=1 && break
@@ -62,9 +58,6 @@ fi
 
 echo "🔧 Initializing claude-audit-framework..."
 echo ""
-# Name the directory before writing to it. Without this, a redirected PROJECT_ROOT
-# is invisible: ten green checkmarks in one terminal while the writes land in
-# another project.
 announce_target
 
 # ── Step 1 — Install commands ───────────────────────────────────────────────────
@@ -82,9 +75,8 @@ done
 echo ""
 
 # ── Step 1b — Install agents ────────────────────────────────────────────────────
-# Same discipline as commands: copied, always overwritten, framework-owned. An
-# agent file the project wrote under its own name is never touched — only the
-# names this framework ships are.
+# Copied and overwritten like commands. Only the names this framework ships are
+# touched; an agent the project wrote under its own name is left alone.
 
 mkdir -p "$AGENTS_DIR"
 for agent_file in "$FRAMEWORK_DIR"/agents/*.md; do
@@ -102,11 +94,8 @@ if [ -f "$PROJECT_ROOT/CLAUDE.md" ]; then
     if grep -qF "$INCLUDE_LINE" "$PROJECT_ROOT/CLAUDE.md"; then
         echo "  ↩  CLAUDE.md already includes $INCLUDE_LINE (skipped)"
     elif grep -qF "$LEGACY_INCLUDE_LINE" "$PROJECT_ROOT/CLAUDE.md"; then
-        # Pre-1.0 installs point at CLAUDE.md, which is now the framework's own
-        # development file. Rewrite the line in place — never add a second one.
-        # The branch is chosen on a substring match while the rewrite is anchored, so a
-        # legacy line with trailing whitespace took this path and matched nothing. The
-        # result is now verified rather than announced.
+        # Rewrite the line in place, never add a second one. The branch matches a
+        # substring but the rewrite is anchored, so the result is verified.
         TEMP=$(mktemp)
         sed -E "s|^[[:space:]]*@\.claude/framework/CLAUDE\.md[[:space:]]*$|$INCLUDE_LINE|" \
             "$PROJECT_ROOT/CLAUDE.md" > "$TEMP"
@@ -162,9 +151,7 @@ fi
 echo ""
 
 # ── Step 3b — Install the per-file check hook (opt-in) ───────────────────────
-# The coding standards are instructions Claude can overlook. A checker cannot.
-# This is the only mechanical enforcement the framework offers, which is also
-# why it is never installed without being asked for.
+# It changes how the harness behaves, so it is installed only when asked for.
 
 if [ "$WITH_HOOKS" -eq 1 ]; then
     mkdir -p "$HOOKS_DIR"
@@ -194,11 +181,9 @@ if [ "$WITH_HOOKS" -eq 1 ]; then
 fi
 
 # ── Step 4 — Record the installed version ────────────────────────────────────
-# Commands are copies, so they go stale when the submodule moves ahead. This
-# marker is what lets Claude detect the drift and tell the developer to re-run.
+# Lets a session detect command copies older than the submodule.
 
-# The version this install was last run against, captured before the marker is
-# overwritten — it is what makes the breaking-change report reachable in step 5.
+# Read before the marker is overwritten: step 5 reports breaking changes since it.
 PREVIOUS_VERSION=$(read_marker_version)
 
 FRAMEWORK_VERSION=$(read_framework_version)
@@ -216,8 +201,7 @@ echo "  ✓  Recorded installed version: $FRAMEWORK_VERSION ($FRAMEWORK_SHA)"
 echo ""
 
 # ── Step 5 — Verification ─────────────────────────────────────────────────────
-# Delegated to check-install.sh, which is also what a developer runs on its own
-# after an upgrade. One set of conformance rules, one place they live.
+# The conformance rules live in check-install.sh only.
 
 set +e
 if [ -n "$PREVIOUS_VERSION" ]; then
@@ -228,11 +212,8 @@ fi
 CONFORMANCE=$?
 set -e
 
-# Advice rather than conformance, so it stays here.
-# The profile is per machine, not per project: a developer who already has one is
-# installing their second project, not their second profile. Say so, rather than
-# staying silent — silence reads as "the step is missing" to someone who ran this
-# before and remembers being told to run /init-profile.
+# Advice, not conformance. The profile is per machine, so an existing one is
+# reported as reused rather than passed over in silence.
 PROFILE_MISSING=0
 echo ""
 if [ ! -f "$HOME/.claude/context/user_profile.md" ]; then
@@ -316,6 +297,5 @@ echo "  Updating the submodule alone is not enough: the @-include in CLAUDE.md a
 echo "  command copies live outside it, and a bump without them loads nothing at all."
 echo ""
 
-# The installer must be able to fail: it sits in the middle of a documented `&&`
-# chain, and printing an error while exiting 0 makes that chain unbreakable.
+# Non-zero on a non-conformant install: the documented upgrade is an `&&` chain.
 exit "$CONFORMANCE"

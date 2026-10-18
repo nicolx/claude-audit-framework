@@ -8,6 +8,25 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.32.0] — 2026-10-18
+
+Principle 1 said what a comment should not explain, and stopped there. The comment it did not name —
+the one recording how the code came to be — is the commonest in code an AI assistant writes, and
+this repository's own scripts were full of it.
+
+### Changed
+
+- **Principle 1** names history as drift: comments that narrate the past, cite a release, a ticket,
+  a review or the session that produced the code, and commented-out code. A non-obvious *why* is
+  written as a constraint that holds today; the history of a line lives in its commit.
+- **2.5 Self-documenting code** — *Comments are not a changelog*: a `git grep` an auditor runs, every
+  hit read rather than counted, and a cap of 6 when the hits are mostly narrative. A consumer's 2.5
+  may move on upgrade with no change to its code.
+- **`INSTRUCTIONS.md`** — *Every change ends with two checks*: before a change is done, its diff is
+  read for principle 1 and principle 22. A README is corrected when the change made it wrong, never
+  written to log the work.
+- **`scripts/`** — narrative and stale comments removed; constraints kept, in the present tense.
+
 ## [1.31.0] — 2026-10-18
 
 8.7 told the auditor to *evaluate the codebase against the current OWASP Top 10*. The Top 10 is an

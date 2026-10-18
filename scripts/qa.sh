@@ -1,9 +1,5 @@
 #!/bin/bash
-# qa.sh — the framework's quality gate, in one command.
-#
-# Subcriteria 7.7 asks for exactly this, and until it existed the gate was three
-# commands in CLAUDE.md, four jobs in CI, and the documented list omitted one of
-# them — so a developer could run the gate as written and still go red.
+# qa.sh — the framework's quality gate: every check CI runs, in one command.
 #
 #   bash scripts/qa.sh
 #
@@ -19,12 +15,8 @@ for arg in "$@"; do
     esac
 done
 
-# From $0, not from `git rev-parse --show-toplevel`: the previous form was dead
-# code, because `cd ""` succeeds, so outside a git repo this ran the whole gate
-# in the wrong directory and exited 1 instead of 2.
-# pwd -P: on macOS a path through a symlink (/tmp, /var/folders) keeps its logical
-# form here while `git rev-parse` returns the physical one, and the two would not
-# compare equal — the scripts then refused to work in a perfectly valid checkout.
+# Resolved from $0 so the gate also runs, and fails with 2, outside a git repo.
+# Physical path, because `git rev-parse` returns physical paths on macOS.
 SCRIPT_DIR=$(cd -P "$(dirname "$0")" && pwd -P)
 REPO_ROOT=$(dirname "$SCRIPT_DIR")
 
@@ -65,8 +57,7 @@ run "consistency" bash scripts/check-consistency.sh || true
 run "install cycle" bash scripts/test-install-cycle.sh || true
 
 if command -v shellcheck >/dev/null 2>&1; then
-    # Pinned to 0.11.0 in CI because versions report different codes for the same
-    # finding; a local mismatch is a warning, not a failure.
+    # Versions report different codes for the same finding, so CI pins one.
     LOCAL_SC=$(shellcheck --version | awk '/^version:/ { print $2 }')
     [ "$LOCAL_SC" = "0.11.0" ] ||
         echo "  ⚠  local shellcheck is $LOCAL_SC; CI pins 0.11.0 — findings may differ"

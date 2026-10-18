@@ -980,6 +980,19 @@ and when. If a caller would have to read the implementation to use it correctly,
 undocumented however clean the body is. A comment that restates the code is still drift; one that
 states the contract is part of the interface.
 
+**Comments are not a changelog.** A comment describes the code as it is. One that records how the
+code came to be — what it replaced, which release broke it, which review or session found the bug —
+belongs in the commit body (2.11, 10.11), and next to the code it is noise that goes stale with the
+next edit. It is the easiest drift to point at:
+
+```bash
+git grep -n -i -E '(//|#|/\*|\*) .*(previously|used to|no longer|was changed|v[0-9]+\.[0-9]+\.[0-9]+|TICKET-|JIRA|(^|[^./a-z])(claude|copilot|chatgpt)([^./a-z-]|$)|(ai|chat|claude) session)'
+```
+
+Every hit is read, not counted — "Claude Code does not follow symlinks" is a constraint, and a
+version in a compatibility note can be a contract. A codebase
+where the hits are mostly narrative cannot score above 6 on 2.5, however good its names are.
+
 #### 2.6 Refactorability and code smells
 
 A codebase is not only evaluated on what it does now, but on how safely it can be changed. Refactorability is a structural property: the presence of seams (Feathers: points where behaviour can be changed without modifying surrounding code), the testability of individual units as a precondition to safe refactoring, and the absence of the known patterns that signal structural degradation.

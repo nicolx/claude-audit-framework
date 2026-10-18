@@ -7,8 +7,7 @@
 
 set -euo pipefail
 
-# This script deletes files. Silently ignoring an unrecognised option means an
-# operator who tries --dry-run gets a real uninstall instead of a rehearsal.
+# An ignored --dry-run would perform a real uninstall, so unknown options are fatal.
 for arg in "$@"; do
     case "$arg" in
         *) echo "❌ Unknown option: $arg"
@@ -18,13 +17,7 @@ for arg in "$@"; do
     esac
 done
 
-# pwd -P: on macOS a path through a symlink (/tmp, /var/folders) keeps its logical
-# form here while `git rev-parse` returns the physical one, and the two would not
-# compare equal — the scripts then refused to work in a perfectly valid checkout.
-# Two lines of bootstrap, then the shared logic. The library cannot locate itself,
-# so this much must be here — and it is logical (`cd`, not `cd -P`) for the reason
-# framework-paths.sh explains at length: the physical path says where the framework
-# lives, not which project asked.
+# Logical path, not `cd -P`: see framework-paths.sh.
 SCRIPT_BOOTSTRAP_DIR=$(cd "$(dirname "$0")" && pwd)
 if [ ! -f "$SCRIPT_BOOTSTRAP_DIR/lib/framework-paths.sh" ]; then
     echo "❌ $SCRIPT_BOOTSTRAP_DIR/lib/framework-paths.sh is missing."
@@ -62,8 +55,6 @@ strip_leading_blanks() {
 
 echo "🗑  Removing claude-audit-framework..."
 echo ""
-# This script deletes. Naming the target first is the difference between an
-# operator seeing where the deletions land and not seeing it at all.
 announce_target
 
 # ── Installed commands ──────────────────────────────────────────────────────────
@@ -122,9 +113,6 @@ if [ -d "$AGENTS_DIR" ]; then
         done
     else
         # Submodule already gone — fall back to the known agent names.
-        # A variable rather than a literal list: it holds one name today and grows
-        # with each agent the framework ships. Written as a one-word literal, the
-        # loop reads to the linter as one somebody forgot to finish writing.
         KNOWN_AGENTS="pr-critic scalability-devops architect hotfix"
         for name in $KNOWN_AGENTS; do
             if [ -f "$AGENTS_DIR/$name.md" ]; then
@@ -182,7 +170,7 @@ if [ -f "$PROJECT_ROOT/.claude/.framework-version" ]; then
 fi
 
 # ── @-include in CLAUDE.md ────────────────────────────────────────────────────
-# Both forms are handled: INSTRUCTIONS.md (current) and CLAUDE.md (pre-1.0 installs).
+# Older installs include CLAUDE.md instead of INSTRUCTIONS.md.
 
 if [ -f "$PROJECT_ROOT/CLAUDE.md" ] &&
    grep -qE '^@\.claude/framework/(INSTRUCTIONS|CLAUDE)\.md$' "$PROJECT_ROOT/CLAUDE.md"; then

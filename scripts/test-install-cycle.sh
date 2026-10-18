@@ -76,8 +76,6 @@ indent() {
 
 # new_submodule_project — a project with the framework added as a REAL git submodule
 # from a local upstream carrying tags. Echoes "<project> <upstream>".
-# This is the fixture the suite lacked: without it everything from
-# check-updates.sh's fetch onwards was unreachable, including a security fix.
 new_submodule_project() {
     local root up proj
     root=$(mktemp -d)
@@ -305,7 +303,7 @@ case "$check_out" in
 esac
 
 new_case "check-install.sh: a missing @-include is an error, not a warning"
-# The exact failure that prompted this script: submodule updated, include never added
+# Submodule updated, include never added
 grep -v '@.claude/framework/INSTRUCTIONS.md' "$PROJ/CLAUDE.md" > "$PROJ/CLAUDE.tmp"
 mv "$PROJ/CLAUDE.tmp" "$PROJ/CLAUDE.md"
 run_check "$PROJ"
@@ -445,9 +443,7 @@ else
 fi
 rm -rf "$PROJ"
 
-# ── mutants that survived the audit's mutation testing ───────────────────────
-# Each of these passed a green suite while a real data-loss or load-nothing
-# defect was injected, which is why they exist.
+# ── data-loss and load-nothing defects ───────────────────────────────────────
 
 new_case "Prepend branch: an existing CLAUDE.md keeps its content and gains the include"
 PROJ=$(new_project "$(printf '# Their Project\n\nTheir own instructions.\n')")
@@ -509,9 +505,8 @@ expect_grep "$PROJ/CLAUDE.md" "@.claude/framework/INSTRUCTIONS.md" "nothing was 
 rm -rf "$PROJ"
 
 new_case "check-consistency.sh detects a broken path, not just counts them"
-# The previous version of this case asserted only how many paths were counted, so
-# neutering the checks left it green — a vacuous pass inside the case written to
-# kill vacuous passes. Now it injects a real defect and requires a real failure.
+# Each check is proven by an injected defect it must fail on, not by a count of
+# the paths it scanned: a count stays green when the check itself is neutered.
 SANDBOX=$(mktemp -d)
 cp -R "$FRAMEWORK_SRC/." "$SANDBOX/"
 if [ ! -f "$SANDBOX/scripts/check-consistency.sh" ] || [ ! -d "$SANDBOX/.git" ]; then
@@ -552,7 +547,7 @@ else
 fi
 rm -rf "$SANDBOX"
 
-# ── gaps the re-audit measured ───────────────────────────────────────────────
+# ── edge cases: owned files, legacy includes, non-git dirs, hostile tags ─────
 
 new_case "Install appends to a project's .gitattributes instead of replacing it"
 PROJ=$(new_project)
@@ -677,8 +672,7 @@ else
 fi
 rm -rf "$(dirname "$PROJ")"
 
-# ── the bypasses an adversarial pass found ───────────────────────────────────
-# All four were working attacks against v1.8.1, three of them destructive.
+# ── path confinement and output sanitisation ─────────────────────────────────
 
 new_case "A symlinked .claude/framework does not redirect writes to another project"
 ROOT=$(mktemp -d)
@@ -780,7 +774,7 @@ else
 fi
 rm -rf "$(dirname "$PROJ")"
 
-# ── the second adversarial pass ──────────────────────────────────────────────
+# ── symlinked .claude, control bytes, hostile markers ────────────────────────
 
 new_case "A symlinked .claude is refused, and the link target is untouched"
 ROOT=$(mktemp -d)
@@ -812,10 +806,8 @@ expect_grep "$ROOT/victim/.claude/commands/project-audit.md" "victim's own" "its
 rm -rf "$ROOT"
 
 new_case "sanitize_display keeps printable ASCII and drops every control byte"
-# The previous deny-list skipped 0x0D and let every byte >= 0x80 through, which
-# carries C1 controls as UTF-8 and the bidirectional overrides.
-#
-# The property is "no byte outside tab + printable ASCII survives" — not "the
+# Bytes >= 0x80 are dropped too: they carry C1 controls and bidirectional
+# overrides as UTF-8. The property is "no byte outside tab + printable ASCII survives" — not "the
 # whole escape sequence vanishes". In \033[1A only the ESC is a control byte;
 # `[1A` is printable text and correctly stays.
 # shellcheck source=scripts/lib/framework-paths.sh

@@ -63,10 +63,17 @@ signal that the code itself is not clear enough.
 - A method body that reads like a sentence
 - A comment on an interface stating what the signature cannot — units, preconditions, the errors it
   raises: the contract, not the implementation
+- A non-obvious *why* written as a constraint that holds today — "Claude Code does not follow
+  symlinks" — not as the story of how it was found
+- The history of a line in the commit that introduced it (principle 19), never beside the line
 
 **Signals of drift:**
 
 - Inline comments explaining what a single line does
+- Comments that narrate the past: "previously", "used to", "was changed to", "the old version"
+- Comments naming a release, a ticket, a review, an incident or the AI session that produced the
+  code — they are true the day they are written and false or meaningless after the next change
+- Commented-out code kept "for reference" — the history already keeps it
 - Variable names like `data`, `result`, `temp`, `item`
 - Function names containing "and", "or", "also"
 

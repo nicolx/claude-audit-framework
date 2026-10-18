@@ -1,10 +1,8 @@
 #!/bin/bash
-# check-consistency.sh — the framework's quality gate.
+# check-consistency.sh — cross-document consistency of the framework, run by qa.sh.
 #
-# This repo ships documents whose paths are load-bearing: a consumer project resolves
-# `.claude/framework/...` references at session start, so a stale path is a live defect
-# rather than a typo. Every check below exists because the corresponding mistake was
-# actually made during a past migration.
+# A consumer project resolves `.claude/framework/...` references at session start,
+# so a stale path in a shipped document is a live defect.
 #
 # Run from the repo root:  bash scripts/check-consistency.sh
 
@@ -30,29 +28,18 @@ start() {
     echo "[$CHECKS] $1"
 }
 
-# note <text> — something this clone could not verify, or a reminder that is not
-# yet a defect. Visible on purpose, and deliberately not a failure: a check that
-# cannot run must say so rather than pass silently.
+# note <text> — something this clone cannot verify. Not a failure, but never silent.
 note() {
     echo "  ⚠  $1"
 }
 
-# indent <text> — prefix every line, so matched lines nest under the finding above.
 indent() {
     local pad="       "
     printf '%s%s\n' "$pad" "${1//$'\n'/$'\n'$pad}"
 }
 
-# The corpus under scrutiny: documents that describe the framework as it is *now*.
-#
-# Two files are deliberately excluded, because both must be able to name things this
-# script forbids elsewhere:
-#   CHANGELOG.md          — a historical record; it names retired paths on purpose
-#   check-consistency.sh  — this file; it defines the forbidden patterns
-# --others --exclude-standard, not --cached alone: a document written and not yet
-# staged is exactly when its paths are most likely wrong, and `git ls-files` on its
-# own cannot see it. v1.21.0 shipped a broken path reference for that reason — the
-# gate ran green against a command file git did not know about yet.
+# CHANGELOG.md and this file are excluded: both must name the patterns forbidden
+# elsewhere. Untracked files are included, so an unstaged document is checked too.
 DOCS=$(git ls-files --cached --others --exclude-standard '*.md' | sort -u | grep -v '^CHANGELOG\.md$')
 SCRIPTS=$(git ls-files --cached --others --exclude-standard 'scripts/*.sh' | sort -u | grep -v 'check-consistency\.sh$')
 
@@ -64,11 +51,8 @@ echo "────────────────────────�
 
 start "Retired names"
 
-# `git pull origin main` was the pre-1.0 upgrade path, replaced by pinned tags.
-# It survived in init-project.sh's own output for seven releases.
 RETIRED='CODE_QUALITY_STANDARDS|~/\.claude/standards|git pull origin main'
-# SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split
-# into separate grep arguments; quoting them would pass one giant filename.
+# SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split.
 # shellcheck disable=SC2086
 if MATCHES=$(grep -nE "$RETIRED" $DOCS $SCRIPTS 2>/dev/null); then
     fail "a name or command retired by a past migration reappeared — see the RETIRED pattern above for what replaced it"
@@ -78,14 +62,12 @@ else
 fi
 
 # ── 2. Commands are copies, never symlinks ───────────────────────────────────
-# Claude Code does not follow symlinks. Documentation claiming otherwise sent
-# developers looking for links that were never created.
+# Claude Code does not follow symlinks.
 
 start "Symlink claims"
 
 SYMLINK_CLAIM='(creates?|create|via|using|through) symlinks?'
-# SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split
-# into separate grep arguments; quoting them would pass one giant filename.
+# SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split.
 # shellcheck disable=SC2086
 if MATCHES=$(grep -nEi "$SYMLINK_CLAIM" $DOCS $SCRIPTS 2>/dev/null); then
     fail "documentation claims symlinks are used — commands are copied, because Claude Code does not follow symlinks"
@@ -100,9 +82,8 @@ fi
 
 start "Script portability"
 
-# Comment lines are excluded: explaining why `sed -i` is avoided is not using it.
-# SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split
-# into separate grep arguments; quoting them would pass one giant filename.
+# Comment lines are excluded: they may name `sed -i` without using it.
+# SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split.
 # shellcheck disable=SC2086
 if MATCHES=$(grep -nE '\bsed -i\b' $SCRIPTS 2>/dev/null | grep -vE ':[0-9]+:[[:space:]]*#'); then
     fail "'sed -i' is not portable between BSD and GNU sed — use a temp file + mv"
@@ -117,8 +98,7 @@ fi
 start "Framework path references"
 
 BROKEN=0
-# SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split
-# into separate grep arguments; quoting them would pass one giant filename.
+# SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split.
 # shellcheck disable=SC2086
 CITED=$(grep -rhoE '\.claude/framework/[A-Za-z0-9_./*-]+' $DOCS 2>/dev/null |
         sed 's|^\.claude/framework/||' |
@@ -142,8 +122,7 @@ done
 start "Repo-relative path references"
 
 BROKEN=0
-# SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split
-# into separate grep arguments; quoting them would pass one giant filename.
+# SC2086: $DOCS/$SCRIPTS are newline-separated file lists that must word-split.
 # shellcheck disable=SC2086
 CITED=$(grep -rhoE '(^|[^A-Za-z0-9_./-])(\.github|standards|templates|commands|agents|scripts)/[A-Za-z0-9_./*-]+' $DOCS 2>/dev/null |
         grep -oE '(\.github|standards|templates|commands|agents|scripts)/[A-Za-z0-9_./*-]+' |
@@ -198,8 +177,6 @@ else
         pass "VERSION and CHANGELOG agree on $VERSION"
     fi
 
-    # The README tells people which tag to pin. A stale example pins them to a
-    # version that predates whatever the rest of the README describes.
     STALE=$(grep -oE '\bv[0-9]+\.[0-9]+\.[0-9]+\b' README.md | sort -u | grep -vFx "v$VERSION" || true)
     if [ -n "$STALE" ]; then
         fail "README pins a version other than the current one ($VERSION)"
@@ -210,9 +187,7 @@ else
 fi
 
 # ── 8. The traceability table must match both documents ─────────────────────
-# CODING_STANDARDS.md maps each principle to the criteria that measure it. That
-# mapping is the only cross-reference between the write-time and audit-time
-# halves of the framework, so it is also the only place they can drift.
+# The only cross-reference between CODING_STANDARDS.md and PROJECT_AUDIT_FRAMEWORK.md.
 
 start "Traceability table"
 
@@ -244,15 +219,11 @@ if [ "$BROKEN" -eq 0 ]; then
 fi
 
 # ── 9. The gate has one composition, not two ────────────────────────────────
-# scripts/qa.sh was added so the gate would be one command, which fixed the
-# CLAUDE.md-vs-CI drift — and immediately created a qa.sh-vs-CI one, because CI
-# re-declares the same checks as separate jobs and nothing tied the two. A fifth
-# CI job would silently falsify both the script and the documentation.
+# CI declares the checks of qa.sh again as separate jobs; the two lists must match.
 
 start "Gate composition"
 
-# Leading whitespace matters: two of the run calls sit inside `if` blocks, and an
-# anchored pattern counted two of four — the check's own first finding.
+# Leading whitespace allowed: some run calls sit inside `if` blocks.
 GATE_STEPS=$(grep -cE '^[[:space:]]*run "' scripts/qa.sh)
 CI_JOBS=$(awk '/^jobs:/ { injobs = 1; next } injobs && /^  [a-z][a-z0-9-]*:$/ { n++ } END { print n + 0 }' \
           .github/workflows/ci.yml)
@@ -278,12 +249,8 @@ else
 fi
 
 # ── 10. Every released version is tagged, at the commit that declared it ─────
-# Check 7 proves VERSION and CHANGELOG agree, which says nothing about whether the
-# release was ever published. The README's upgrade steps tell a consumer to run
-# `git checkout vX.Y.Z`, and check-updates.sh compares against the tags on the
-# remote — so an untagged release is an upgrade instruction that fails and a
-# version the update check cannot see. A tag on the wrong commit is the same
-# defect wearing the right answer, so the tag's own VERSION is read back.
+# Consumers upgrade with `git checkout vX.Y.Z` and check-updates.sh reads remote
+# tags, so every release needs a tag on the commit whose VERSION declares it.
 
 start "Release tags"
 
@@ -297,8 +264,7 @@ else
     VERIFIED=0
 
     for v in $RELEASED; do
-        # The newest entry is the release being prepared. It is tagged when it is
-        # published, which is necessarily after this gate has to pass.
+        # The newest entry is tagged on publish, after this gate passes.
         [ "$v" = "$CURRENT" ] && continue
         if ! git rev-parse -q --verify "refs/tags/v$v^{commit}" >/dev/null; then
             MISSING="$MISSING v$v"
@@ -329,11 +295,7 @@ else
 fi
 
 # ── 11. Every shipped agent is routed, and every routed agent exists ─────────
-# An agent is two artifacts that have to agree: the file, which says what it does,
-# and the routing table in INSTRUCTIONS.md, which says when to reach for it. Ship
-# the file without the row and nothing ever dispatches it; write the row without
-# the file and a session delegates to a name Claude Code cannot resolve. Neither
-# failure is visible from inside either file.
+# The agent file and its row in the INSTRUCTIONS.md routing table must both exist.
 
 start "Agent routing"
 

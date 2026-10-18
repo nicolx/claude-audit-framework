@@ -249,6 +249,17 @@ Security and observability are the usual cases: nobody asks for input validation
 line, and both are written, not discovered. Apply principles 15 and 16 to new code by default, the
 same way you apply naming and SRP — waiting for an audit to reveal a missing log is waiting too long.
 
+### Every change ends with two checks
+
+Before a change is done, read its diff twice:
+
+- **The code speaks for itself** — principle 1. A comment you added is a contract or a present-tense
+  constraint, or it goes. What you did, why you changed it, what it replaced and which session
+  produced it go in the commit body (principle 19), never in the code.
+- **The documents are still true** — principle 22. If the change made a README, `CLAUDE.md` or
+  `.claude/*` statement false, it corrects it in the same change. If nothing it says became false,
+  nothing is written: a README is updated when it is wrong, not to log the work.
+
 ### Keeping the instruction files true
 
 `CLAUDE.md` and the files in `.claude/` are loaded into every session and applied as fact. Nobody
