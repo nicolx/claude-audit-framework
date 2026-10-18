@@ -8,6 +8,33 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.33.0] — 2026-10-18
+
+Category 0 scored what the product declares it is for, and nothing scored whether anyone can find
+out what it does. That account lived in the code and in the heads of the people who wrote it — and
+an agent can now read every entry point cheaply enough to write it down in the change that makes it
+stale, which is the only time a manual stays true.
+
+### Added
+
+- **0.9 What the product does is written down for the people who use it** — a task-organised manual
+  for users and for developers joining the team, every task traced to an entry point and every
+  reachable entry point in a task, stamped with the commit it describes. A manual derived from code
+  is legitimate here and nowhere else in the category: it is never evidence of intent, and what it
+  shows that 0.1 does not declare is a finding against 0.1. A consumer's Category 0 may move on
+  upgrade with no change to its code.
+- **`/product-tour`** — builds the entry-point inventory, writes `user-guide.md` and
+  `developer-tour.md` from it, derives Marp slides from the guide, and reports where the code and the
+  product context disagree without deciding which is right. Where declared, records the real
+  application against a non-production target on synthetic data, in the project's own end-to-end
+  harness, with captions taken from the guide — never generated imagery. A failed recorded step is
+  reported, not repaired. `--check` writes nothing and is how `/project-audit` scores 0.9.
+- **The `Product tour` declaration block** in `templates/PROJECT_AUDIT_FRAMEWORK.md`. Without it the
+  command writes documents only; it sets no ceiling on 0.9. `check-install.sh` reports it as absent
+  on existing installs.
+- **Sources** — a *Documentation* section: Procida's *Diátaxis*, with the departure that the
+  generated manual writes only how-to and reference; Gentle's *Docs Like Code*.
+
 ## [1.32.0] — 2026-10-18
 
 Principle 1 said what a comment should not explain, and stopped there. The comment it did not name —

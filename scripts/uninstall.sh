@@ -75,7 +75,7 @@ if [ -d "$COMMANDS_DIR" ]; then
         done
     else
         # Submodule already gone — fall back to the known command names
-        for name in project-audit competency-review init-profile dr-drill team-census; do
+        for name in project-audit competency-review init-profile dr-drill team-census product-tour; do
             if [ -f "$COMMANDS_DIR/$name.md" ]; then
                 rm "$COMMANDS_DIR/$name.md"
                 echo "  ✓  Removed command: /$name"

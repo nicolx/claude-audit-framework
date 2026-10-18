@@ -289,3 +289,26 @@ Example:
 
 If there is none: "Not declared — no drill target exists, and 9.10 is scored from configuration and
 the runbook alone."]
+
+## Product tour
+
+[Where `/product-tour` writes the manual of 0.9, for whom, and whether it may run the application to
+record it. The recording fields are a grant: without them the command writes documents only.
+
+Example:
+
+| Field | Value |
+|---|---|
+| Manual home | `docs/manual/` — `inventory.md`, `user-guide.md`, `developer-tour.md`, `slides.md`, `divergences.md` |
+| Audiences | clinic reception staff and practice managers; developers joining the team |
+| Vocabulary | the glossary in `docs/product/context.md` — tasks are named the way it names them |
+| Recording | `npm run tour` — the project's Playwright harness, scripts in `e2e/tour/`, one per task |
+| Target | `docker compose -f compose.tour.yml up`, created and destroyed by the run; shares nothing with production |
+| Data | seeded from `fixtures/demo.sql` — synthetic only; no production copy, anonymised or not |
+| Credentials | `TOUR_USER`, `TOUR_PASSWORD` — demo accounts, in the operator's environment |
+| Media | videos and screenshots to `docs/manual/media/`, tracked with Git LFS |
+| Narration | WebVTT captions only — no synthesised voice |
+
+If there is none: "Not declared — `/product-tour` writes the manual and slides under the
+documentation home and records nothing; 0.9 is scored on the documents alone." That costs no score:
+a manual illustrated by hand reaches the same band.]

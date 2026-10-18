@@ -674,6 +674,62 @@ and that is scored as the gap it is: the next person to ask what was delivered i
 answer either. And what is scored is the **delivery inside the window, never the people in it**. A
 finding that names a developer has stopped measuring a practice and started doing something else.
 
+#### 0.9 What the product does is written down for the people who use it
+
+0.1 states what the product is for. This scores whether someone can find out what it **does** — the
+tasks a user can complete and where they complete them — without reading the code or asking the
+person who wrote it. Two readers need it, and they need different documents: whoever uses the
+product, in its own vocabulary, and whoever joins the team, following each task through the code.
+
+This is the one document in the category that describes the implementation, so deriving it from the
+code is legitimate — and the warning in *Adopting this category on an existing project* applies to
+it in reverse. **A manual is never evidence of intent.** It scores under 0.9 and nowhere else in the
+category: it carries no status marker from 0.4, it is not the context of 0.1 or a spec of 0.3, and
+whatever it shows that the context does not declare is a finding against the context, not a
+correction of it.
+
+**The audience is whoever uses the product.** For a library, a framework or a toolkit that is a
+developer, and the manual is its usage guide. N/A only where nobody uses the software directly — a
+frozen archive, a component reached solely through another product that documents it.
+
+**Good:**
+
+- Organised by the task a user performs, not by module, screen or menu. Each task says who can do
+  it, the steps, and what the user sees when it worked and when it did not
+- Every task traces to an entry point a reader can open — a route, a command, a screen, a job — and
+  every reachable entry point belongs to some task. The list of entry points is committed beside the
+  manual, so both directions can be checked
+- States the commit it describes. A change that adds, removes or changes a reachable entry point
+  updates the manual in the same unit of work
+- Screenshots and recordings are captures of the running software at that commit, on synthetic data
+- Where the manual and the product context disagree, the disagreement is recorded and somebody has
+  decided which one is wrong
+
+**Bad:**
+
+- A README that stops at installation. The product's capabilities exist only in the code and in the
+  heads of the people who built it
+- A manual describing a feature that was removed, or illustrated with screens that were redesigned
+- A manual generated once, committed, and never regenerated — the date on it is the finding
+- Generated imagery, or a narrated video of screens that do not exist. A demo of software that is not
+  there is worse than no demo, because a stakeholder will plan against it
+- The manual cited as the product context. 0.1 then agrees with the code by construction, and the
+  divergences the manual was able to surface have been absorbed rather than resolved
+
+**How to score:**
+
+- 0–2: Nothing beyond setup instructions; what the product does is recoverable only from the code
+- 3–5: Some user documentation, organised by module or screen rather than by task; no way to tell
+  which entry points it covers or which commit it describes
+- 6–7: Task-organised and stamped with a commit; covers the main surfaces for one audience, or for
+  both with entry points missing or stale
+- 8–10: Both audiences; every reachable entry point belongs to a task and every task resolves to an
+  entry point; the last changes to entry points updated the manual in the same unit of work; the
+  divergences from the context are recorded and decided
+
+`/product-tour --check` rebuilds the entry-point list and reports the drift from the committed
+manual. A manual written by hand scores the same.
+
 ### Adopting this category on an existing project
 
 A project that installs this framework in its third year has no history of specs and no way to
@@ -710,7 +766,9 @@ So the remediation runs forward, with a small bounded backfill. In this order:
    pinned to a frame or committed as an export. The history is gone. It is not recoverable and does
    not need to be.
 
-Steps 4 and 5 are the entire backfill. Everything else runs forward.
+Steps 4 and 5 are the entire backfill. Everything else runs forward. The manual of 0.9 is outside
+this sequence: it describes the code as it stands, so it can be written at any point without
+pretending to a history the project does not have.
 
 **How this is scored.** 0.3, 0.4, 0.5 and 0.8 are scored against the **units of delivery since the
 practice started**, not against the project's whole history — and for 0.8 that date is the lower
@@ -4431,6 +4489,13 @@ needed to apply the framework. Each of them explains, at length, why it asks wha
 | Source | Where the framework uses it | Why read it |
 |---|---|---|
 | John Shook, *Managing to Learn* (2008) | Principle 24 and 0.8 — the A3: problem, current state, target, countermeasure, check | Problem solving on one page, as Toyota teaches it |
+
+### Documentation
+
+| Source | Where the framework uses it | Why read it |
+|---|---|---|
+| Daniele Procida, *Diátaxis* (2017–) | 0.9 and `/product-tour` — user documentation organised by what the reader is trying to do. **Departs:** Diátaxis names four kinds — tutorials, how-to guides, reference, explanation — and treats them as equals; the generated manual writes only how-to and reference, because tutorials and explanation need someone who knows *why*, which an inventory of entry points cannot supply | Why most documentation fails its reader by mixing four jobs into one page, and how to tell them apart |
+| Anne Gentle, *Docs Like Code* (2017) | 0.9 — the manual versioned, reviewed and updated in the same unit of work as the code it describes | Documentation run with the tools and the discipline of the code, so that it changes when the code does |
 
 ### Security
 
