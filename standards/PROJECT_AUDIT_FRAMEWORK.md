@@ -830,7 +830,7 @@ Functions should do one thing. If a function needs a comment to explain each "se
 
 #### 2.3 DRY (Don't Repeat Yourself)
 
-Every piece of knowledge has a single, authoritative representation in the codebase. Duplication is not just copy-pasted code — it is also duplicated concepts expressed in different ways.
+Every piece of knowledge has a single, authoritative representation in the codebase — Hunt and Thomas's formulation of the principle they named. Duplication is not just copy-pasted code — it is also duplicated concepts expressed in different ways.
 
 **Good:** A single `sanitizeSymbol()` function called from every place that needs it. A shared validation rule used by both the API endpoint and the CLI command.
 
@@ -863,24 +863,24 @@ Code that can be read and understood without comments, because the names, struct
 
 #### 2.6 Refactorability and code smells
 
-A codebase is not only evaluated on what it does now, but on how safely it can be changed. Refactorability is a structural property: the presence of seams (points where behaviour can be changed without modifying surrounding code), the testability of individual units as a precondition to safe refactoring, and the absence of the known patterns that signal structural degradation.
+A codebase is not only evaluated on what it does now, but on how safely it can be changed. Refactorability is a structural property: the presence of seams (Feathers: points where behaviour can be changed without modifying surrounding code), the testability of individual units as a precondition to safe refactoring, and the absence of the known patterns that signal structural degradation.
 
-Fowler's code smell catalogue provides a shared vocabulary for naming structural problems without ambiguity. The most impactful smells to watch for:
+The code smell catalogue of Fowler and Beck (*Refactoring*, 2nd edition — the names below are that edition's) provides a shared vocabulary for naming structural problems without ambiguity. The most impactful smells to watch for:
 
 | Smell | Signal | Typical fix |
 |---|---|---|
-| **Long Method** | Function over 20–30 lines; needs comments to divide "sections" | Extract Method |
+| **Long Function** | Function over 20–30 lines; needs comments to divide "sections" | Extract Function |
 | **Large Class** | Class over 200 lines; does too many things | Extract Class |
-| **Feature Envy** | A method uses another class's data more than its own | Move Method |
-| **Data Clumps** | The same group of 3+ fields passed together repeatedly | Introduce Value Object or Parameter Object |
+| **Feature Envy** | A method uses another class's data more than its own | Move Function |
+| **Data Clumps** | The same group of 3+ fields passed together repeatedly | Extract Class — often into a Value Object (3.3) — or Introduce Parameter Object |
 | **Primitive Obsession** | `string` or `int` used where a domain concept (`Money`, `EmailAddress`, `OrderStatus`) should exist | Replace Primitive with Object |
-| **Shotgun Surgery** | A single change requires edits in many unrelated classes | Move Field / Move Method to consolidate |
-| **Divergent Change** | A single class changes for multiple different reasons | Extract Class (split by reason to change) |
-| **Switch Statements** | A `switch` on a type field that recurs throughout the codebase | Replace Conditional with Polymorphism |
-| **Middle Man** | A class that does nothing but delegate every call to another class | Remove Middle Man or Inline Delegation |
-| **Temporary Field** | Instance variables that are only set in certain paths | Extract Class or Introduce Null Object |
+| **Shotgun Surgery** | A single change requires edits in many unrelated classes | Move Function / Move Field to consolidate |
+| **Divergent Change** | A single class changes for multiple different reasons | Split Phase or Extract Class (split by reason to change) |
+| **Repeated Switches** | A `switch` on a type field that recurs throughout the codebase | Replace Conditional with Polymorphism |
+| **Middle Man** | A class that does nothing but delegate every call to another class | Remove Middle Man or Inline Function |
+| **Temporary Field** | Instance variables that are only set in certain paths | Extract Class or Introduce Special Case |
 
-**Test for refactorability:** Can a Long Method be extracted into smaller named functions without changing the public contract? Can a dependency be swapped without touching call sites? If the answer is "no" because of global state, hardcoded instantiation, or missing interfaces — the code is not safely refactorable, regardless of how clean it looks.
+**Test for refactorability:** Can a Long Function be extracted into smaller named functions without changing the public contract? Can a dependency be swapped without touching call sites? If the answer is "no" because of global state, hardcoded instantiation, or missing interfaces — the code is not safely refactorable, regardless of how clean it looks.
 
 **Good:** Methods short enough to be extracted cleanly. Dependencies injected so they can be replaced in tests. No `static` methods with side effects that cannot be overridden.
 
@@ -1241,7 +1241,7 @@ The distinction matters: `OrderPlaced`, `PaymentDeclined`, `EmployeeBenefitActiv
 
 A Bounded Context is the explicit boundary within which a domain model applies. The same word ("User", "Account", "Product") can mean radically different things in different bounded contexts — and conflating them is one of the most common sources of accidental complexity in large systems.
 
-**Context integration patterns (Vernon's Strategic Design):**
+**Context integration patterns (Evans's strategic design, elaborated by Vernon):**
 
 | Pattern | When to use | Risk |
 |---|---|---|
@@ -1313,7 +1313,7 @@ Tests can verify behaviour in three fundamentally different ways. The style matt
 |---|---|---|---|
 | **Output-based** | Given inputs X, the return value is Y | Low — only breaks when the contract changes | Pure functions, calculations, transformations |
 | **State-based** | After calling method X, the object's state is Y | Medium — breaks when internal state structure changes | Domain objects, aggregates, collections |
-| **Interaction-based** | Method X called method Y N times with argument Z | High — breaks whenever the implementation changes, even if the observable behaviour is unchanged | Cross-boundary calls (e.g., verify an email was sent) |
+| **Communication-based** (often called interaction-based) | Method X called method Y N times with argument Z | High — breaks whenever the implementation changes, even if the observable behaviour is unchanged | Cross-boundary calls (e.g., verify an email was sent) |
 
 **Rule:** Prefer output-based tests wherever possible. Use state-based tests for domain objects. Use interaction-based tests (mocks with `verify`) only at system boundaries — to verify that an external side effect was triggered (email sent, event published, log written). Never use `verify(mock, times(1)).someInternalMethod()` to test an implementation detail.
 
@@ -1388,7 +1388,7 @@ is green because forty of its tests do not execute, and whose summary line nobod
 
 #### 4.6 Test doubles used correctly
 
-Freeman & Pryce distinguish five types of test double, each with a specific role. Using them interchangeably produces tests that are either too brittle or too permissive.
+Meszaros (*xUnit Test Patterns*) distinguishes five types of test double, each with a specific role. Using them interchangeably produces tests that are either too brittle or too permissive.
 
 | Type | What it does | When to use |
 |---|---|---|
@@ -1398,7 +1398,7 @@ Freeman & Pryce distinguish five types of test double, each with a specific role
 | **Spy** | Records calls for later assertion | When you need to verify an indirect output happened, but don't want to pre-program the expectation |
 | **Mock** | Pre-programmed with expectations; fails if not met | Verifying that a specific interaction with a collaborator occurred |
 
-**The critical rule — mock only what you own:**
+**The critical rule — mock only what you own (Freeman & Pryce):**
 Never create a mock of a class you do not control (a third-party library, a framework class, an external SDK). If the library changes its interface, the mock will still pass while the real integration breaks. Instead:
 
 1. Wrap the third-party class in an interface you own (`HttpClientInterface`, `PaymentGatewayInterface`)
@@ -3041,7 +3041,7 @@ Recovering from losing either of those is 9.10.*
 architecture admits such a sequence at all — a system with no seams leaves no plan available but the
 cutover.*
 
-An evolutionary architecture is one that supports incremental, guided change across multiple dimensions simultaneously. The central idea (Fowler, Ford, Parsons) is that architecture fitness functions — automated checks that verify architectural properties — should be treated as first-class citizens alongside functional tests.
+An evolutionary architecture is one that supports incremental, guided change across multiple dimensions simultaneously. The central idea (Ford, Parsons, Kua) is that architecture fitness functions — automated checks that verify architectural properties — should be treated as first-class citizens alongside functional tests.
 
 **Strangler Fig pattern (Fowler):** When replacing a legacy subsystem, do not attempt a big-bang rewrite. Instead:
 
@@ -3167,7 +3167,7 @@ A pull request is not just a merge mechanism — it is the primary asynchronous 
 - No context about what was broken or why this is the right fix
 - Code that the author knows is incomplete but "wanted feedback early"
 
-**The size trap:** Large PRs are not reviewed — they are rubber-stamped. Studies consistently show review quality drops sharply above 400 lines. If a change genuinely requires more, split it into a stacked PR series: infrastructure first, then feature on top.
+**The size trap:** Large PRs are not reviewed — they are rubber-stamped. The SmartBear study of code review at Cisco (Cohen, 2006) found reviewers' ability to find defects falls off beyond roughly 200–400 lines in one review. If a change genuinely requires more, split it into a stacked PR series: infrastructure first, then feature on top.
 
 **Good signals:**
 
@@ -3682,7 +3682,7 @@ something calls it in production. They are allowed to be slow, to need a databas
 things a unit test never would, because their entire job is to be deleted later, once the structure
 they protected has emerged and real tests can be written against it.
 
-What they must not be is written *after* the refactoring. A characterisation test records what the
+What they must not be is written *after* the refactoring. A characterisation test (Feathers) records what the
 system does now, including the behaviour nobody intended — that is the point of it, and it is
 worthless if captured from the code you are about to claim is equivalent.
 
@@ -3889,6 +3889,101 @@ These concerns apply to native mobile projects (iOS/Swift, Android/Kotlin, Flutt
 | Architecture fitness | SwiftLint custom rules for layer imports | ArchUnit or detekt rules | `dart analyze` + custom lints |
 | Input validation (deep links, push payloads) | Validate every `URL`, `UNNotificationContent`, and `Decodable` at the boundary | Validate every `Intent`, `Bundle`, and `Parcelable` at the boundary | Validate every route parameter and platform channel message |
 | Translatability (2.9, 2.10 — apply in full) | String Catalogs; a literal in SwiftUI `Text()` is already localizable, one in a formatted string is not | `strings.xml` only; a literal in a layout or Compose call is the finding | `flutter_localizations` + ARB files; `flutter gen-l10n` |
+
+---
+
+## Appendix — Sources
+
+Every criterion in this document and every principle in `CODING_STANDARDS.md` stands on its own
+evidence — a file, a line, a command's output. Nothing here is scored because a book says so. This
+appendix exists for two other reasons: to give credit where an idea was taken, and to show whoever
+applies the framework where the idea came from, so the reasoning behind a criterion can be read at
+its full length rather than in the few lines the criterion has room for.
+
+It is the only place the framework's sources are listed. A criterion may name its source inline; the
+full reference, and every place that uses it, live here.
+
+**Where the framework departs from a source, the row says so.** A departure is a decision, and a
+source cited without it would be read as an endorsement of the part the framework set aside.
+
+**For a developer early in their career:** the last column is a reading list. None of these works is
+needed to apply the framework. Each of them explains, at length, why it asks what it asks.
+
+### Code and design
+
+| Source | Where the framework uses it | Why read it |
+|---|---|---|
+| Robert C. Martin, *Clean Code* (2008) | Category 2; principles 1 and 3 | The vocabulary of readable code — naming, function focus, error handling — that most review comments are written in |
+| Robert C. Martin, *Agile Software Development: Principles, Patterns, and Practices* (2002) | 1.2–1.4; principles 3 and 4 | Where SOLID was assembled as a set, with the reasoning behind each letter |
+| Bertrand Meyer, *Object-Oriented Software Construction* (1988) | 1.3 — the open/closed principle, in the form Martin later restated through abstraction | The original statement of the principle, and of design by contract |
+| Erich Gamma, Richard Helm, Ralph Johnson, John Vlissides, *Design Patterns* (1994) | 1.5 — Factory Method, Observer, Decorator; principle 2's distrust of deep hierarchies, *favour composition over inheritance* | The catalogue every later pattern book assumes. Read the introduction before the patterns |
+| Martin Fowler, *Patterns of Enterprise Application Architecture* (2002) | 1.5 — Repository, Data Mapper, Value Object; 3.5 | The patterns of the layer between a domain and its storage, which is where most business code lives |
+| Joshua Kerievsky, *Refactoring to Patterns* (2004) | Principle 2; 1.5 — a pattern earns its place | How to arrive at a pattern by refactoring towards it when the code asks, instead of designing it in up front |
+| Andrew Hunt, David Thomas, *The Pragmatic Programmer* (1999; 20th anniversary edition 2019) | 2.3 — the DRY principle, and its definition as *knowledge* rather than text | A career's worth of working habits in short chapters — the first book on this list to read |
+| Sandi Metz, *The Wrong Abstraction* (2016) | Principle 2; 2.3 — similar code is not always the same knowledge | Why duplication is cheaper than the wrong abstraction, and how to back out of one |
+| Kent Beck, *Extreme Programming Explained* (1999; 2nd edition 2004) | Principle 12 — the four rules of simple design, and *you aren't gonna need it* | The origin of practices most teams now take for granted: small releases, continuous integration, refactoring as daily work |
+
+### Refactoring and legacy code
+
+| Source | Where the framework uses it | Why read it |
+|---|---|---|
+| Martin Fowler, with Kent Beck, *Refactoring* (2nd edition 2018) | 2.6 — the smell catalogue and its fixes, by that edition's names. **Departs:** the *Rule of Three* the book reports from Don Roberts — refactor at the third duplication — is not adopted; principle 2 decides by the complexity of the problem, not by counting occurrences | Refactoring as a sequence of small, named, behaviour-preserving steps, each with its own mechanics |
+| Kent Beck, *Tidy First?* (2023) | Principle 19 — a change to structure and a change to behaviour are two commits | When to tidy before a change, after it, later or never — argued as economics rather than as a rule |
+| Michael Feathers, *Working Effectively with Legacy Code* (2004) | 2.6 — the seam; principle 11's first pass; *Remediation order* — characterisation tests, and code that cannot be tested until it has been refactored | Dozens of concrete techniques for bringing untested code under test, which describes most code anyone inherits |
+| Martin Fowler, *Strangler Fig Application* (2004) | 10.9 | Replacing a system while it keeps running, one path at a time |
+| Danilo Sato, *Parallel Change* (2014) | Principles 11 and 27; 10.4 — expand, migrate, contract | The three-phase shape of every backward-compatible change, and why the third phase is the one that goes missing |
+
+### Domain modelling
+
+| Source | Where the framework uses it | Why read it |
+|---|---|---|
+| Eric Evans, *Domain-Driven Design* (2003) | Category 3 — ubiquitous language, entities, value objects, aggregates, repositories, bounded contexts, and the integration patterns of 3.8; 2.8's language test | The book the category is named after. Its strategic half — contexts and their relationships — matters more than the tactical half and is read less |
+| Vaughn Vernon, *Implementing Domain-Driven Design* (2013) | 3.7 — domain events; 3.8 — the integration patterns, as elaborated | Evans's ideas carried into running code, with domain events treated as part of the model |
+| Fred Brooks, *No Silver Bullet* (1986) | Principle 7; 3.8 — essential against accidental complexity. **Departs:** *plan to throw one away*, from *The Mythical Man-Month* (1975), is not adopted — principle 12 makes each step a refactoring, never a rewrite, and Brooks himself called that advice too simplistic in the 1995 edition, in favour of building incrementally | The clearest argument for why no tool removes the hard part of software, and which part that is |
+| Melvin Conway, *How Do Committees Invent?* (1968) | 3.8 — boundaries between contexts follow boundaries between teams; Category 10's reading of knowledge concentration by area | Why a system's structure mirrors the organisation that builds it, and what follows from changing either |
+
+### Testing
+
+| Source | Where the framework uses it | Why read it |
+|---|---|---|
+| Vladimir Khorikov, *Unit Testing Principles, Practices, and Patterns* (2020) | 4.2 — output-, state- and communication-based styles | What makes a test valuable rather than merely present — resistance to refactoring above all |
+| Steve Freeman, Nat Pryce, *Growing Object-Oriented Software, Guided by Tests* (2009) | 4.2 — the TDD signal; 4.6 — mock only the types you own; principle 17 | Tests as a design tool: a test that is hard to write is the production code telling you something |
+| Gerard Meszaros, *xUnit Test Patterns* (2007) | 4.6 — the five kinds of test double | The reference vocabulary for test doubles and test smells |
+| Kent Beck, *Test-Driven Development: By Example* (2002) | Principle 10. **Departs:** the framework requires the expected behaviour to be agreed before the code — a test being its most precise form — not test-first as a mandatory cycle | The red, green, refactor rhythm, on worked examples small enough to follow by hand |
+| Titus Winters, Tom Manshreck, Hyrum Wright, *Software Engineering at Google* (2020) | Principle 26 and 4.7 — the *Beyoncé rule*, if you liked it you should have put a test on it; 10.12 — small changes as the unit of review | Practices at the scale where every shortcut is paid for a thousand times — including Hyrum's Law, on why every observable behaviour ends up a contract |
+
+### Architecture and evolution
+
+| Source | Where the framework uses it | Why read it |
+|---|---|---|
+| Robert C. Martin, *Clean Architecture* (2017) | 3.1 — the dependency rule | Why dependencies point inwards, towards policy and away from detail |
+| Alistair Cockburn, *Hexagonal Architecture* (2005), and the walking skeleton of *Crystal Clear* (2004) | 3.1 and 4.6 — the domain reached through ports, infrastructure behind adapters; principle 24 — a thin slice through every layer, never one layer at a time | The shortest route to a core that can be tested without its infrastructure |
+| Neal Ford, Rebecca Parsons, Patrick Kua, *Building Evolutionary Architectures* (2017) | 10.9 — fitness functions; 7.6 | Architecture as a property checked continuously by automation, rather than decided once |
+| Michael Nygard, *Documenting Architecture Decisions* (2011) | Principle 13 and 0.7 — the ADR, extended here with *Alternatives considered* | The one-page format that made decision records practical |
+| Martin Kleppmann, *Designing Data-Intensive Applications* (2017) | Principle 21, 7.9 and 9.8 — what data access costs; 10.4 — evolving schemas and encodings compatibly | How databases, replication and streams actually behave, at the depth where performance and correctness are decided |
+
+### Delivery and operations
+
+| Source | Where the framework uses it | Why read it |
+|---|---|---|
+| Jez Humble, David Farley, *Continuous Delivery* (2010) | 10.3, 10.5, 10.6 and 10.8 — the deployment pipeline, deployment strategies, rollback, smoke tests | Why every commit should be releasable, and the pipeline that makes it so |
+| Adam Wiggins, *The Twelve-Factor App* (2011) | 10.2 | Twelve short rules for a service that behaves the same in every environment |
+| Michael Nygard, *Release It!* (2nd edition 2018) | 9.5 — cascading failures and graceful degradation; 9.6 and 9.7 — the *steady state* pattern, in which everything that accumulates needs something that removes it | What production does to software that has only ever run in tests |
+| Charity Majors, Liz Fong-Jones, George Miranda, *Observability Engineering* (2022) | 9.1 — context as structured fields; 9.9 — *what did production do in the last hour?* **Departs:** the book prefers wide, high-cardinality events to levelled logs; 9.1 keeps the levels | Debugging systems that cannot be reproduced locally, by asking new questions of the data rather than reading prepared dashboards |
+| Jason Cohen, *Best Kept Secrets of Peer Code Review* (2006) | 10.12 — review size | The data behind the advice that a review should be small enough to read in one sitting |
+
+### Planning
+
+| Source | Where the framework uses it | Why read it |
+|---|---|---|
+| John Shook, *Managing to Learn* (2008) | Principle 24 and 0.8 — the A3: problem, current state, target, countermeasure, check | Problem solving on one page, as Toyota teaches it |
+
+### Security
+
+| Source | Where the framework uses it | Why read it |
+|---|---|---|
+| OWASP Top 10 | 8.7 | The current ranking of the most common web application risks |
+| OWASP Application Security Verification Standard (ASVS) | Not yet used for scoring — 8.7 scores against the Top 10. Listed as its verifiable counterpart | Security requirements written as things that can be checked, level by level: the Top 10 names what goes wrong, the ASVS what to verify |
 
 ---
 

@@ -8,6 +8,49 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.28.1] — 2026-10-18
+
+The framework draws on thirty-six books, papers and standards and named a handful of them — three of
+those credits to the wrong author. This release names its sources, corrects the attributions that
+were wrong, and changes no criterion, no principle and no score.
+
+### Added
+
+- **`PROJECT_AUDIT_FRAMEWORK.md` — *Appendix — Sources*.** Every work the framework draws on, with
+  the criteria and principles that use it and one line on why it is worth reading — a reading list
+  for a developer early in their career as much as a record of credit. It is the only place sources
+  are listed; a criterion may name one inline, and the full reference lives here. **Where the
+  framework departs from a source, the row says so**: the *Rule of Three* (principle 2 decides by
+  complexity, not by counting), *plan to throw one away* (principle 12 refactors, never rewrites),
+  test-first as a mandatory cycle (principle 10 asks for agreed behaviour, not a ritual), and the
+  case against levelled logs (9.1 keeps the levels). The OWASP ASVS is listed as the verifiable
+  counterpart of the Top 10 and marked as not yet used for scoring.
+- **`CODING_STANDARDS.md`** points at that appendix from its header, rather than keeping a second
+  list.
+
+### Fixed
+
+- **4.6** attributed the five kinds of test double to Freeman & Pryce. The taxonomy is Meszaros's,
+  from *xUnit Test Patterns*; Freeman & Pryce keep the rule they did write, *mock only the types you
+  own*, now credited where it is stated.
+- **10.9** credited evolutionary architecture to "Fowler, Ford, Parsons". *Building Evolutionary
+  Architectures* is by Ford, Parsons and Kua. The Strangler Fig stays Fowler's.
+- **3.8** credited the context-integration patterns to "Vernon's Strategic Design". They are Evans's,
+  from *Domain-Driven Design*; Vernon elaborated them.
+- **4.2** named Khorikov's third testing style *interaction-based*. His term is *communication-based*;
+  the common name is kept beside it.
+- **2.6** used the 1999 names for smells and refactorings, and two fixes that are not in the
+  catalogue at all. The table now uses the second edition's: Long Function, Extract Function, Move
+  Function, Repeated Switches, Split Phase, Inline Function, Introduce Special Case — and Data Clumps
+  resolves to Extract Class or Introduce Parameter Object, with the Value Object of 3.3 named as the
+  usual destination. The catalogue is credited to Fowler and Beck, who wrote that chapter together.
+- **10.12** said "studies consistently show" with nothing cited. It now cites the SmartBear study of
+  review at Cisco (Cohen, 2006) and states its finding — defect detection falls off beyond roughly
+  200–400 lines — rather than a stronger claim no study was named for.
+- **2.3** gave the definition of DRY without its authors. It is Hunt and Thomas's, and says so. The
+  seam of 2.6 and the characterisation tests of *Remediation order* are credited to Feathers in the
+  same way.
+
 ## [1.28.0] — 2026-10-11
 
 1.27.0 added the `Fast-lane gate` and left it the only declaration block no subcriteria read. The

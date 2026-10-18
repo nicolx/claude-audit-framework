@@ -4,6 +4,8 @@
 > Applied before every implementation decision, not on demand.
 > Sister document to `PROJECT_AUDIT_FRAMEWORK.md`: these principles define what good
 > looks like; the framework measures how close existing code comes to them.
+> The books and authors these principles draw on are listed once, with the places that use them,
+> in the *Sources* appendix of `PROJECT_AUDIT_FRAMEWORK.md`.
 
 ---
 
