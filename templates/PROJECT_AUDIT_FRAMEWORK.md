@@ -91,6 +91,26 @@ Quality gate command: `composer qa` — runs in sequence:
 [Optional: list security concerns that must be handled manually because no framework handles them automatically.
 Example: security headers, CSRF, input sanitisation — implemented in custom Router/middleware.]
 
+## Security verification
+
+[Declares what 8.7 is scored against. The ASVS version must be one the framework ships under
+`.claude/framework/standards/asvs/`. Choose the level from the data the product holds and what its
+users expect — L1 for anything with users, L2 for personal, financial or account data, L3 where the
+highest assurance must be demonstrated — and list every chapter the application does not expose,
+with the reason.
+
+Example:
+
+| Field | Value |
+|---|---|
+| ASVS version | 5.0.0 |
+| Target level | L2 — the product stores customers' addresses and order history |
+| Out of scope | V10 OAuth and OIDC — no delegated login; V17 WebRTC — no real-time media |
+| Exceptions | `v5.0.0-11.2.3` — accepted until the key-management migration, ADR-0014 |
+| Last reviewed | 2026-10-18 |
+
+If there is none: 8.7 is scored against L1 in every exposed chapter, and capped at 6.]
+
 ## Production access
 
 [Declares what 9.9 is scored against, and bounds what a session may do with it. List every production

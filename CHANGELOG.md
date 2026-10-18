@@ -8,6 +8,41 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.31.0] — 2026-10-18
+
+8.7 told the auditor to *evaluate the codebase against the current OWASP Top 10*. The Top 10 is an
+awareness document: it ranks what goes wrong most often, and it gives an auditor nothing to point at
+— which is the one thing this framework requires of every criterion. Two audits of the same code
+could reach any score and both be defensible.
+
+### Changed
+
+- **8.7 is now *Verified against a declared ASVS level*.** The OWASP Application Security
+  Verification Standard is the Top 10's counterpart written for verification: 345 requirements in
+  v5.0.0, each passing or failing, in seventeen chapters and three levels — L1 (70), L2 (253, L1
+  included), L3 (all). The project declares the version, the level it targets and why, and the
+  chapters it does not expose; findings cite versioned identifiers such as `v5.0.0-8.2.1`.
+- **Proportionate twice over.** The level is set by risk — the data the product holds — and how far
+  along the road the project must already be is set by the existing maturity minimums: the bands put
+  L1 in progress at 4, L1 complete at 6, the declared level mostly and fully met at 7 and 8. One
+  exception jumps the queue: an exploitable L1 gap in an exposed chapter is Phase 0, at any maturity.
+- **Scored once.** A requirement already a finding under 8.1–8.6 is cited there and not deducted
+  again; 8.7 carries the rest. Runtime-only requirements are capped at 8 without a declared
+  production path, the same rule as 7.9. The Top 10 stays, as the explanation beside an identifier.
+
+### Added
+
+- **`standards/asvs/`** ships the v5.0.0 requirement list — the official release asset, unmodified,
+  under its CC BY-SA 4.0 licence, with a README carrying the attribution and a `grep` that filters it
+  by chapter and level. Shipped rather than fetched, so an audit is reproducible and works offline.
+- **The `Security verification` declaration block** in `templates/PROJECT_AUDIT_FRAMEWORK.md`.
+  `check-install.sh` already names any block the template offers and a project lacks, so existing
+  installs see it as a warning. **Without the block, 8.7 is scored against L1 and capped at 6** — a
+  consumer's 8.7 may move on upgrade with no change to its code, and the `Framework` column added in
+  1.30.0 now shows why.
+- **`commands/project-audit.md`** tells the Category 8 agent how to read the block and the shipped
+  list.
+
 ## [1.30.0] — 2026-10-18
 
 1.29.0 changed the composition of five categories and told consumers to read the next audit as a new

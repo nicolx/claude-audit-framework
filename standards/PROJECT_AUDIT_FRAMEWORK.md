@@ -2518,14 +2518,103 @@ HTTP response headers instruct browsers on how to handle page content. They are 
 - Hardcoded credentials in configuration files
 - Secrets in log output
 
-#### 8.7 OWASP Top 10
+#### 8.7 Verified against a declared ASVS level
 
-Evaluate the codebase against the current OWASP Top 10. Key items beyond the above:
+8.1–8.6 score six defences in depth. This subcriteria scores the rest of the surface, and it needs a
+standard to score against. The OWASP Top 10 is not one: it ranks what goes wrong most often, which
+explains why a finding matters but gives an auditor nothing to point at. The OWASP Application
+Security Verification Standard (ASVS) is its counterpart written for verification — around 350
+requirements, each phrased as something that passes or fails, in seventeen chapters and three
+levels:
 
-- **Insecure Direct Object Reference:** Verify the authenticated user owns the resource being accessed, not just that they are authenticated
-- **Security Misconfiguration:** Debug mode off in production, verbose error messages not exposed to users, directory listing disabled
-- **Vulnerable and Outdated Components:** `composer audit`, `npm audit` in CI (see 7.4)
-- **Security Logging and Monitoring:** (see Category 9)
+| Level | What it covers | Requirements in v5.0.0 |
+|---|---|---|
+| L1 | The first layer of defence against common attacks that need no other weakness to succeed. The minimum for anything with users | 70 |
+| L2 | What most applications should reach: less common attacks, and stronger defences against common ones. Anything holding personal, financial or account data | 253, L1 included |
+| L3 | Defence in depth for applications that must demonstrate the highest assurance — banking, health, critical infrastructure | all 345 |
+
+**The level is the project's to declare, from its risk.** The **Security verification** block of
+`.claude/PROJECT_AUDIT_FRAMEWORK.md` names the ASVS version, the target level and the reason for it,
+and every chapter out of scope with the reason — a machine-to-machine API has no *Web Frontend
+Security*, a product without delegated login has no *OAuth and OIDC*. The ASVS asks for exactly this:
+choose the level by the sensitivity of the data and what the users expect, and drop the chapters the
+application does not expose. The framework ships the requirement list for the version it supports in
+`standards/asvs/`, so two audits of the same commit read the same requirements.
+
+**How it is proportionate to the project.** Two things set what the score expects, and neither is
+the auditor's taste. The declared level sets the *destination*, from the data. The maturity minimums
+set how far along the road the project must already be, through the bands below: a prototype is
+scored on its progress towards L1, a project in early production is expected to have L1 complete, an
+established one to have its declared level mostly met, an enterprise one to have it met and verified.
+A four-person startup holding payment data declares L2 just as a bank's smaller product would. What
+differs is how far the score expects it to have got this year, not where it is going.
+
+**One gap jumps the queue.** An unmet L1 requirement in a chapter the project exposes, where the
+consequence is exploitable without any other weakness, is Phase 0 of *Remediation order* — whatever
+the band, whatever the maturity. L1 is defined as exactly those requirements, and leaving one open on
+a system with real users is the bleeding Phase 0 exists to stop. Every other gap — the rest of L1,
+all of L2 and L3 — is ordinary work, sequenced by band and phase like any other.
+
+**Scored once.** A requirement whose failure is already a finding under 8.1–8.6 — an injection under
+8.2, a missing authorisation check under 8.3 — is cited there by its ASVS identifier and not deducted
+again here. 8.7 carries the rest of the declared level. Cite every requirement the way the ASVS asks,
+with its version — `v5.0.0-8.2.1`, never a bare number — because identifiers change between major
+versions.
+
+**Documentation requirements count.** Many chapters open with a requirement that a security decision
+be documented: which file types may be uploaded, which data is sensitive, how sessions expire. An ADR
+(0.7) or a section of the product context (0.1) satisfies them, and the matching implementation
+requirement then checks the code against what was written.
+
+**Some requirements cannot be read from the repository** — TLS as negotiated, headers as served,
+session behaviour at runtime. Where the **Production access** block declares a read-only path, check
+them through it. Where it does not, score them from configuration, mark them unverified, and cap the
+subcriteria at 8, the same rule as 7.9.
+
+**Good:**
+
+- A declared version, level and reason, with every out-of-scope chapter named and justified
+- The level chosen from the data the product holds, consistent with the product context (0.1)
+- Gaps listed by versioned identifier, each with an owner or an accepted-risk decision in an ADR
+- Technical requirements pinned by tests — the ASVS describes itself as a guide for automated unit
+  and integration tests: the login controller tested for enumeration and brute force, the upload
+  endpoint for type and size
+- A new ASVS version adopted deliberately, with the re-evaluation the standard says it requires
+
+**Bad:**
+
+- No declaration — so no target, and no way to tell a gap from a choice
+- A level chosen below what the data warrants: L1 declared by a product whose context document
+  describes stored card data
+- Chapters marked out of scope that the application plainly exposes: no *OAuth and OIDC* in a product
+  with a *Sign in with Google* button
+- *"OWASP compliant"* claimed with no level, no version and no list — a phrase, not a verification
+- Requirements ticked from the framework's documentation rather than from the application's own
+  configuration
+
+**How to score:**
+
+| Score | Situation |
+|---|---|
+| 0–2 | An L1 requirement unmet in an exposed chapter with an exploitable consequence, or nobody has ever checked |
+| 3–4 | L1 partially met; the gaps could be found, and nobody has listed them |
+| 5–6 | L1 met in every exposed chapter — 6 when complete, 5 with residue that is not exploitable |
+| 7–8 | Above L1, the declared level mostly met (7), or met with every exception recorded by identifier and reason (8). Where the declared level is L1 itself, these bands are reached by verification rather than breadth: its technical requirements pinned by tests, its documentation requirements met |
+| 9–10 | The declared level met in every exposed chapter, its technical requirements pinned by tests, nothing open without an accepted-risk decision |
+
+Read against the maturity minimums, these bands *are* the proportionality: 4 for a prototype is L1 in
+progress, 6 for early production is L1 complete, 7 and 8 for established and enterprise are the
+declared level mostly and then fully met.
+
+**Without a declaration**, score against L1 in every chapter the application visibly exposes, say
+so, and **cap at 6** — L1 complete is the most an undeclared target can show. **A declared level the
+product context contradicts** is reported first among the category's findings, as a finding about the
+declaration: the audit names the level the data suggests and does not substitute it for the
+project's. The score is read against the declaration, so two auditors reach the same number; the
+contradiction is what tells the reader the number deserves a question.
+
+**The Top 10 keeps its place** as the explanation, not the ruler. When a finding needs a reason a
+reader will recognise, name the Top 10 category beside the ASVS identifier.
 
 ---
 
@@ -4334,8 +4423,8 @@ needed to apply the framework. Each of them explains, at length, why it asks wha
 
 | Source | Where the framework uses it | Why read it |
 |---|---|---|
-| OWASP Top 10 | 8.7 | The current ranking of the most common web application risks |
-| OWASP Application Security Verification Standard (ASVS) | Not yet used for scoring — 8.7 scores against the Top 10. Listed as its verifiable counterpart | Security requirements written as things that can be checked, level by level: the Top 10 names what goes wrong, the ASVS what to verify |
+| OWASP Top 10 | 8.7 — the explanation named beside an ASVS identifier, not the ruler | The current ranking of the most common web application risks |
+| OWASP Application Security Verification Standard (ASVS), 5.0.0 (2025) | 8.7 — the declared level, version and requirement list, shipped in `standards/asvs/` | Security requirements written as things that can be checked, level by level: the Top 10 names what goes wrong, the ASVS what to verify |
 
 ---
 
