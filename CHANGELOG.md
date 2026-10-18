@@ -8,6 +8,67 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.29.0] — 2026-10-18
+
+1.28.1 named the framework's sources. This release takes from them what the framework was missing —
+and the list was not short. Category 1 measured three of the five SOLID principles. Category 2 said
+*technical debt management without refactoring discipline is a wishlist* and then measured no
+refactoring discipline. 2.2 told a reader to extract a function whenever one could be extracted,
+which is the rule Ousterhout spends a book showing produces code that is harder to read. Category 9
+had no service level objective anywhere, and Category 10 scored sixteen practices and not one of the
+outcomes they exist to produce.
+
+**Five categories change composition — 1, 2, 3, 9 and 10.** A project re-audited on this version may
+see a category move with no change to its code. That is the framework, not the project: read the
+first audit after upgrading as a new baseline for those five, not as a trend.
+
+### Added
+
+- **2.11 — Refactoring proceeds in behaviour-preserving steps** (Fowler, Beck). Read from the log: a
+  `refactor:` commit that changes what the tests assert was not a refactoring; steps are compared for
+  size and checked green with 0.8's indicators; structural commits should precede the behaviour change
+  they make room for. Applies wherever the history restructures existing code.
+- **1.6 — Liskov Substitution**, **1.7 — Interface Segregation**. An override that throws "not
+  implemented" or a type check on a subtype is evidence; it is scored once, under the cause.
+- **1.8 — Modules hide design decisions** (Parnas, Ousterhout). A decision likely to change has one
+  owner, behind an interface simpler than what it hides. The evidence includes a co-change query over
+  the history: two production files in different modules that keep moving together are one decision
+  with two owners.
+- **3.9 — The core domain is named, and gets the investment** (Evans's distillation). N/A wherever
+  3.8 is.
+- **10.17 — Delivery outcomes are measured** (*Accelerate*). The four measures — deployment
+  frequency, lead time, change failure rate, time to restore — are scored on being measured, visible
+  and read as a set, **never on their values**, because a measure turned into a target stops
+  measuring. Applies to anything that ships; a library reads releases as deployments.
+- **Principles 11 and 24** — a refactoring pass moves in named steps, each green and each its own
+  commit; and when a change is hard to make, the step before it makes it easy.
+- **Sprout and wrap** (Feathers) in *What the order does not gate*: new code that has to live inside a
+  class with no seam is written as a new, tested unit called from one line, rather than waiting for a
+  seam.
+- **Six sources** in the appendix — Ousterhout, Parnas, Liskov and Wing, *Accelerate*, the SRE book,
+  Goodhart — and the rows of Fowler, Beck, Feathers, Evans, Nygard and Martin extended to the places
+  that now use them.
+
+### Changed
+
+- **2.2 no longer treats length as the criterion.** A function that does one thing in a straight line
+  is fine at forty lines; a chain of one-line functions that pass their arguments through, or a helper
+  called once whose name says no more than its body, is now a finding. The test changed with it: an
+  extraction is made when the reader can understand the parent *without* reading the extracted
+  function. *Clean Code*'s row in the appendix records this as a departure.
+- **2.5 and principle 1** — a comment on an interface stating what the signature cannot is part of
+  the interface, not drift.
+- **9.4** adds saturation as the fourth signal and expects a service level objective wherever people
+  wait on the service in real time, with alerts on budget burn rather than raw thresholds. A batch
+  states its objective as completion and lateness.
+- **9.5 and principle 8** — every call across the process boundary carries an explicit timeout;
+  retries are bounded and idempotent; circuit breakers and bulkheads where a dependency fails slowly.
+  *The library has a default* stays a finding until somebody names the value.
+- **Principles 4 and 7** gained the write-time side of 1.6–1.8 and 3.9; the traceability table maps
+  the new subcriteria, and 10.17 joins the criteria with no write-time principle, with the reason.
+- **`commands/project-audit.md`** tells the Category 1, 2, 3, 9 and 10 agents where the new evidence
+  is, including which queries to run over the whole history rather than the twenty-line excerpt.
+
 ## [1.28.1] — 2026-10-18
 
 The framework draws on thirty-six books, papers and standards and named a handful of them — three of

@@ -793,13 +793,113 @@ Intentional use of established patterns where they solve a real problem. Pattern
 
 **Bad:** Patterns used for their own sake. A Repository wrapping a single `find()` call with no interface. A Factory that does `new Foo($a, $b)` and nothing more.
 
+#### 1.6 Liskov Substitution
+
+A subtype can stand in for its parent everywhere the parent is used, without the caller noticing.
+The rule is behavioural, not syntactic: a subclass that compiles against the interface but throws
+where the parent returned, accepts less than the parent accepted, or promises less than the parent
+promised breaks every caller written against the parent.
+
+**Good:**
+
+- Overrides that accept at least what the parent accepted and guarantee at least what it guaranteed
+- Callers that work through the parent type and never ask which subtype they were given
+- Contract tests written once against an interface and run against every implementation — the
+  in-memory fake of 4.6 included — so a substitution failure is a red test, not a production surprise
+
+**Bad:**
+
+- An override that throws `NotImplementedException`, `UnsupportedOperationException` or the
+  language's equivalent
+- Type checks (`instanceof`, `isinstance`, `is`) on a subtype of something the caller received as its
+  parent — the caller compensating for a subtype that does not substitute
+- `ReadOnlyRepository extends Repository` with a `save()` that throws: inheritance used for reuse
+  where the subtype cannot honour the contract
+- A test fake that behaves differently from the real implementation on a case the tests rely on
+
+#### 1.7 Interface Segregation
+
+Clients depend only on the methods they use. An interface that grows to serve every caller makes each
+implementer provide what some caller needs, and each caller depend on what the others need — so a
+change for one consumer reaches all of them.
+
+**Good:**
+
+- Interfaces shaped by what a caller needs: `OrderReader` for the query side, `OrderWriter` for the
+  use case that saves
+- Every implementation implements every method meaningfully
+- Test doubles that stay small, because the interface they stand in for is small
+
+**Bad:**
+
+- A twenty-method `UserServiceInterface` whose callers each touch two
+- A test that has to stub ten methods to exercise one
+- Implementations with empty methods, or methods that only throw, to satisfy an interface
+
+**Scored once.** An empty or throwing implementation is evidence for both 1.6 and 1.7. Score it under
+the one that names the cause: 1.7 when the interface asks for more than its implementers can do, 1.6
+when inheritance was the wrong tool for a type that could not honour its parent.
+
+#### 1.8 Modules hide design decisions
+
+The unit of decomposition is a decision likely to change, not a step of processing. A file format, a
+protocol, the shape of a third party's API, a caching policy, the way an identifier is generated:
+each belongs to one module, which hides it behind an interface simpler than what it hides. Parnas
+named the principle; Ousterhout gave it a measure — **depth**, the functionality a module provides
+against the complexity of its interface. A deep module hides a great deal behind a little. A shallow
+one has an interface nearly as complicated as its body: it adds a name to learn without removing
+anything to understand.
+
+1.1 asks whether a class keeps its fields private. This asks something larger: whether a decision is
+known in one place. A class with every field private can still leak its decision through its
+interface — `getRowsAsArray()` tells every caller that there are rows, and that they are arrays.
+
+Where 2.6 finds Shotgun Surgery or Middle Man, this is usually the cause. 2.6 scores the shape of the
+code where it is read; 1.8 scores whether the decision behind it has one owner.
+
+**Good:**
+
+- Each volatile decision has an owner: the JSON shape of a partner's API is known to its adapter and
+  nowhere else, the retry policy to one client
+- Interfaces named in the caller's terms, not the implementation's: `findOverdueInvoices()`, not
+  `queryInvoicesWhereDueDateLessThanNow()`
+- Modules whose interface is markedly smaller than their implementation
+- A change to a format or a protocol that touched one module, visible as such in the history
+
+**Bad:**
+
+- Information leakage: one decision encoded in two places — a parser and a serialiser that must
+  change together, a date format repeated in three adapters, a status code interpreted by every caller
+- Pass-through methods: a layer whose methods call the next layer's methods with the same signature
+  and add nothing
+- Classes split so finely that using any one of them requires knowing the others
+- Interfaces that expose the implementation: return types tied to the storage, method names that
+  describe the algorithm
+
+**How to check.** Reading finds a leak only where the reader already suspects one. The history finds
+the rest: files that keep changing together share a decision, whatever the directory tree says.
+
+```bash
+# pairs of files changed together in five or more commits over the last year
+git log --since='12 months ago' --no-merges --format='%x40' --name-only |
+awk '/^@/ { for (i in f) for (j in f) if (i < j) n[i " " j]++; delete f; next }
+     NF   { f[$0] = 1 }
+     END  { for (i in f) for (j in f) if (i < j) n[i " " j]++
+            for (p in n) if (n[p] >= 5) print n[p], p }' | sort -rn | head -20
+```
+
+A test moving with its subject is expected, and so are the release files — version, changelog,
+install instructions — moving with every release, which is principle 25 working. Two production files
+in different modules moving together, release after release, are one decision with two owners — name
+the decision in the finding.
+
 ---
 
 ## Category 2 — Clean Code
 
 **What it measures:** How well the code communicates its intent to a human reader without requiring external context or comments to decode — and, in 2.9 and 2.10, whether the text it writes for its users can be read in their own language.
 
-2.1–2.8 are always evaluated. 2.9 and 2.10 are evaluated wherever the system produces text for someone using it: they are N/A only for a codebase that produces none — a pure library, a machine-only pipeline, or a tool whose only readers are its own developers and operators.
+2.1–2.8 are always evaluated, and 2.11 wherever the history contains changes to existing code. 2.9 and 2.10 are evaluated wherever the system produces text for someone using it: they are N/A only for a codebase that produces none — a pure library, a machine-only pipeline, or a tool whose only readers are its own developers and operators.
 
 ### Subcriteria
 
@@ -820,13 +920,26 @@ Names reveal intent. The name of a variable, function, or class should answer: w
 
 #### 2.2 Function size and focus
 
-Functions should do one thing. If a function needs a comment to explain each "section", it is multiple functions in disguise.
+Functions should do one thing. If a function needs a comment to explain each "section", it is
+multiple functions in disguise.
 
-**Good:** Functions of 5–20 lines that do exactly what their name says. A test function per behaviour.
+**Size is a signal, not the criterion.** The opposite failure is real and scores the same way: a
+function cut into pieces so small that each hides nothing, so the reader follows six calls to learn
+what one body would have told them. Ousterhout calls these *shallow* — an interface nearly as complex
+as the implementation behind it. An extraction is worth making when the extracted function hides a
+decision its caller does not need to know. It is noise when the caller has to read it anyway.
 
-**Bad:** Functions over 50 lines. Functions that set up state, execute logic, clean up, format output, and handle errors — all in one body.
+**Good:** Functions that do exactly what their name says — usually short, with 5–20 lines as the
+common shape rather than the requirement. A longer function that does one thing in a straight line,
+with no sections, is fine. A test function per behaviour.
 
-**Test:** Can you extract a named sub-function from this function that would make the parent clearer? If yes, do it.
+**Bad:** Functions over 50 lines that set up state, execute logic, clean up, format output, and
+handle errors — all in one body. Equally: chains of one-line functions that pass their arguments
+straight through, and helpers called once whose name says no more than their body.
+
+**Test:** Would extracting a named sub-function let a reader understand the parent *without reading
+the sub-function*? If yes, extract it. If they would have to read it anyway, the extraction adds a
+jump and hides nothing.
 
 #### 2.3 DRY (Don't Repeat Yourself)
 
@@ -860,6 +973,12 @@ Code that can be read and understood without comments, because the names, struct
 **Bad:** A 40-line calculation with a comment at the top explaining what it does, instead of being extracted into a named function. Comments that describe *what* the code does (the code already shows that) instead of *why* a non-obvious decision was made.
 
 **When comments are appropriate:** Non-obvious business rules ("// per regulation X, we must retain this for 7 years"), known trade-offs ("// unsafe-inline required because the template inlines JSON"), and API contract notes.
+
+The interface comment is the one most often missing: what a function or class promises its caller
+that the signature cannot say — units, ownership, what an empty input does, which errors it raises
+and when. If a caller would have to read the implementation to use it correctly, the interface is
+undocumented however clean the body is. A comment that restates the code is still drift; one that
+states the contract is part of the interface.
 
 #### 2.6 Refactorability and code smells
 
@@ -1122,6 +1241,84 @@ language in real use but missing from the declared set enters one step earlier �
 about the *declaration*, reported as a gap in that section and never as a deduction against the
 catalogs. Name the locale, not the person.
 
+#### 2.11 Refactoring proceeds in behaviour-preserving steps
+
+*Applies wherever the history contains changes to existing code. N/A only for a repository too young
+to have restructured anything.*
+
+2.6 scores whether the code *can* be changed safely, and 2.7 whether its debt is known. Neither looks
+at how the code is actually changed — and that is where a refactoring goes wrong. Not in the decision
+to make it, but in a diff that moved thirty things at once and changed one behaviour on the way,
+which nobody can now find.
+
+A refactoring, in Fowler's sense, is a change to structure that leaves observable behaviour exactly
+as it was. That definition is what makes it checkable. Done as a sequence of small named steps —
+Extract Function, Move Function, Rename Variable — each followed by a green suite, every step is easy
+to review because it is one known transformation, and easy to revert because nothing else rides on
+it. Done as one large restructuring, it is a rewrite with a reassuring commit subject.
+
+Beck adds the order. When a behaviour change is hard to make, first change the structure so that it
+becomes easy, in its own commit, then make the change that is now easy. The structural commit is
+reviewed as *nothing changed*; the behavioural one as a small diff.
+
+**The evidence is the log**, read the way 4.7 reads it. Conventional Commits make the first query
+exact; without them, pick the restructuring commits by hand — an unlabelled history is harder to
+query, not exempt from the question.
+
+```bash
+# refactoring commits that changed what the tests assert. A rename shows up as a removed and an
+# added assertion differing only in the renamed identifier: read those, do not count them.
+git log --since='6 months ago' --format='%h %s' --grep='^refactor' | while read -r sha subject; do
+  n=$(git show "$sha" --format= -U0 -- '*test*' '*Test*' '*spec*' |
+      grep -cE '^[-+][^-+].*(assert|expect|should)')
+  [ "$n" -gt 0 ] && printf '%s  assertion lines changed: %s  %s\n' "$sha" "$n" "$subject"
+done
+```
+
+Then two readings the query cannot do. **Step size and state:** the refactoring commits' sizes
+against each other, and whether CI was green on each — indicators 2 and 4 of 0.8 apply unchanged.
+**Order:** inside a unit of work, whether the structural commits came before the behavioural change
+they made room for, or arrived tangled in it.
+
+**Not 10.11, and not 4.7.** 10.11 scores whether the commit message is a good message; this scores
+whether a commit labelled as a refactoring was one. 4.7 reads fixes for the test they leave behind;
+this reads restructurings for the tests they leave *unchanged*.
+
+**Good:**
+
+- Refactoring commits that change no assertion, or change only the identifiers the refactoring
+  renamed
+- Steps named for the transformation they apply: `refactor(billing): extract function computeVat
+  from Invoice::total`
+- Each step green in CI on its own — the gate ran between the steps, not only after the last one
+- A behaviour change preceded by the structural commit that made it small: the `refactor:` that makes
+  room, then the `feat:` or `fix:` that uses it
+- A large mechanical refactoring cut as *The mass rename is the most ordered change of all*
+  describes: one transformation per step, however many sites
+
+**Bad:**
+
+- `refactor:` commits that change assertions or add tests for new behaviour — a behaviour change
+  under the one label that tells the reviewer not to look for one
+- A single commit that restructures a module and fixes the bug that prompted it: the fix cannot be
+  reverted without the restructuring, nor reviewed apart from it
+- *"Refactor billing module"*, one commit, two thousand lines, red in CI until the follow-up
+- Steps that leave the build red in between, repaired by the next one
+- A refactoring of code no test covers, so *behaviour-preserving* is a belief rather than a check —
+  *Remediation order* is the gate this skipped
+
+**How to score:**
+
+- 0–2: Restructuring arrives inside feature and fix commits, or as large single commits. Nothing in
+  the history distinguishes a refactoring from a rewrite
+- 3–5: Refactoring commits exist and are labelled, but they are large, carry behaviour changes, or
+  routinely change what the tests assert
+- 6–7: Refactorings are separate from behaviour changes and leave the assertions alone; the steps are
+  coarse — one commit per module rather than per transformation — or the gate is not green between
+  them
+- 8–10: Refactorings arrive as small named steps, each green, none changing what the tests assert;
+  a behaviour change that needed room is preceded by the structural commit that made it
+
 ---
 
 ## Category 3 — Domain-Driven Design (DDD)
@@ -1267,6 +1464,43 @@ A Bounded Context is the explicit boundary within which a domain model applies. 
 - No awareness of where one context ends and another begins
 
 **Concrete signal to look for:** If you find yourself writing code like `$employee->getMerchant()->getEmployer()->getContract()` across what should be context boundaries — that is a Conformist integration that has accumulated accidental coupling. Each `->` crossing a context boundary is a seam that should be an explicit integration point.
+
+#### 3.9 The core domain is named, and gets the investment
+
+*Apply when 3.8 applies — a system with more than one subdomain. Mark N/A for single-context
+applications.*
+
+Not every part of a system deserves the same care. Evans's distillation separates the **core
+domain** — the part that makes the product worth building, where it competes — from **supporting**
+subdomains, specific to the business but not distinctive, and **generic** ones every business has:
+identity, billing, notifications, search. The machinery of this category earns its cost in the core.
+Spent evenly, it is overhead in the generic parts and usually thin in the core, because the core is
+where the deadlines are.
+
+Principle 7 says architecture follows the problem. This asks whether the project knows which part of
+its problem is the one that matters.
+
+**Good:**
+
+- The product context (0.1) names the core domain in a sentence, and the code has a place where it
+  lives
+- The richest model, the strictest invariants (3.3, 3.4) and the densest tests are in the core
+- Generic subdomains bought or delegated (6.8) — an identity provider, a payment service — rather
+  than modelled
+- Supporting subdomains built simply, without the full tactical toolkit
+
+**Bad:**
+
+- Aggregates and domain events around user preferences, while the pricing engine the product
+  competes on is a 900-line service passing arrays
+- A hand-built invoicing engine with its own domain model, in a product whose distinctive work is
+  elsewhere
+- Nobody can say which part is the core, so investment follows whoever is most interested
+- Tests concentrated in the generic code because it was the easiest to test
+
+**How to check.** Ask the context document — or, failing it, the team — which subdomain is core. Then
+compare where the richness sits: coverage per directory, value objects per directory, ADRs per area,
+recent design effort in the log. The finding is the mismatch between the answer and the evidence.
 
 ---
 
@@ -2383,8 +2617,27 @@ Application metrics — request rate, error rate, response time percentiles (p50
 - Request count by route and status code
 - Response time by route (histogram)
 - Error rate
+- Saturation of the resource that runs out first
 
 **Good:** An `oncall` dashboard exists. Alerts fire before users notice problems (proactive alerting on error rate or latency, not reactive alerting on user complaints).
+
+**The fourth signal is saturation.** Rate, errors and duration say how the system is behaving;
+saturation says how close it is to stopping — connection pool usage, queue depth, memory or CPU
+against its limit. It is the one of the four that moves *before* users notice.
+
+**Objectives, not only measurements.** A dashboard with no target says what the system did, not
+whether that was acceptable. Where people wait on the service in real time, state a service level
+objective for the paths they use — *99.5% of checkout requests succeed in under 800 ms, over 28
+days* — computed from the metrics above, and alert on how fast the error budget is being spent
+rather than on every spike. The objective is a product decision, so it is written down with the
+product context, and it is what decides whether a slow week is an incident. A system nobody waits
+on in real time — a nightly batch — states its objective as completion and lateness instead.
+
+**Good:** objectives written down and measured; alerts on budget burn rather than on raw
+thresholds.
+
+**Bad:** alerts on raw thresholds that page for every spike and stay silent through a slow
+degradation. An SLA in a contract with no internal objective behind it.
 
 #### 9.5 Graceful degradation
 
@@ -2395,12 +2648,28 @@ When a dependency fails, the system should continue serving users as best it can
 - CoinGecko API down → return a cached page with a "data may be outdated" notice, not a 500 error
 - Redis cache unavailable → fall through to database, log a warning, continue serving
 - Non-critical feature (A/B test, recommendation engine) fails → hide the feature, continue serving the main content
+- Every call across the process boundary — HTTP, database, queue, cache — has an explicit timeout,
+  shorter than the timeout of whoever is waiting on it
+- Retries bounded, with backoff and jitter, and only on idempotent operations or behind an
+  idempotency key
+- A circuit breaker on a dependency that fails slowly, so a sick dependency stops being called
+  instead of being waited on
+- Bulkheads: a separate pool per dependency, so one slow service exhausts its own pool and not the
+  one every request needs
 
 **Bad:**
 
 - One failed external API call causes a full page crash
 - No fallback for a missing non-critical dependency
 - Cascading failures: one slow service causes threads to pile up, crashing unrelated services
+- An outbound client with no timeout configured, relying on the library's default — which for
+  several common HTTP clients is no timeout at all
+- Retries with no cap, or retries at every layer, multiplying the load on a dependency that is
+  already failing
+
+**How to check:** list the outbound clients — HTTP, database, queue, cache — from the manifest and
+the configuration, and find where each one's timeout is set. A client with none is the finding, and
+*the library has a default* stays a finding until somebody names the value.
 
 #### 9.6 Log retention and disk hygiene *(Backend/Server-side and long-running processes)*
 
@@ -2832,7 +3101,7 @@ deployed continuously from the mainline and a rollback names a commit.
 | 10.13 Branch protection | always, in two halves | The **approval** half — require a review, dismiss stale approvals, no self-merge — is **N/A** with a single writer. The **gate** half is not: required status checks, no force-push to the mainline, linear history, signed commits. Those protect a lone developer from their own worst afternoon, and nothing about being alone makes them unavailable |
 | 10.14 Tagging and semantic versioning | something consumes a version | **N/A.** A service deployed from `main` whose rollback names a commit already answers *what was running on 15 March* — `git log` does — and a tag nothing reads is a ritual. The day anything pins a version, this returns and is scored in full, including the changelog that comes with it |
 
-The subcriteria not in the table are scored for every project. 10.11 and 10.15 always apply; 10.16
+The subcriteria not in the table are scored for every project. 10.11 and 10.15 always apply, and 10.17 to anything that ships; 10.16
 carries its own partial-scoring clause for a repository with no branch residue to remove.
 
 **The same question again, per area.** *More than one person writes* puts 10.12 in play for the
@@ -3424,6 +3693,79 @@ what it put in place instead, not on the absence.
   scheduled job with a written retention rule and a readable report, the safety line is stated and
   the job honours it, and a fresh clone of an old repository is small and clean after a build
 
+#### 10.17 Delivery outcomes are measured
+
+Every other subcriteria in this category scores a practice. This one scores whether the project
+knows what its practices produce. Forsgren, Humble and Kim identified four measures that, across
+thousands of organisations, separate the teams that deliver well from the rest — and found that
+speed and stability move together rather than trading against each other:
+
+| Measure | The question | Read from |
+|---|---|---|
+| Deployment frequency | How often does a change reach production? | Tags, deployment records, merges to a continuously deployed mainline |
+| Lead time for changes | How long from commit to running in production? | Each commit's time against the first deployment that contained it |
+| Change failure rate | What share of deployments needed a fix, a rollback or a hotfix? | Reverts and `fix:` releases against the deployment they repair; incident records |
+| Time to restore | How long from a failure in production to its repair? | Incident records; the gap between the failing deployment and the one that fixed it |
+
+**What is scored is that they are measured, visible and read — never their values.** A team that
+deploys monthly, knows it, and watches the trend scores above a team that deploys daily and has never
+looked. The values belong to the product's context; the measurement belongs to every project that
+ships.
+
+**Read as a set.** Any one of the four alone is the easiest number in this document to improve by
+making another worse — deploy more often by shipping small fixes to the failures you just caused. A
+measure turned into a target stops measuring, which is Goodhart's law and the reason this
+subcriteria scores the instrument and not the reading.
+
+**Scope.** Applies to anything that is deployed or released. A library reads its releases as
+deployments: frequency of release, lead time to release, and the patch releases that repair the one
+before as its failure rate. N/A only for a repository that never ships.
+
+**No tooling is needed to start.** For a project that deploys from tags, the history already holds
+the first two:
+
+```bash
+# deployment frequency: releases per month
+git tag --sort=creatordate --format='%(creatordate:format:%Y-%m)' | uniq -c
+
+# lead time: for each release, the age of the oldest commit it shipped for the first time
+prev=""
+for t in $(git tag --sort=creatordate); do
+  if [ -n "$prev" ]; then
+    oldest=$(git log --format=%ct "$prev..$t" | sort -n | head -1)
+    shipped=$(git log -1 --format=%ct "$t")
+    [ -n "$oldest" ] && printf '%s  %s days\n' "$t" "$(( (shipped - oldest) / 86400 ))"
+  fi
+  prev=$t
+done
+```
+
+The other two need the project to record what a failure is — a revert, a hotfix tag, an incident
+entry — and the first finding is often that nothing does.
+
+**Good:**
+
+- The four computed by a job or a dashboard, not by hand at audit time
+- Each visible to the team, with a trend over at least a quarter
+- A change in one of them noticed and discussed — a lead time that doubled is a finding the team
+  made before the audit did
+- Failures counted honestly: a hotfix is a failure of the deployment it repaired, not a separate
+  delivery
+
+**Bad:**
+
+- Nobody can say how often production changes, or how long a commit waits to reach it
+- Deployment frequency reported alone and celebrated while the change failure rate climbs
+- Targets set on the measures and rewarded, so the numbers improve and the delivery does not
+- Measures computed and never read
+
+**How to score:**
+
+- 0–2: None of the four is known
+- 3–5: One or two could be computed from the history and nobody has, or they were measured once
+- 6–7: All four computed, by hand or at irregular intervals; the trend not watched
+- 8–10: All four computed automatically, visible, read as a set, and discussed when they move
+
 ---
 
 ## How to conduct a quality evaluation
@@ -3724,6 +4066,10 @@ A change that does many things once is not a rename, however many identifiers it
 - **New code.** Written to the full standard from the first line, in every phase. The order governs
   changes to code that already exists and already works; it has nothing to say about code being
   written now, and reading it as "we cannot write clean code until we have tests" inverts it.
+  Where the new code has to live inside a class with no seam, it does not wait for one. It is
+  written as a new, tested function or class, called from a single line in the legacy code —
+  Feathers's *sprout* — or the legacy method is renamed and wrapped by a new one that adds the
+  behaviour around it — *wrap*. The legacy code gains one untested line instead of a feature's worth.
 - **Scores.** Every category is scored at its real value at every phase. The order decides what to
   *do* about a 3/10, never whether to report one — an audit that hid the Category 2 score until
   Category 4 was fixed would be withholding the reason the work matters.
@@ -3913,8 +4259,11 @@ needed to apply the framework. Each of them explains, at length, why it asks wha
 
 | Source | Where the framework uses it | Why read it |
 |---|---|---|
-| Robert C. Martin, *Clean Code* (2008) | Category 2; principles 1 and 3 | The vocabulary of readable code — naming, function focus, error handling — that most review comments are written in |
-| Robert C. Martin, *Agile Software Development: Principles, Patterns, and Practices* (2002) | 1.2–1.4; principles 3 and 4 | Where SOLID was assembled as a set, with the reasoning behind each letter |
+| Robert C. Martin, *Clean Code* (2008) | Category 2; principles 1 and 3. **Departs:** function length as a target in itself — 2.2 judges an extraction by what it hides, following Ousterhout | The vocabulary of readable code — naming, function focus, error handling — that most review comments are written in |
+| Robert C. Martin, *Agile Software Development: Principles, Patterns, and Practices* (2002) | 1.2–1.4 and 1.7 — interface segregation; principles 3 and 4 | Where SOLID was assembled as a set, with the reasoning behind each letter |
+| John Ousterhout, *A Philosophy of Software Design* (2018; 2nd edition 2021) | 1.8 — deep and shallow modules, information leakage, pass-through methods; 2.2 — an extraction is judged by what it hides; 2.5 and principle 1 — interface comments | Complexity as the thing design exists to reduce, with a precise vocabulary for where it hides — the counterweight to *Clean Code*, from another school |
+| David Parnas, *On the Criteria To Be Used in Decomposing Systems into Modules* (1972) | 1.8; principle 4 | The paper that introduced information hiding: decompose by the decisions likely to change, not by the steps of processing. Twelve pages, still current |
+| Barbara Liskov, *Data Abstraction and Hierarchy* (1987); Barbara Liskov, Jeannette Wing, *A Behavioral Notion of Subtyping* (1994) | 1.6; principle 4 | Substitutability defined as behaviour rather than signature — the L in SOLID, from its source |
 | Bertrand Meyer, *Object-Oriented Software Construction* (1988) | 1.3 — the open/closed principle, in the form Martin later restated through abstraction | The original statement of the principle, and of design by contract |
 | Erich Gamma, Richard Helm, Ralph Johnson, John Vlissides, *Design Patterns* (1994) | 1.5 — Factory Method, Observer, Decorator; principle 2's distrust of deep hierarchies, *favour composition over inheritance* | The catalogue every later pattern book assumes. Read the introduction before the patterns |
 | Martin Fowler, *Patterns of Enterprise Application Architecture* (2002) | 1.5 — Repository, Data Mapper, Value Object; 3.5 | The patterns of the layer between a domain and its storage, which is where most business code lives |
@@ -3927,9 +4276,9 @@ needed to apply the framework. Each of them explains, at length, why it asks wha
 
 | Source | Where the framework uses it | Why read it |
 |---|---|---|
-| Martin Fowler, with Kent Beck, *Refactoring* (2nd edition 2018) | 2.6 — the smell catalogue and its fixes, by that edition's names. **Departs:** the *Rule of Three* the book reports from Don Roberts — refactor at the third duplication — is not adopted; principle 2 decides by the complexity of the problem, not by counting occurrences | Refactoring as a sequence of small, named, behaviour-preserving steps, each with its own mechanics |
-| Kent Beck, *Tidy First?* (2023) | Principle 19 — a change to structure and a change to behaviour are two commits | When to tidy before a change, after it, later or never — argued as economics rather than as a rule |
-| Michael Feathers, *Working Effectively with Legacy Code* (2004) | 2.6 — the seam; principle 11's first pass; *Remediation order* — characterisation tests, and code that cannot be tested until it has been refactored | Dozens of concrete techniques for bringing untested code under test, which describes most code anyone inherits |
+| Martin Fowler, with Kent Beck, *Refactoring* (2nd edition 2018) | 2.6 — the smell catalogue and its fixes, by that edition's names; 2.11 and principle 11 — refactoring as small, named, behaviour-preserving steps. **Departs:** the *Rule of Three* the book reports from Don Roberts — refactor at the third duplication — is not adopted; principle 2 decides by the complexity of the problem, not by counting occurrences | Refactoring as a sequence of small, named, behaviour-preserving steps, each with its own mechanics |
+| Kent Beck, *Tidy First?* (2023) | Principle 19 — a change to structure and a change to behaviour are two commits; principle 24 and 2.11 — make the change easy, then make the easy change | When to tidy before a change, after it, later or never — argued as economics rather than as a rule |
+| Michael Feathers, *Working Effectively with Legacy Code* (2004) | 2.6 — the seam; principle 11's first pass; *Remediation order* — characterisation tests, code that cannot be tested until it has been refactored, and the sprout and wrap of *What the order does not gate* | Dozens of concrete techniques for bringing untested code under test, which describes most code anyone inherits |
 | Martin Fowler, *Strangler Fig Application* (2004) | 10.9 | Replacing a system while it keeps running, one path at a time |
 | Danilo Sato, *Parallel Change* (2014) | Principles 11 and 27; 10.4 — expand, migrate, contract | The three-phase shape of every backward-compatible change, and why the third phase is the one that goes missing |
 
@@ -3937,7 +4286,7 @@ needed to apply the framework. Each of them explains, at length, why it asks wha
 
 | Source | Where the framework uses it | Why read it |
 |---|---|---|
-| Eric Evans, *Domain-Driven Design* (2003) | Category 3 — ubiquitous language, entities, value objects, aggregates, repositories, bounded contexts, and the integration patterns of 3.8; 2.8's language test | The book the category is named after. Its strategic half — contexts and their relationships — matters more than the tactical half and is read less |
+| Eric Evans, *Domain-Driven Design* (2003) | Category 3 — ubiquitous language, entities, value objects, aggregates, repositories, bounded contexts, and the integration patterns of 3.8; 2.8's language test; 3.9 and principle 7 — distillation and the core domain | The book the category is named after. Its strategic half — contexts and their relationships — matters more than the tactical half and is read less |
 | Vaughn Vernon, *Implementing Domain-Driven Design* (2013) | 3.7 — domain events; 3.8 — the integration patterns, as elaborated | Evans's ideas carried into running code, with domain events treated as part of the model |
 | Fred Brooks, *No Silver Bullet* (1986) | Principle 7; 3.8 — essential against accidental complexity. **Departs:** *plan to throw one away*, from *The Mythical Man-Month* (1975), is not adopted — principle 12 makes each step a refactoring, never a rewrite, and Brooks himself called that advice too simplistic in the 1995 edition, in favour of building incrementally | The clearest argument for why no tool removes the hard part of software, and which part that is |
 | Melvin Conway, *How Do Committees Invent?* (1968) | 3.8 — boundaries between contexts follow boundaries between teams; Category 10's reading of knowledge concentration by area | Why a system's structure mirrors the organisation that builds it, and what follows from changing either |
@@ -3968,8 +4317,11 @@ needed to apply the framework. Each of them explains, at length, why it asks wha
 |---|---|---|
 | Jez Humble, David Farley, *Continuous Delivery* (2010) | 10.3, 10.5, 10.6 and 10.8 — the deployment pipeline, deployment strategies, rollback, smoke tests | Why every commit should be releasable, and the pipeline that makes it so |
 | Adam Wiggins, *The Twelve-Factor App* (2011) | 10.2 | Twelve short rules for a service that behaves the same in every environment |
-| Michael Nygard, *Release It!* (2nd edition 2018) | 9.5 — cascading failures and graceful degradation; 9.6 and 9.7 — the *steady state* pattern, in which everything that accumulates needs something that removes it | What production does to software that has only ever run in tests |
+| Michael Nygard, *Release It!* (2nd edition 2018) | 9.5 and principle 8 — cascading failures, graceful degradation, timeouts, circuit breakers and bulkheads; 9.6 and 9.7 — the *steady state* pattern, in which everything that accumulates needs something that removes it | What production does to software that has only ever run in tests |
 | Charity Majors, Liz Fong-Jones, George Miranda, *Observability Engineering* (2022) | 9.1 — context as structured fields; 9.9 — *what did production do in the last hour?* **Departs:** the book prefers wide, high-cardinality events to levelled logs; 9.1 keeps the levels | Debugging systems that cannot be reproduced locally, by asking new questions of the data rather than reading prepared dashboards |
+| Nicole Forsgren, Jez Humble, Gene Kim, *Accelerate* (2018) | 10.17 | The research behind the four delivery measures, and the finding that speed and stability improve together |
+| Betsy Beyer, Chris Jones, Jennifer Petoff, Niall Richard Murphy (eds.), *Site Reliability Engineering* (2016) | 9.4 — the four golden signals, service level objectives, error budgets | How to decide how reliable a service needs to be, and how to know whether it is |
+| Charles Goodhart (1975) | 10.17 — a measure that becomes a target | Why a number people are rewarded on stops describing what it measured |
 | Jason Cohen, *Best Kept Secrets of Peer Code Review* (2006) | 10.12 — review size | The data behind the advice that a review should be small enough to read in one sitting |
 
 ### Planning

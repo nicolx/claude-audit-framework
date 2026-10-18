@@ -61,6 +61,8 @@ signal that the code itself is not clear enough.
 - A name that communicates purpose completely: `findTopCoinsByMarketCap()`, not `getData()`
 - A type that makes the concept unambiguous: `UserId`, not `int $id`
 - A method body that reads like a sentence
+- A comment on an interface stating what the signature cannot — units, preconditions, the errors it
+  raises: the contract, not the implementation
 
 **Signals of drift:**
 
@@ -123,6 +125,8 @@ not on how it does it. This is what makes units replaceable and independently te
 - Constructor parameters typed as interfaces or abstract contracts
 - No direct instantiation of concrete dependencies inside domain or application logic
 - Test doubles that implement the same interface as the real dependency
+- An implementation that can replace another behind the same interface without any caller noticing
+- An interface no wider than what its callers use, hiding a decision they do not need to know
 
 **Signals of drift:**
 
@@ -185,6 +189,10 @@ DDD starts earning its cost when the domain grows to the point where multiple
 bounded contexts need to be distinguished, or when different parts of the system
 have meaningfully different models of the same concept.
 
+The complexity is not uniform inside one system either. The core domain — the part the product
+competes on — earns the full model. Generic subdomains are bought rather than built, and supporting
+ones are built simply.
+
 **What good looks like:**
 
 - The chosen structure can be explained in one sentence and matches the domain's complexity
@@ -213,7 +221,9 @@ the caller can catch and handle explicitly.
 **Infrastructure failures** — unexpected at the domain level: network timeouts,
 disk full, external service down. These originate outside the application boundary.
 Catch them at the boundary, wrap them in a domain-level exception if the domain
-cares, and let them propagate if it does not.
+cares, and let them propagate if it does not. Every call that can cross the boundary is bounded in
+time — a timeout set at the call or on the client — because a failure that never returns is caught
+by none of the handling above.
 
 **Programming errors** — wrong assumptions, null dereferences, out-of-bounds
 access. These are bugs. Do not catch them: let them propagate to a top-level
@@ -310,6 +320,12 @@ the old. Run both and compare outputs. Only when all tests pass and the outputs
 are verified to be identical in all relevant cases is it safe to remove the
 legacy code.
 
+**Inside a pass, move in named steps.** Pass 2 is itself a sequence, not one edit: one
+transformation at a time from the refactoring catalogue — extract, move, rename, inline — each
+leaving the suite green and each its own commit, named for what it did. A step that turns out wrong
+is then one revert, and a reviewer reads each step as one known transformation rather than as a diff
+to reconstruct.
+
 This protocol applies to any significant change: extracting a service, replacing
 an algorithm, migrating a data format, introducing a new layer. The cost of
 running old and new in parallel is always less than the cost of a silent regression.
@@ -319,12 +335,14 @@ running old and new in parallel is always less than the cost of a silent regress
 - Legacy tests written before any refactoring begins
 - Old and new implementations coexisting through at least one verification cycle
 - Legacy code removed only after explicit confirmation that outputs match
+- Each refactoring step named for the transformation it applies, and green on its own
 
 **Signals of drift:**
 
 - Deleting the old implementation in the same commit that introduces the new one
 - Relying on "it looks correct" without a mechanical comparison of outputs
 - Refactoring and adding new behaviour in the same pass
+- A `refactor:` commit that changes what a test asserts
 
 ---
 
@@ -788,6 +806,13 @@ has to get to, the single countermeasure being tried first, and how its effect w
 plan that begins with the easiest file reaches the hard question in week three, with a branch behind
 it that cannot be thrown away.
 
+**When the change is hard to make, make it easy first.** Often the step before the feature is not
+part of the feature: a function extracted, a dependency moved behind an interface, a structure
+changed so that the behaviour change becomes a few lines. It ships on its own with behaviour
+unchanged, and the change that follows is small. Make the change easy, then make the easy change.
+This does not displace the first step above — where the risky question is about the problem, settle
+it first. The tidying comes before the step it makes easy, not before everything.
+
 **When the end state replaces something that exists**, the sequence is the subject of principles 11
 and 12: old and new coexist, verified against each other, and the legacy goes last. There is no step
 that is the cutover.
@@ -1007,14 +1032,14 @@ can only be found in an audit, never written correctly the first time.
 | 1 | Express intent through structure | 2.1, 2.5 |
 | 2 | Introduce abstractions at the right moment | 1.3, 1.5, 2.6 |
 | 3 | One concern per unit | 1.2, 2.2 |
-| 4 | Depend on abstractions | 1.4, 3.5 |
+| 4 | Depend on abstractions | 1.4, 1.6, 1.7, 1.8, 3.5 |
 | 5 | Make invalid states unrepresentable | 1.1, 3.3 |
 | 6 | Prefer explicit over implicit | 1.4, 3.2, 5.3 |
-| 7 | Architecture follows the problem | 3.1, 6.7 |
+| 7 | Architecture follows the problem | 3.1, 3.9, 6.7 |
 | 8 | Distinguish failure modes | 2.4, 5.5, 9.5 |
 | 9 | Fix at the root | 2.6, 2.7 |
 | 10 | Agree on expected behaviour first | 4.2, 4.5 |
-| 11 | Refactor in two passes | 4.3, 10.9 |
+| 11 | Refactor in two passes | 2.11, 4.3, 10.9 |
 | 12 | Start simple, earn complexity | 6.7, 10.9 |
 | 13 | Document decisions with ADRs | 0.7 |
 | 14 | Check what already exists | 6.2, 6.4, 6.8, 6.9 |
@@ -1022,12 +1047,12 @@ can only be found in an audit, never written correctly the first time.
 | 16 | Observability is part of the feature | 9.1, 9.2, 9.4, 9.6 |
 | 17 | Test doubles at the boundary | 4.4, 4.6 |
 | 18 | A deprecation is a deadline | 7.8 |
-| 19 | History is part of the deliverable | 10.11, 10.14 |
+| 19 | History is part of the deliverable | 2.11, 10.11, 10.14 |
 | 20 | Code speaks English, the domain speaks its own language, the product speaks the user's | 2.8, 2.9, 2.10 |
 | 21 | Know the cost of your data access | 7.9, 9.8 |
 | 22 | Documentation is part of the change that invalidated it | 7.10 |
 | 23 | A spec is delivered when its status says so | 0.3, 0.4, 0.5 |
-| 24 | Cut the work into steps that ship | 0.8, 10.9 |
+| 24 | Cut the work into steps that ship | 0.8, 2.11, 10.9 |
 | 25 | A change is delivered, not finished | 10.14, 10.15 |
 | 26 | Every bug fix leaves a test behind | 4.7 |
 | 27 | Cleanup runs on a trigger, not on a reminder | 4.5, 7.8, 9.11, 10.4, 10.16 |
@@ -1045,5 +1070,6 @@ writing a feature — stating which, and why, keeps the table above honest inste
 | 8.5 security headers | Configuration of the framework or web server, not of a feature |
 | 9.3 health endpoint, 9.7 data lifecycle | Built once as operational surface, then maintained |
 | 9.9 operational access, 9.10 disaster recovery | Access paths, credentials and backups are established by whoever operates the system; no change to a feature can open one or restore one |
+| 10.17 delivery outcomes | An outcome of the whole delivery practice — principles 24 and 25 among others — measured rather than written in any one change |
 | 10.1–10.3, 10.5–10.8, 10.10, 10.12, 10.13 | Pipeline, environment, and repository setup — outside any single change |
 | 5.1, 5.2, 5.4, 5.6, 5.7 | Principles 3, 4, 6 and 8 applied to JS. Stack-specific rules belong in the project's own `.claude/CODING_STANDARDS.md`, not in a language-agnostic document |
