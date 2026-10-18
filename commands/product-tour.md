@@ -1,5 +1,5 @@
 ---
-description: Derive what the software actually does from its entry points, and write it down for the people who use it — a task-organised manual for stakeholders and developers, a slide deck, and, where the project declares a target, a recorded walkthrough of the real application. Reports where the product's declared intent and its code disagree. --check rebuilds the inventory and reports drift without writing anything.
+description: Use when someone needs to understand what this software actually does, or needs material to show it — a user manual or guide, onboarding documentation for a new developer, a walkthrough of the features, slides or a demo for a client, a manager or a stakeholder, a video of the application, or a check that the documentation still matches the code. Derives everything from the code's entry points, never from intent, and reports where the product context and the code disagree. --check reports drift without writing.
 allowed-tools: [Read, Grep, Glob, Bash, Write]
 ---
 
@@ -16,6 +16,19 @@ true rather than plausible.
 drift. It writes nothing, and it is the procedure an audit follows to score 0.9.
 
 `--no-video` stops after the slides, even where a recording target is declared.
+
+**Invoked from a conversation rather than by name**, scope the run to what was asked, and say in
+one line what will be produced and where before starting:
+
+| The request is for | Run |
+|---|---|
+| a manual, a guide, onboarding material, "document what it does" | Phases 0–2 and 5 |
+| slides, a presentation, something to show a client or a manager | Phases 0–3 and 5 — the slides need the guide they are derived from |
+| a demo, a video, a recording | every phase; Phase 4 only if declared, and still only after approval |
+| whether the documentation is still accurate | `--check` |
+
+Phase 1 always runs: every other output is a reading of the inventory, and an output without one
+is the unsourced claim this command exists to prevent.
 
 ## What this command is, and is not
 

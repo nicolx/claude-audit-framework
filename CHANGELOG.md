@@ -8,6 +8,22 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.33.1] — 2026-10-18
+
+`/product-tour` was reachable only by typing its name, and the people who most need it — someone
+preparing a demo, onboarding a colleague, explaining the product to a client — do not know it exists.
+
+### Changed
+
+- **The command's description** names the requests it serves rather than what it does internally,
+  so a session can select it from the conversation.
+- **`INSTRUCTIONS.md`** — *Explaining what the product does*: a request for a manual, onboarding
+  material, slides, a demo or a video of the product invokes `/product-tour` without asking; a
+  question answered in the conversation does not. A manual or deck is never written outside it.
+- **`/product-tour`** scopes a conversational invocation to what was asked — the manual, the slides,
+  the recording or a drift check — and always builds the inventory first. A recording still needs
+  the declared target and the user's approval.
+
 ## [1.33.0] — 2026-10-18
 
 Category 0 scored what the product declares it is for, and nothing scored whether anyone can find
