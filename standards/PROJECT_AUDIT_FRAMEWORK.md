@@ -4505,6 +4505,8 @@ needed to apply the framework. Each of them explains, at length, why it asks wha
 |---|---|---|
 | OWASP Top 10 | 8.7 — the explanation named beside an ASVS identifier, not the ruler | The current ranking of the most common web application risks |
 | OWASP Application Security Verification Standard (ASVS), 5.0.0 (2025) | 8.7 — the declared level, version and requirement list, shipped in `standards/asvs/` | Security requirements written as things that can be checked, level by level: the Top 10 names what goes wrong, the ASVS what to verify |
+| OWASP Code Review Guide, 2.0 (2017) | `security-reviewer` — reading a change from each input to each sink, by the category of weakness it exposes. **Departs:** the guide carries its own checklist; the agent cites the ASVS requirement instead, so a review finding and an 8.7 finding name the same rule | How a security review of source differs from a functional one, and where in the code each class of weakness tends to hide |
+| Adam Shostack, *Threat Modeling: Designing for Security* (2014) | `security-reviewer` — *what can an attacker do after this change that they could not do before*, asked of one change from one attacker position at a time. **Departs:** the book models the whole system, with data-flow diagrams and STRIDE; the agent asks the question only of the surface a diff adds or changes, and leaves the system-wide model to the project | Thinking about a design from the attacker's side as a routine engineering step, not a specialist's audit |
 
 ---
 

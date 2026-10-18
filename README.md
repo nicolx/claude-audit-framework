@@ -27,12 +27,14 @@ A portable quality framework for Claude Code — travels with any project as a g
   dimension that grows and what breaks first at what multiple, measuring where the project declared
   a path and saying so where it did not. `pr-critic` reviews the finished diff adversarially, every
   finding carrying a file, a line, the rule it breaks, and whether it was traced or merely
-  suspected. None of the three edits anything, and none gives a verdict — the decision stays with
-  the people who own the branch. The fourth, `hotfix`, is the fast lane: it skips the design pass
+  suspected. `security-reviewer` reads the same diff for what an attacker can do after it that they
+could not before, against the ASVS level the project declared, citing each requirement by versioned
+identifier and never running an attack. None of the four edits anything, and none gives a verdict — the decision stays with
+  the people who own the branch. The fifth, `hotfix`, is the fast lane: it skips the design pass
   for a fix whose cause is already understood, holds the floor that does not drop (the regression
   test, the boundary, the document, the delivery convention), and refuses to start unless the
   project has declared what counts as small. Routing never selects it — the developer does. The
-  fifth, `implementer`, builds one already-specified spec along an already-approved plan, a commit
+  sixth, `implementer`, builds one already-specified spec along an already-approved plan, a commit
   per step with its test, and never redesigns or pushes; only `/drain-backlog` dispatches it
   `INSTRUCTIONS.md` carries the routing: which agent a session reaches for, and the two rules that
   bound all of them — an agent is a lens rather than a permission upgrade, and it returns evidence
@@ -44,7 +46,7 @@ A portable quality framework for Claude Code — travels with any project as a g
 ```bash
 # Add the submodule — pin a released version rather than tracking main
 git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-git -C .claude/framework checkout v1.34.0
+git -C .claude/framework checkout v1.35.0
 
 # Bootstrap: installs the commands, scaffolds the project files, records the version
 bash .claude/framework/scripts/init-project.sh
@@ -96,7 +98,7 @@ a framework that is present and doing nothing.
 bash .claude/framework/scripts/check-updates.sh
 
 # 2. Move to it
-cd .claude/framework && git fetch --tags && git checkout v1.34.0 && cd ../..
+cd .claude/framework && git fetch --tags && git checkout v1.35.0 && cd ../..
 
 # 3. Make the install conformant with the new version — migrations included
 bash .claude/framework/scripts/init-project.sh
@@ -104,7 +106,7 @@ bash .claude/framework/scripts/init-project.sh
 # 4. Verify, and read what it says
 bash .claude/framework/scripts/check-install.sh
 
-git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.34.0"
+git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.35.0"
 ```
 
 Three scripts, three questions, no overlap:
@@ -127,7 +129,7 @@ entries you need are named rather than hunted for. `init-project.sh` migrates ev
 automatically and is idempotent, so there is no version-by-version upgrade path to follow: you can
 go from any older version straight to the newest one.
 
-The conformance rules ship *inside* each version, so checking out `v1.34.0` gets you `v1.34.0`'s
+The conformance rules ship *inside* each version, so checking out `v1.35.0` gets you `v1.35.0`'s
 checks with no lookup table to keep in sync.
 
 **One thing is never automatic: a declaration block added by a later version.** `init-project.sh`

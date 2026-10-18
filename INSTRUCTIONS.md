@@ -567,13 +567,17 @@ The table is in the order a change meets them, not in order of importance:
 |---|---|---|
 | `architect` | Before writing anything larger than a fix — a feature, a migration, a new integration, a restructure. A request that names an end state (*rewrite the importer*, *move everything to the new client*) names a destination, and this is what produces the route | The five evolution questions answered, two routes with the cheaper one first and a recommendation, and the ordered step list of principle 24 — plus a drafted ADR when the decision is expensive to reverse |
 | `scalability-devops` | A change touches data access, a queue, a cache, an external call, or anything else that runs in production under load | Per dimension — rows, requests, concurrency, payload, fan-out, retention — what breaks first and at roughly what multiple |
+| `security-reviewer` | A change touches the attack surface — a new input or endpoint, authentication, authorisation, sessions, an upload, a secret, a header policy, a new dependency | Ranked findings with file, line, the attack, and the ASVS requirement by versioned identifier — an L1 gap exploitable on its own first |
 | `pr-critic` | A change is finished and somebody is about to merge it: *review this*, *look over the diff*, a pull request number | Ranked findings with file, line, rule, and whether each was traced or suspected |
 | `hotfix` | **Never by routing** — only when the developer invokes it by name. See below | The diff, the test, the delivery actions taken, and one line naming what the lane skipped |
 | `implementer` | **Never by routing** — only `/drain-backlog` dispatches it, with a spec and an approved plan | One commit per step with its test, the spec's status per requirement, and where it stopped if it fell out of the plan |
 
 Two of them on one piece of work is normal when they meet it at different moments — `architect`
-before it is written, `pr-critic` after. Two at the same moment is the duplication the last rule
-below forbids.
+before it is written, `pr-critic` after — or when they ask it different questions: `pr-critic`,
+`security-reviewer` and `scalability-devops` on the same finished diff are three lenses — the first
+on every diff, the other two only when it touches what they look at. Two asking the same question is the
+duplication the last rule below forbids. When their findings land on the same line, report it once,
+under the lens that names the attack or the breaking point.
 
 ### The fast lane is taken, never assigned
 

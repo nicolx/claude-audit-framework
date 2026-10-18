@@ -113,7 +113,7 @@ if [ -d "$AGENTS_DIR" ]; then
         done
     else
         # Submodule already gone — fall back to the known agent names.
-        KNOWN_AGENTS="pr-critic scalability-devops architect hotfix implementer"
+        KNOWN_AGENTS="pr-critic scalability-devops security-reviewer architect hotfix implementer"
         for name in $KNOWN_AGENTS; do
             if [ -f "$AGENTS_DIR/$name.md" ]; then
                 rm "$AGENTS_DIR/$name.md"

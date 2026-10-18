@@ -142,6 +142,7 @@ expect_file "$PROJ/.claude/commands/project-audit.md"
 expect_file "$PROJ/.claude/agents/pr-critic.md"
 expect_file "$PROJ/.claude/agents/hotfix.md"
 expect_file "$PROJ/.claude/agents/implementer.md"
+expect_file "$PROJ/.claude/agents/security-reviewer.md"
 expect_file "$PROJ/.claude/commands/drain-backlog.md"
 # The gate hotfix reads. Scaffolded, never written by the installer: the thresholds are
 # the team's to set, and an absent block is what makes the agent refuse to start.

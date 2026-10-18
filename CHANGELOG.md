@@ -8,6 +8,32 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.35.0] — 2026-10-18
+
+A change could reach the mainline reviewed for correctness and for load, but nothing read it for what
+it handed an attacker. Category 8 and the declared ASVS level were scored by `/project-audit` on the
+whole codebase, long after the change that opened the gap.
+
+### Added
+
+- **The `security-reviewer` agent** — reads a diff for what an attacker can do after it that they
+  could not do before: inputs traced to their sinks, authorisation where the work is done, session and
+  token state, what the response gives away, secrets and new dependencies. Measures against Category 8
+  and the project's Security verification block, walks only the ASVS chapters the change touches, and
+  cites each requirement by versioned identifier, with an L1 gap exploitable on its own reported
+  first. Never runs an attack, never prints a secret, never reaches past the Production access block.
+- **Sources** — the OWASP Code Review Guide, with the departure that findings cite the ASVS rather
+  than the guide's checklist; Shostack's *Threat Modeling*, asked of one change rather than the whole
+  system.
+
+### Changed
+
+- **Routing** — `pr-critic`, `security-reviewer` and `scalability-devops` on the same finished diff
+  are three lenses, not duplication; what the rule forbids is two agents asking the same question. A
+  line reported by more than one is reported once.
+- **`/drain-backlog`** — the review step dispatches `security-reviewer` beside `pr-critic` when the
+  spec's commits touch the attack surface.
+
 ## [1.34.0] — 2026-10-18
 
 Specs written outside the repository had nowhere to land, and specs in the repository waited for a

@@ -171,7 +171,9 @@ field with the condition it reported, commit, and go to 3.5 with what was built.
 
 ### 3.4 Review
 
-Dispatch `pr-critic` on the spec's commits — the range from before 3.3 to `HEAD`.
+Dispatch `pr-critic` on the spec's commits — the range from before 3.3 to `HEAD` — and, when those
+commits touch the attack surface as the routing table in `INSTRUCTIONS.md` describes it,
+`security-reviewer` on the same range. Their findings are handled alike.
 
 - **CONFIRMED findings** go back to `implementer` once. Review again. A CONFIRMED finding that
   survives the second round blocks the spec: its status goes back to `in-progress` and the `blocked:`
