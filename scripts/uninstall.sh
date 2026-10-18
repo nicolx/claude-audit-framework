@@ -75,7 +75,7 @@ if [ -d "$COMMANDS_DIR" ]; then
         done
     else
         # Submodule already gone — fall back to the known command names
-        for name in project-audit competency-review init-profile dr-drill team-census product-tour; do
+        for name in project-audit competency-review init-profile dr-drill team-census product-tour drain-backlog; do
             if [ -f "$COMMANDS_DIR/$name.md" ]; then
                 rm "$COMMANDS_DIR/$name.md"
                 echo "  ✓  Removed command: /$name"
@@ -113,7 +113,7 @@ if [ -d "$AGENTS_DIR" ]; then
         done
     else
         # Submodule already gone — fall back to the known agent names.
-        KNOWN_AGENTS="pr-critic scalability-devops architect hotfix"
+        KNOWN_AGENTS="pr-critic scalability-devops architect hotfix implementer"
         for name in $KNOWN_AGENTS; do
             if [ -f "$AGENTS_DIR/$name.md" ]; then
                 rm "$AGENTS_DIR/$name.md"

@@ -31,18 +31,20 @@ A portable quality framework for Claude Code — travels with any project as a g
   the people who own the branch. The fourth, `hotfix`, is the fast lane: it skips the design pass
   for a fix whose cause is already understood, holds the floor that does not drop (the regression
   test, the boundary, the document, the delivery convention), and refuses to start unless the
-  project has declared what counts as small. Routing never selects it — the developer does
+  project has declared what counts as small. Routing never selects it — the developer does. The
+  fifth, `implementer`, builds one already-specified spec along an already-approved plan, a commit
+  per step with its test, and never redesigns or pushes; only `/drain-backlog` dispatches it
   `INSTRUCTIONS.md` carries the routing: which agent a session reaches for, and the two rules that
   bound all of them — an agent is a lens rather than a permission upgrade, and it returns evidence
   rather than a decision
-- **Skill commands**: `/project-audit`, `/product-tour`, `/dr-drill`, `/team-census`, `/competency-review`, `/init-profile`
+- **Skill commands**: `/project-audit`, `/product-tour`, `/drain-backlog`, `/dr-drill`, `/team-census`, `/competency-review`, `/init-profile`
 
 ## Add to a project
 
 ```bash
 # Add the submodule — pin a released version rather than tracking main
 git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-git -C .claude/framework checkout v1.33.1
+git -C .claude/framework checkout v1.34.0
 
 # Bootstrap: installs the commands, scaffolds the project files, records the version
 bash .claude/framework/scripts/init-project.sh
@@ -78,6 +80,7 @@ Most of it is competency levels. One block is not: the natural language you work
 | `/init-profile` | One-time developer profile setup for this machine (~5 min) |
 | `/project-audit` | Full 11-category quality evaluation with 11 parallel agents; writes a dated report and score history to `docs/audits/`. `--summary` / `--deep` change how much of the result is printed — never what is measured |
 | `/product-tour` | Writes down what the software actually does, from its entry points: a task-organised manual for users and for developers joining the team, Marp slides derived from it, and — where the **Product tour** block declares a non-production target — a recording of the real application. Every task cites the entry point it rests on, and a report lists where the code and the product context disagree. `--check` reports drift without writing; it is how 0.9 is scored |
+| `/drain-backlog` | Implements the specs waiting in the repository, one at a time. Ingests PRDs and ARDs dropped in the declared inbox — status in their frontmatter, never in a folder — then for each `todo` spec checks readiness against 0.3, has `architect` plan it, `implementer` build it and `pr-critic` review it, and delivers within the Delivery convention. A spec it cannot build as written is marked `blocked` with the reason, never rewritten. Plans are approved by a person unless the **Backlog drain** block grants otherwise; `--dry-run` shows the queue and its readiness without writing |
 | `/team-census` | Records who writes, reviews, releases and consumes a version of this project, into the **Team census** block. Drafts it from the git history and asks only what the history cannot know. It is what makes Category 10 proportional — a practice that protects nobody is not scored as a gap |
 | `/competency-review` | Quarterly review and update of your developer profile |
 | `/dr-drill` | Runs the project's committed disaster-recovery drill against the disposable target declared in `.claude/PROJECT_AUDIT_FRAMEWORK.md`, verifies the restore actually restored something, and writes a receipt for 9.10. Refuses to start without that declaration; read-only against production and the backup store; `--dry-run` checks the setup without restoring |
@@ -93,7 +96,7 @@ a framework that is present and doing nothing.
 bash .claude/framework/scripts/check-updates.sh
 
 # 2. Move to it
-cd .claude/framework && git fetch --tags && git checkout v1.33.1 && cd ../..
+cd .claude/framework && git fetch --tags && git checkout v1.34.0 && cd ../..
 
 # 3. Make the install conformant with the new version — migrations included
 bash .claude/framework/scripts/init-project.sh
@@ -101,7 +104,7 @@ bash .claude/framework/scripts/init-project.sh
 # 4. Verify, and read what it says
 bash .claude/framework/scripts/check-install.sh
 
-git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.33.1"
+git add .claude/ CLAUDE.md && git commit -m "chore: update claude-audit-framework to v1.34.0"
 ```
 
 Three scripts, three questions, no overlap:
@@ -124,7 +127,7 @@ entries you need are named rather than hunted for. `init-project.sh` migrates ev
 automatically and is idempotent, so there is no version-by-version upgrade path to follow: you can
 go from any older version straight to the newest one.
 
-The conformance rules ship *inside* each version, so checking out `v1.33.1` gets you `v1.33.1`'s
+The conformance rules ship *inside* each version, so checking out `v1.34.0` gets you `v1.34.0`'s
 checks with no lookup table to keep in sync.
 
 **One thing is never automatic: a declaration block added by a later version.** `init-project.sh`
@@ -217,7 +220,7 @@ After `init-project.sh`, customize:
 
 These files extend the global framework — they do not replace it.
 
-**Eight blocks of `.claude/PROJECT_AUDIT_FRAMEWORK.md` are declarations rather than
+**Nine blocks of `.claude/PROJECT_AUDIT_FRAMEWORK.md` are declarations rather than
 specializations**, and each one decides what an audit is able to verify, or what a session may do,
 rather than how it reads the code. Leaving one out is a legitimate answer; it just sets a ceiling:
 
@@ -231,6 +234,7 @@ rather than how it reads the code. Leaving one out is a legitimate answer; it ju
 | `Disaster recovery drill` | `/dr-drill` has nothing to run, and 9.10 is scored from the runbook |
 | `Product tour` | `/product-tour` writes documents only and records nothing; 0.9 is scored on the documents alone |
 | `Fast-lane gate` | The `hotfix` agent does not start, every change goes the ordinary route, and 10.15 reads every departure from the convention as a breach rather than as a declared exception |
+| `Backlog drain` | `/drain-backlog` has no inbox, reads the spec area the documentation index names, and asks for approval of every plan |
 
 The skeletons, with a worked example each, are in
 `.claude/framework/templates/PROJECT_AUDIT_FRAMEWORK.md`. Declare only what you mean to grant: a

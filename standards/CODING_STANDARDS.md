@@ -831,6 +831,15 @@ not agreement on a route, and must not be read as one. If the developer, having 
 still wants the single cutover, that is their call — build it, and say plainly which part of it
 nobody will be able to verify until the end.
 
+**When the agreement is given in advance.** Work that arrives already specified — a spec reviewed
+before it reached the repository, every acceptance criterion observable by the test in 0.3 — has had
+its destination agreed by that review. A project may then agree to the route by rule rather than by
+exchange: a written declaration that a plan meeting stated conditions is approved. The plan is still
+written, still cut by behaviour, still shown before its first step lands; what a standing agreement
+removes is the wait, never the plan. It never covers a route that is expensive to reverse — one that
+needs an ADR under principle 13 comes back to a person, whatever the declaration says. The
+declaration is the **Backlog drain** block, and `/drain-backlog` is the only route that reads it.
+
 **What good looks like:**
 
 - A numbered plan agreed before implementation starts, each step naming its change, its test, and

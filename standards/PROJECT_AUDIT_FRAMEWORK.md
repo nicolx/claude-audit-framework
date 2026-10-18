@@ -4489,6 +4489,8 @@ needed to apply the framework. Each of them explains, at length, why it asks wha
 | Source | Where the framework uses it | Why read it |
 |---|---|---|
 | John Shook, *Managing to Learn* (2008) | Principle 24 and 0.8 — the A3: problem, current state, target, countermeasure, check | Problem solving on one page, as Toyota teaches it |
+| David J. Anderson, *Kanban* (2010) | `/drain-backlog` — work pulled one item at a time, the next started only when the last is delivered or explicitly blocked. **Departs:** Kanban shows an item's state by its column on a board; the framework keeps it in the document's own status marker (0.4), and the inbox is a point of arrival rather than a column | Why limiting work in progress shortens delivery, and how a pull system exposes the blockers a push system hides |
+| Gojko Adzic, *Specification by Example* (2011) | 0.3 and the readiness check of `/drain-backlog` — an acceptance criterion is ready when a test could be written from it without asking its author | Turning requirements into concrete examples that become the tests, so the spec and the system cannot quietly disagree |
 
 ### Documentation
 

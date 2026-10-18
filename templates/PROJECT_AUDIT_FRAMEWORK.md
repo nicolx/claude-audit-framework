@@ -312,3 +312,28 @@ Example:
 If there is none: "Not declared — `/product-tour` writes the manual and slides under the
 documentation home and records nothing; 0.9 is scored on the documents alone." That costs no score:
 a manual illustrated by hand reaches the same band.]
+
+## Backlog drain
+
+[Where specs written elsewhere arrive, where the backlog is read from, and whether `/drain-backlog`
+may build a planned spec without a person approving the plan. The approval field is a grant —
+principle 24 states what a standing agreement may and may not cover — and everything the drain
+commits stays inside the Delivery convention above.
+
+The inbox is a point of arrival, not a status: a document in it is not yet in the backlog, and
+ingesting it moves it to the spec home with its status in its own frontmatter, as 0.4 requires.
+
+Example:
+
+| Field | Value |
+|---|---|
+| Inbox | `docs/inbox/` — PRDs and ARDs written outside the repository are dropped here, Markdown only |
+| Spec home | `docs/specs/` — the backlog is every spec here whose status is `todo` or `in-progress` |
+| Naming | `NNN-slug.md`, the next free number |
+| Plan approval | `unattended` — a plan from `architect` that drafts no ADR is built without asking |
+| Always asks | a plan touching `src/Billing/` or `src/Auth/`; a migration; a new external dependency |
+| Per run | at most 5 specs |
+
+If there is none: "Not declared — `/drain-backlog` reads the spec area named by the documentation
+home's index, ingests nothing, and asks for approval of every plan before building it." An absent
+block is never read as standing approval.]

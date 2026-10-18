@@ -8,6 +8,40 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.34.0] — 2026-10-18
+
+Specs written outside the repository had nowhere to land, and specs in the repository waited for a
+session to be asked about each one. A spec reviewed before it arrived has already had its
+destination agreed — what it still needed was a route that builds it to the same standard as
+everything else, without a person approving every plan of a backlog that was already approved once.
+
+### Added
+
+- **`/drain-backlog`** — ingests PRDs and ARDs dropped in the declared inbox into the spec home with
+  their status in frontmatter, never in a folder (0.4); orders the `todo` and `in-progress` specs by
+  id and `depends_on`; checks each for readiness against 0.3, contradictions and dependencies; then,
+  one spec at a time, has `architect` plan it, `implementer` build it and `pr-critic` review it, and
+  delivers within the Delivery convention. A spec it cannot build as written gets a `blocked:` field
+  with the reason and is skipped — never rewritten. `--dry-run` reports the queue and its readiness
+  without writing. Reached from the conversation as well as by name.
+- **The `implementer` agent** — builds one spec along its approved plan, a commit per step with its
+  test and the status marker moved per requirement; never redesigns, never pushes, and stops when the
+  plan no longer fits the code. Only `/drain-backlog` dispatches it.
+- **The `Backlog drain` declaration block** in `templates/PROJECT_AUDIT_FRAMEWORK.md` — inbox, spec
+  home, naming, whether plans are approved by the declaration, what always comes back to a person,
+  and a per-run limit. Without it the drain has no inbox and asks for approval of every plan.
+  `check-install.sh` reports it as absent on existing installs.
+- **Sources** — Anderson's *Kanban*, with the departure that state lives in the document rather than
+  a board column; Adzic's *Specification by Example* for the readiness test.
+
+### Changed
+
+- **Principle 24** — *When the agreement is given in advance*: a project may approve the route by
+  rule for specs reviewed before they arrived. The plan is still written and shown; a route that
+  needs an ADR always comes back to a person. Work asked for in the conversation is unaffected.
+- **`INSTRUCTIONS.md`** — *Implementing the spec backlog*, and `implementer` in the routing table as
+  never routed to.
+
 ## [1.33.1] — 2026-10-18
 
 `/product-tour` was reachable only by typing its name, and the people who most need it — someone

@@ -141,9 +141,12 @@ expect_file "$PROJ/.claude/CODING_STANDARDS.md"
 expect_file "$PROJ/.claude/commands/project-audit.md"
 expect_file "$PROJ/.claude/agents/pr-critic.md"
 expect_file "$PROJ/.claude/agents/hotfix.md"
+expect_file "$PROJ/.claude/agents/implementer.md"
+expect_file "$PROJ/.claude/commands/drain-backlog.md"
 # The gate hotfix reads. Scaffolded, never written by the installer: the thresholds are
 # the team's to set, and an absent block is what makes the agent refuse to start.
 expect_grep "$PROJ/.claude/PROJECT_AUDIT_FRAMEWORK.md" "## Fast-lane gate" "scaffolded spec carries the Fast-lane gate block"
+expect_grep "$PROJ/.claude/PROJECT_AUDIT_FRAMEWORK.md" "## Backlog drain" "scaffolded spec carries the Backlog drain block"
 expect_file "$PROJ/.claude/.framework-version"
 expect_count "$PROJ/CLAUDE.md" "@.claude/framework/INSTRUCTIONS.md" 1
 expect_grep "$PROJ/.claude/.framework-version" "version=1" "version marker records a version"
