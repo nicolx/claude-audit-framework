@@ -139,9 +139,13 @@ If the field is **absent**, the profile predates it. Treat that as a review due 
 
 ### The one field that is not a competency level
 
-The profile's **User-facing language** section records the developer's primary natural language. It has exactly one use: seeding the required locale set a project declares for subcriteria 2.10. Its own disclaimer, written into the profile, is the authority — this file only points at it, because the profile is global and is read in projects where this framework is not installed.
+The profile's **User-facing language** section records the developer's primary natural language. It has two uses.
 
-It does **not** change the language of anything you write. Code, identifiers, comments, commit messages, documents and replies are unaffected — those follow principle 20 and the conversation. It is not a conversation-language preference.
+**It is the language of the conversation.** Everything addressed to the developer in the session is written in it — replies, questions, progress lines, plans, the reports a command prints, and every notice this framework quotes in English (the `⚠` and `💡` lines included): render them in that language and keep paths, commands, block names and identifiers verbatim. English is never the default because the tools are in English. The developer asking in the session for another language overrides it for that session; with no profile, or no such section, reply in the language the developer writes in.
+
+**It seeds the required locale set** a project declares for subcriteria 2.10.
+
+It does **not** change the language of anything written into the repository. Code, identifiers, comments, commit messages and documents follow principle 20, whatever language the conversation is in.
 
 **If the file does NOT exist:** mention it once at the start of the session — `> 💡 No developer profile found. Run /init-profile to enable skill-level calibration.` — then proceed normally without repeating it.
 

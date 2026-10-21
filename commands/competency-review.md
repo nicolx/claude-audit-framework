@@ -119,7 +119,9 @@ Ask: "Still working primarily in [language from the profile]? And are there othe
 you read fluently now?"
 
 One question, no levels. Skip the section if the profile has no such block yet — offer to add it
-instead, explaining that it only seeds the locale set a project is expected to serve.
+instead, explaining that it sets the language sessions talk to the developer in and seeds the locale
+set a project is expected to serve. When writing the block, use the disclaimer exactly as
+`/init-profile` gives it, replacing any other wording found under it.
 
 ## Step 3 — Propose updates
 

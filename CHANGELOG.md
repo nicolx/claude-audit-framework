@@ -8,6 +8,23 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.37.0] — 2026-10-21
+
+The developer profile recorded the natural language a developer works in and then forbade using it
+for the one thing they read in it every day: the conversation. Sessions answered in English because
+the tools are in English.
+
+### Changed
+
+- **The conversation follows the profile's User-facing language** — replies, questions, progress
+  lines, plans, command reports printed in the session, and the framework's quoted notices are
+  written in it, with paths, commands, block names and identifiers kept verbatim. A request in the
+  session overrides it; with no profile, the session replies in the language the developer writes in.
+  Code, identifiers, comments, commit messages and documents stay English under principle 20.
+- **`/init-profile`** — the question and the disclaimer it writes say so.
+- **`/competency-review`** — rewrites the block's disclaimer to the current wording when it confirms
+  or adds the block.
+
 ## [1.36.0] — 2026-10-21
 
 A project that had not declared a Delivery convention got a session that left every finished change
