@@ -8,6 +8,24 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.36.0] — 2026-10-21
+
+A project that had not declared a Delivery convention got a session that left every finished change
+uncommitted and asked at each step — the failure principle 25 exists to prevent, caused by the
+principle's own fallback.
+
+### Changed
+
+- **Principle 25's default** — with no Delivery convention declared, a session commits and pushes
+  the checked-out branch to the upstream it already tracks, without force, and asks before anything
+  else: no new remote branch, pull request, merge, tag, release, force-push or rewritten history. A
+  rejected push is reported, never retried another way. A declared block replaces the default in
+  full, including where it is narrower.
+- **`/drain-backlog`** — with no Delivery convention, builds each spec on the checked-out branch and
+  delivers it within that default instead of committing nothing.
+- **`INSTRUCTIONS.md`, the template and the README** — the missing-block notice and the "without it"
+  descriptions now state the default.
+
 ## [1.35.0] — 2026-10-18
 
 A change could reach the mainline reviewed for correctness and for load, but nothing read it for what

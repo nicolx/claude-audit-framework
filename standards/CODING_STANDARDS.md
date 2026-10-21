@@ -879,9 +879,14 @@ the command the developer would run. Never infer an adjacent permission: committ
 pushing, pushing a feature branch does not imply pushing `main`, and neither implies a tag, a
 release, or a published artifact. An agent's authority here is narrower than the team's by design.
 
-**Where there is no declaration**, prepare the change and ask, as before — and say once that the
-block is missing. A session that starts committing because nobody wrote down that it should not is
-the failure this principle is most likely to cause if read carelessly.
+**Where there is no declaration, the non-destructive actions are authorized by default**: commit, and
+push the checked-out branch to the upstream it already tracks, without force. Each is undone by
+another commit, and leaving finished work unpushed is the failure this principle exists to prevent.
+Nothing else is: not a new remote branch, a pull request, a merge, a tag, a release, a force-push, a
+rewritten history, or a push to any ref other than the one checked out. A push the remote rejects is
+reported, never retried another way. Say once that the block is missing. A declaration replaces this
+default in full, including where it is narrower — a project whose block says *Session may: commit*
+has withdrawn the push.
 
 **What rides along with the change.** The documents it invalidated are part of it, not a follow-up:
 principle 22 for what a document says about the system, 23 for what it says about itself, and — where

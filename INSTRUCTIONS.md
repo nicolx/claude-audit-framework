@@ -353,11 +353,12 @@ wrong. This is principle 22 applied to the artifacts of a release.
 **If the block is absent**, flag it once per session, at the first moment there is something worth
 committing — not at session start:
 
-> ⚠ No **Delivery convention** declared in `.claude/PROJECT_AUDIT_FRAMEWORK.md`. I will prepare
-> changes but not commit, push or tag unasked. The block is scored by 10.15 and its shape is in
-> `.claude/framework/templates/PROJECT_AUDIT_FRAMEWORK.md`.
+> ⚠ No **Delivery convention** declared in `.claude/PROJECT_AUDIT_FRAMEWORK.md`. I will commit and
+> push this branch to its upstream without force, and ask before anything else. The block is scored
+> by 10.15 and its shape is in `.claude/framework/templates/PROJECT_AUDIT_FRAMEWORK.md`.
 
-Then carry on and ask, as before. An absent declaration is never read as permission.
+Then carry on within the default principle 25 states — commit and a non-force push of the
+checked-out branch, nothing further.
 
 ### After it lands: removing what the change left behind
 

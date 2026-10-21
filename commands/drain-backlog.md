@@ -66,9 +66,9 @@ names none, stop:
 Never create the inbox or the spec home. The layout is the team's decision, and an empty tree
 scaffolded by an agent is a worse signal than none.
 
-**If the Delivery convention is absent**, the drain commits nothing: ingestion and `blocked:` fields
-are written and left uncommitted, every spec stops at an approved plan, and the report says so. A drain is a long run of commits, and an absent convention
-is never read as permission for one.
+**If the Delivery convention is absent**, the drain delivers within the default of principle 25:
+every spec is built on the checked-out branch, committed, and pushed to that branch's upstream
+without force — no branch cut, no pull request, no tag. The report says the default was used.
 
 ---
 
@@ -162,7 +162,8 @@ a standing agreement may and may not cover.
 
 ### 3.3 Build
 
-On the ref the Delivery convention names for this spec — the mainline, or a branch cut for it —
+On the ref the Delivery convention names for this spec — the mainline, or a branch cut for it; the
+checked-out branch when none is declared —
 dispatch `implementer` with the spec, the approved plan, the ADR draft if any, and the ref. It commits
 step by step and never pushes.
 

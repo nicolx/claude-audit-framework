@@ -219,8 +219,8 @@ Example — team of nine:
 | Session may | commit, push `feat/*`, open and update its own pull request |
 | Session may not | merge a pull request, push `main`, tag, release |
 
-If there is none: "Not declared — a session prepares changes and asks before committing; 10.15 is
-scored on what the history shows."]
+If there is none: "Not declared — a session commits and pushes the checked-out branch without force,
+and asks before anything else (principle 25); 10.15 is scored on what the history shows."]
 
 ## Fast-lane gate
 

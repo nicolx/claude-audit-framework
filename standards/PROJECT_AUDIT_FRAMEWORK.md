@@ -3670,9 +3670,10 @@ approval, green, squash, changelog entry, release tag* is another. The framework
 between them and does not reward the longer list.
 
 What does not scale with the team is whether it is **written down**. An undeclared convention is one
-the newest member learns by having a pull request rejected, and one an agent cannot follow at all:
-it will ask at every step or guess, and the asking is what a team mistakes for caution until it has
-paid for it a hundred times.
+the newest member learns by having a pull request rejected, and one an agent can follow only as far
+as principle 25's default — commit and a non-force push of the branch it is on. Past that it will
+ask at every step or guess, and the asking is what a team mistakes for caution until it has paid for
+it a hundred times.
 
 Three questions, in order.
 
