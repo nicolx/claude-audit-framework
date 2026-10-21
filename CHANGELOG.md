@@ -8,6 +8,41 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.39.0] — 2026-10-21
+
+1.36.0 authorized commit and a non-force push by default, but only in the instructions. Claude
+Code's own permission check does not read them, so the session was still stopped at the push.
+
+### Added
+
+- **`init-project.sh` grants principle 25's default in `.claude/settings.json`** — `Bash(git add *)`,
+  `Bash(git commit *)` and `Bash(git push)`. The push rule has no wildcard on purpose: a rule matches
+  the command text, so `Bash(git push *)` would also allow `git push origin main --force` and remote
+  branch deletion. Only a bare `git push` matches, which pushes the checked-out branch to its
+  upstream; every other form goes through the ordinary permission check. `--no-git-permissions`
+  skips it.
+- **`uninstall.sh`** removes a `settings.json` byte-identical to the one the installer writes, and
+  names the grant in any other.
+- **Cases in `test-install-cycle.sh`** — the default grant, idempotency, the opt-out, the combined
+  file with `--with-hooks` as valid JSON, and an existing file left untouched.
+
+### Changed
+
+- **`INSTRUCTIONS.md`** — with no Delivery convention, the session pushes as a bare `git push`.
+
+### Migration
+
+**Re-run the installer after the checkout.** A project with no `.claude/settings.json` gets one. A
+project that has one gets the three rules printed to merge by hand — the file is the project's and
+is never rewritten. A project whose Delivery convention does not permit pushing the branch it works
+on should leave the push rule out, or install with `--no-git-permissions`: the grant is the
+default's, and a declared convention replaces the default.
+
+```bash
+cd .claude/framework && git fetch --tags && git checkout v1.39.0 && cd ../..
+bash .claude/framework/scripts/init-project.sh
+```
+
 ## [1.38.0] — 2026-10-21
 
 1.37.0 made the profile's User-facing language the language of the conversation, but profiles

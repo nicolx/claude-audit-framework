@@ -162,6 +162,21 @@ if [ -f "$PROJECT_ROOT/.claude/hooks/on-file-edit.sh" ]; then
     fi
 fi
 
+# ── Git permissions ───────────────────────────────────────────────────────────
+# A settings.json byte-identical to the one init-project.sh writes holds nothing
+# the project added, so it goes. Any other is the project's: the grant is named,
+# never edited out.
+
+if [ -f "$PROJECT_ROOT/.claude/settings.json" ]; then
+    if cmp -s "$PROJECT_ROOT/.claude/settings.json" "$FRAMEWORK_DIR/templates/settings.permissions.json"; then
+        rm "$PROJECT_ROOT/.claude/settings.json"
+        echo "  ✓  Removed .claude/settings.json (it held only the framework's git permissions)"
+    elif grep -qF '"Bash(git push)"' "$PROJECT_ROOT/.claude/settings.json"; then
+        echo "  ℹ  .claude/settings.json still grants git add, git commit and a bare git push —"
+        echo "     remove those allow rules if the project should no longer have them"
+    fi
+fi
+
 # ── Version marker ────────────────────────────────────────────────────────────
 
 if [ -f "$PROJECT_ROOT/.claude/.framework-version" ]; then

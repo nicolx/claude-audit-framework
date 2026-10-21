@@ -2,21 +2,25 @@
 # init-project.sh — Initialize claude-audit-framework in a project
 # Run from the project root after adding the submodule:
 #   git submodule add git@github.com:nicolx/claude-audit-framework.git .claude/framework
-#   bash .claude/framework/scripts/init-project.sh [--with-hooks]
+#   bash .claude/framework/scripts/init-project.sh [--with-hooks] [--no-git-permissions]
 #
-#   --with-hooks   also install the PostToolUse hook that runs fast per-file
-#                  checks after every edit. Opt-in: it changes how the harness
-#                  behaves, so it is never installed silently.
+#   --with-hooks          also install the PostToolUse hook that runs fast per-file
+#                         checks after every edit. Opt-in: it changes how the harness
+#                         behaves, so it is never installed silently.
+#   --no-git-permissions  do not grant `git add`, `git commit` and a bare `git push`
+#                         in .claude/settings.json — principle 25's default.
 #
 # Exit codes:  0 installed and conformant · 1 installed but not conformant · 2 cannot run
 
 set -euo pipefail
 
 WITH_HOOKS=0
+GIT_PERMISSIONS=1
 for arg in "$@"; do
     case "$arg" in
         --with-hooks) WITH_HOOKS=1 ;;
-        *) echo "❌ Unknown option: $arg"; echo "   Usage: init-project.sh [--with-hooks]"; exit 2 ;;
+        --no-git-permissions) GIT_PERMISSIONS=0 ;;
+        *) echo "❌ Unknown option: $arg"; echo "   Usage: init-project.sh [--with-hooks] [--no-git-permissions]"; exit 2 ;;
     esac
 done
 
@@ -164,19 +168,58 @@ if [ "$WITH_HOOKS" -eq 1 ]; then
         echo "  ✓  Created .claude/hooks/on-file-edit.sh (no checks enabled yet — edit it)"
     fi
 
-    if [ ! -f "$SETTINGS_FILE" ]; then
-        cp "$FRAMEWORK_DIR/templates/settings.hooks.json" "$SETTINGS_FILE"
-        echo "  ✓  Created .claude/settings.json with the PostToolUse hook"
-    elif grep -qF "on-file-edit.sh" "$SETTINGS_FILE"; then
-        echo "  ↩  .claude/settings.json already wires the hook (skipped)"
-    else
-        echo "  ⚠  .claude/settings.json exists — not modified, to avoid clobbering your settings."
-        echo "     Merge this into its \"hooks\" key (or run /hooks in Claude Code):"
-        echo ""
-        sed 's/^/       /' "$FRAMEWORK_DIR/templates/settings.hooks.json"
-        echo ""
-    fi
+    echo ""
+fi
 
+# ── Step 3c — Settings: git permissions (default) and the hook (opt-in) ──────
+# The permissions are principle 25's default and nothing wider: `git push` with
+# no arguments pushes the checked-out branch to its upstream, and no other push
+# form matches. A settings.json the project already has is never rewritten.
+
+SETTINGS_PARTS=""
+[ "$GIT_PERMISSIONS" -eq 1 ] && SETTINGS_PARTS="permissions"
+[ "$WITH_HOOKS" -eq 1 ] && SETTINGS_PARTS="$SETTINGS_PARTS hooks"
+
+settings_marker() {
+    case "$1" in
+        permissions) echo '"Bash(git push)"' ;;
+        hooks) echo 'on-file-edit.sh' ;;
+    esac
+}
+
+settings_label() {
+    case "$1" in
+        permissions) echo 'the git permissions (add, commit, bare push)' ;;
+        hooks) echo 'the PostToolUse hook' ;;
+    esac
+}
+
+if [ -n "$SETTINGS_PARTS" ]; then
+    if [ ! -f "$SETTINGS_FILE" ]; then
+        BODY=""
+        for part in $SETTINGS_PARTS; do
+            PART_BODY=$(sed '1d;$d' "$FRAMEWORK_DIR/templates/settings.$part.json")
+            BODY="$BODY${BODY:+,
+}$PART_BODY"
+        done
+        printf '{\n%s\n}\n' "$BODY" > "$SETTINGS_FILE.tmp"
+        mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+        for part in $SETTINGS_PARTS; do
+            echo "  ✓  Created .claude/settings.json with $(settings_label "$part")"
+        done
+    else
+        for part in $SETTINGS_PARTS; do
+            if grep -qF "$(settings_marker "$part")" "$SETTINGS_FILE"; then
+                echo "  ↩  .claude/settings.json already has $(settings_label "$part") (skipped)"
+            else
+                echo "  ⚠  .claude/settings.json exists — not modified, to avoid clobbering your settings."
+                echo "     Merge $(settings_label "$part") into it:"
+                echo ""
+                sed 's/^/       /' "$FRAMEWORK_DIR/templates/settings.$part.json"
+                echo ""
+            fi
+        done
+    fi
     echo ""
 fi
 

@@ -364,7 +364,9 @@ committing — not at session start:
 > by 10.15 and its shape is in `.claude/framework/templates/PROJECT_AUDIT_FRAMEWORK.md`.
 
 Then carry on within the default principle 25 states — commit and a non-force push of the
-checked-out branch, nothing further.
+checked-out branch, nothing further. Push it as a bare `git push`, no arguments and no redirection:
+that is the one push form `init-project.sh` grants in `.claude/settings.json`, and the one that
+cannot reach another ref.
 
 ### After it lands: removing what the change left behind
 

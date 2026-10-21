@@ -200,12 +200,31 @@ expect_absent "$PROJ/.claude/commands"
 expect_absent "$PROJ/.claude/agents"
 rm -rf "$PROJ"
 
-# ── Case 6 — hooks are opt-in ────────────────────────────────────────────────
+# ── Case 6 — hooks are opt-in, the git permissions are not ──────────────────
 
-new_case "Default install: no hook, no settings.json"
+new_case "Default install: no hook; settings.json grants add, commit and a bare push only"
 PROJ=$(new_project)
 (cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
 expect_absent "$PROJ/.claude/hooks"
+expect_grep "$PROJ/.claude/settings.json" '"Bash(git commit *)"' "commit is granted"
+expect_grep "$PROJ/.claude/settings.json" '"Bash(git push)"' "bare push is granted"
+expect_missing_line "$PROJ/.claude/settings.json" "git push *"
+expect_missing_line "$PROJ/.claude/settings.json" "on-file-edit.sh"
+cp "$PROJ/.claude/settings.json" "$PROJ/settings.before"
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh >/dev/null 2>&1)
+if cmp -s "$PROJ/settings.before" "$PROJ/.claude/settings.json"; then
+    pass "second run leaves settings.json unchanged"
+else
+    fail "second run changed settings.json"
+fi
+rm -f "$PROJ/settings.before"
+(cd "$PROJ" && bash .claude/framework/scripts/uninstall.sh >/dev/null 2>&1)
+expect_absent "$PROJ/.claude/settings.json"
+rm -rf "$PROJ"
+
+new_case "--no-git-permissions: no settings.json"
+PROJ=$(new_project)
+(cd "$PROJ" && bash .claude/framework/scripts/init-project.sh --no-git-permissions >/dev/null 2>&1)
 expect_absent "$PROJ/.claude/settings.json"
 rm -rf "$PROJ"
 
@@ -218,6 +237,14 @@ expect_file "$PROJ/.claude/hooks/on-file-edit.sh"
 expect_file "$PROJ/.claude/settings.json"
 expect_grep "$PROJ/.claude/settings.json" "on-file-edit.sh" "settings.json wires the hook"
 expect_grep "$PROJ/.claude/settings.json" "PostToolUse" "hook is on PostToolUse"
+expect_grep "$PROJ/.claude/settings.json" '"Bash(git push)"' "git permissions written beside the hook"
+if command -v python3 >/dev/null 2>&1; then
+    if python3 -m json.tool "$PROJ/.claude/settings.json" >/dev/null 2>&1; then
+        pass "combined settings.json is valid JSON"
+    else
+        fail "combined settings.json is not valid JSON"
+    fi
+fi
 if [ -x "$PROJ/.claude/hooks/on-file-edit.sh" ]; then
     pass "hook script is executable"
 else
@@ -247,6 +274,7 @@ printf '{\n  "env": { "PROJECT_OWNED": "keep me" }\n}\n' > "$PROJ/.claude/settin
 (cd "$PROJ" && bash .claude/framework/scripts/init-project.sh --with-hooks >/dev/null 2>&1)
 expect_grep "$PROJ/.claude/settings.json" "PROJECT_OWNED" "project settings preserved"
 expect_missing_line "$PROJ/.claude/settings.json" "on-file-edit.sh"
+expect_missing_line "$PROJ/.claude/settings.json" "git push"
 
 # ── Case 9 — uninstall removes the hook script ───────────────────────────────
 
