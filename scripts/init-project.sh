@@ -224,6 +224,10 @@ if [ ! -f "$HOME/.claude/context/user_profile.md" ]; then
 else
     echo "  ✓  Developer profile found (~/.claude/context/user_profile.md) — reused as is"
     echo "     It is per machine, not per project: this project needs no profile setup."
+    if ! grep -q '^## User-facing language' "$HOME/.claude/context/user_profile.md"; then
+        echo "  ⚠  The profile does not record the natural language you work in"
+        echo "     The next Claude Code session asks for it once; /competency-review also adds it."
+    fi
 fi
 
 echo ""

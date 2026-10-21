@@ -8,6 +8,38 @@ Because consumer projects load this framework into every Claude Code session, a 
 about *their* sessions: **major** means they must change something in their own project,
 **minor** adds criteria or commands, **patch** corrects and clarifies.
 
+## [1.38.0] — 2026-10-21
+
+1.37.0 made the profile's User-facing language the language of the conversation, but profiles
+written before 1.10.0 have no such section, and nothing asked for it. Those developers kept getting
+English.
+
+### Added
+
+- **The session asks for the missing language** — a profile without the User-facing language section
+  gets one question at the start of the session, and the section is written on confirmation with
+  the block `/init-profile` gives.
+- **`init-project.sh` reports it** — an existing profile without the section is named in the install
+  output, beside the line that reuses it. Case 38 of `test-install-cycle.sh` covers both directions.
+
+### Changed
+
+- **`/init-profile` asks the language first**, before the introduction, and runs the rest of the
+  questionnaire in it. The level names stay as they are.
+
+### Migration
+
+**Ask the developer for their language if the profile does not record it.** Check
+`~/.claude/context/user_profile.md` for a `## User-facing language` section on every machine that
+uses the framework. Where it is missing, any of these adds it: answer the question the next session
+asks, run `/competency-review`, or run `/init-profile` from scratch. Until it is there, sessions reply
+in the language the developer writes in.
+
+```bash
+cd .claude/framework && git fetch --tags && git checkout v1.38.0 && cd ../..
+bash .claude/framework/scripts/init-project.sh      # installs the updated commands, reports the profile
+```
+
 ## [1.37.0] — 2026-10-21
 
 The developer profile recorded the natural language a developer works in and then forbade using it

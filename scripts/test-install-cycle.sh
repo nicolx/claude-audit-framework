@@ -854,6 +854,26 @@ fi
 rm -f "$OUTFILE"
 rm -rf "$PROJ"
 
+new_case "A profile without a User-facing language section is reported, one with it is not"
+PROJ=$(new_project)
+FAKE_HOME=$(mktemp -d)
+mkdir -p "$FAKE_HOME/.claude/context"
+printf '# User profile\n\n## Languages\n' > "$FAKE_HOME/.claude/context/user_profile.md"
+OUT=$(cd "$PROJ" && HOME="$FAKE_HOME" bash .claude/framework/scripts/init-project.sh 2>&1)
+if printf '%s' "$OUT" | grep -q 'does not record the natural language'; then
+    pass "missing section reported"
+else
+    fail "missing section not reported"
+fi
+printf '\n## User-facing language\n' >> "$FAKE_HOME/.claude/context/user_profile.md"
+OUT=$(cd "$PROJ" && HOME="$FAKE_HOME" bash .claude/framework/scripts/init-project.sh 2>&1)
+if printf '%s' "$OUT" | grep -q 'does not record the natural language'; then
+    fail "reported although the section is present"
+else
+    pass "present section not reported"
+fi
+rm -rf "$PROJ" "$FAKE_HOME"
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo ""

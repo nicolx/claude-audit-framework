@@ -145,6 +145,8 @@ The profile's **User-facing language** section records the developer's primary n
 
 **It seeds the required locale set** a project declares for subcriteria 2.10.
 
+**If the profile exists without the section**, it predates it. Ask once, at the start of the session, in the language the developer writes in: *what natural language do you work in day to day, and which others do you read fluently?* Then propose writing the section with the block and disclaimer exactly as `/init-profile` gives them, and write it only when they confirm. Until they answer, reply in the language they write in.
+
 It does **not** change the language of anything written into the repository. Code, identifiers, comments, commit messages and documents follow principle 20, whatever language the conversation is in.
 
 **If the file does NOT exist:** mention it once at the start of the session — `> 💡 No developer profile found. Run /init-profile to enable skill-level calibration.` — then proceed normally without repeating it.

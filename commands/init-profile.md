@@ -31,9 +31,21 @@ If they say no, stop here. If yes, continue.
 
 ---
 
-## Step 2 — Introduction
+## Step 2 — Language, then introduction
 
-Tell the developer:
+Ask the language question first, in English, before anything else:
+
+> "Before we start, and this one isn't a level: what natural language do you work in day to day? I
+> will talk to you in it — in this questionnaire and in every session after it — and when a project
+> declares which languages its users are served in, I can tell you if yours is missing. It never
+> changes the language I write code, comments, commit messages or documents in — that stays English."
+
+Accept a second answer if they name other natural languages they read fluently. From the answer on,
+conduct the rest of the questionnaire in that language — the questions below are written in English
+and are rendered, not read out. The level names **Fluente**, **Operativo** and **Base** stay as they
+are: they are the profile's vocabulary.
+
+Then tell the developer:
 
 > "I'm going to ask you a few questions about your technical background. Answer honestly — this isn't a test, there are no wrong answers. The goal is to ensure that when I recommend solutions, I pitch them at the right level for you.
 >
@@ -58,9 +70,6 @@ Ask:
 
 1. "What is your primary role? (e.g., backend developer, fullstack, frontend, DevOps, architect, tech lead)"
 2. "What language or stack do you spend most of your time in?"
-3. "This one isn't a level: what natural language do you work in day to day? I will talk to you in it, and when a project declares which languages its users are served in, I can tell you if yours is missing. It never changes the language I write code, comments, commit messages or documents in — that stays English."
-
-Question 3 is not about skill — say so as you ask it, so it is not answered on the three-level scale. Accept a second answer if they name other natural languages they read fluently.
 
 ### Section B — Languages
 
